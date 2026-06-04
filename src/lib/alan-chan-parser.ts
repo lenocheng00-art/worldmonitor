@@ -2,6 +2,21 @@ export type AlanSignalCategory = "AI Infra" | "AI Labs" | "Space" | "Macro" | "P
 export type AlanSignalStatus = "Watching" | "Confirmed" | "Invalidated";
 export type AlanSignalPriority = "High" | "Medium" | "Low";
 export type AlanSignalConfidence = "High" | "Medium" | "Low";
+export type AlanSignalRiskLevel = "High" | "Medium" | "Low";
+
+export const alanSignalsStorageKey = "worldmonitor:alan-chan-signals";
+
+export type AlanEvidenceEntry = {
+  id: string;
+  date: string;
+  text: string;
+  statusAfter: AlanSignalStatus;
+};
+
+export type AlanMonitoringRule = {
+  confirmedIf: string;
+  invalidatedIf: string;
+};
 
 export type AlanSignal = {
   id: string;
@@ -17,6 +32,12 @@ export type AlanSignal = {
   createdDate: string;
   status: AlanSignalStatus;
   priority: AlanSignalPriority;
+  monitoringSources: string[];
+  latestUpdates: string[];
+  lastChecked: string;
+  evidenceLog: AlanEvidenceEntry[];
+  monitoringRule: AlanMonitoringRule;
+  riskLevel: AlanSignalRiskLevel;
 };
 
 type ParserRule = {
@@ -28,6 +49,11 @@ type ParserRule = {
   bullishCondition: string;
   bearishCondition: string;
   defaultHorizon: string;
+  monitoringSources: string[];
+  monitoringRule: AlanMonitoringRule;
+  confirmPatterns: RegExp[];
+  invalidatePatterns: RegExp[];
+  riskLevel: AlanSignalRiskLevel;
 };
 
 const parserRules: ParserRule[] = [
@@ -40,6 +66,14 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if TPU adoption expands while capex translates into cloud growth or margin durability.",
     bearishCondition: "Bearish if capex rises without visible AI revenue acceleration or if GPU dependency increases.",
     defaultHorizon: "6-18 months",
+    monitoringSources: ["Alphabet earnings", "Alphabet 10-Q/10-K", "Cloud capex guidance", "TPU deployment commentary"],
+    monitoringRule: {
+      confirmedIf: "Confirmed if capex guidance increases.",
+      invalidatedIf: "Invalidated if capex guidance declines.",
+    },
+    confirmPatterns: [/capex|capital expenditure/i, /increase|increases|raised|raises|higher|up|accelerat/i],
+    invalidatePatterns: [/capex|capital expenditure/i, /decline|declines|cut|cuts|lower|down|reduce|reduced/i],
+    riskLevel: "Medium",
   },
   {
     category: "AI Infra",
@@ -50,6 +84,14 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if custom ASIC orders broaden beyond one or two anchor customers.",
     bearishCondition: "Bearish if AI custom silicon growth slows or customer concentration becomes a larger risk.",
     defaultHorizon: "6-12 months",
+    monitoringSources: ["Broadcom earnings", "AI semiconductor backlog", "Hyperscaler custom ASIC reports"],
+    monitoringRule: {
+      confirmedIf: "Confirmed if AI ASIC backlog grows.",
+      invalidatedIf: "Invalidated if AI backlog shrinks.",
+    },
+    confirmPatterns: [/ai|asic|custom silicon|custom chip|backlog/i, /grow|grows|grew|increase|increases|record|higher/i],
+    invalidatePatterns: [/ai|asic|custom silicon|custom chip|backlog/i, /shrink|shrinks|decline|declines|lower|reduced|cut/i],
+    riskLevel: "Medium",
   },
   {
     category: "AI Infra",
@@ -60,6 +102,14 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if orders and margins rise with AI data center deployments.",
     bearishCondition: "Bearish if backlog conversion slows or cooling demand is pulled forward.",
     defaultHorizon: "3-12 months",
+    monitoringSources: ["Vertiv earnings", "Data center order backlog", "Liquid cooling deployments"],
+    monitoringRule: {
+      confirmedIf: "Confirmed if AI data center power/cooling orders or backlog grow.",
+      invalidatedIf: "Invalidated if orders slow or backlog conversion weakens.",
+    },
+    confirmPatterns: [/order|backlog|cooling|power|data center/i, /grow|increase|record|accelerat|margin/i],
+    invalidatePatterns: [/order|backlog|cooling|power|data center/i, /slow|decline|shrink|delay|margin pressure/i],
+    riskLevel: "Medium",
   },
   {
     category: "Macro",
@@ -70,6 +120,14 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if AI data center customers sign long-duration nuclear power contracts.",
     bearishCondition: "Bearish if regulators cap economics or data center power demand shifts away from nuclear.",
     defaultHorizon: "12-36 months",
+    monitoringSources: ["Constellation earnings", "Power purchase agreements", "Nuclear restart filings", "Data center energy deals"],
+    monitoringRule: {
+      confirmedIf: "Confirmed if nuclear power agreements with AI data center customers expand.",
+      invalidatedIf: "Invalidated if contracts stall, economics weaken, or regulators block upside.",
+    },
+    confirmPatterns: [/nuclear|power|ppa|agreement|data center/i, /sign|signed|expand|increase|restart|approved/i],
+    invalidatePatterns: [/nuclear|power|ppa|agreement|data center/i, /blocked|rejected|decline|delay|cancel|cap/i],
+    riskLevel: "High",
   },
   {
     category: "Space",
@@ -80,6 +138,14 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if filings or credible IPO preparation point to a near-term listing.",
     bearishCondition: "Bearish if management delays listing plans or private valuation resets lower.",
     defaultHorizon: "12-24 months",
+    monitoringSources: ["SEC EDGAR", "SpaceX tender reports", "Starlink separation reports", "IPO preparation reporting"],
+    monitoringRule: {
+      confirmedIf: "Confirmed if S-1 filing appears or IPO preparation is reported.",
+      invalidatedIf: "Invalidated if listing plans are delayed or credible reports deny IPO preparation.",
+    },
+    confirmPatterns: [/s-1|ipo|filing|public listing|preparation|preparing|banks|roadshow/i],
+    invalidatePatterns: [/delay|delayed|no ipo|not preparing|denies|postpone|postponed|valuation cut/i],
+    riskLevel: "High",
   },
   {
     category: "AI Labs",
@@ -90,6 +156,14 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if filings show durable revenue growth and manageable compute cost structure.",
     bearishCondition: "Bearish if filings reveal weak margins, heavy dependence on one platform, or delayed timing.",
     defaultHorizon: "12-24 months",
+    monitoringSources: ["SEC EDGAR", "Anthropic financing reports", "Cloud partner disclosures", "IPO preparation reporting"],
+    monitoringRule: {
+      confirmedIf: "Confirmed if S-1 filing appears.",
+      invalidatedIf: "Invalidated if IPO timing is delayed or filing reports are credibly denied.",
+    },
+    confirmPatterns: [/s-1|filing|ipo|public listing/i],
+    invalidatePatterns: [/delay|delayed|no ipo|not filing|denies|postpone|postponed/i],
+    riskLevel: "High",
   },
   {
     category: "AI Labs",
@@ -100,6 +174,14 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if IPO preparation coincides with strong enterprise revenue and improving unit economics.",
     bearishCondition: "Bearish if governance, compute costs, or regulatory pressure delay public-market readiness.",
     defaultHorizon: "12-36 months",
+    monitoringSources: ["OpenAI corporate updates", "IPO preparation reporting", "Revenue run-rate reports", "Cloud compute commitments"],
+    monitoringRule: {
+      confirmedIf: "Confirmed if S-1 filing appears or credible IPO preparation is reported.",
+      invalidatedIf: "Invalidated if governance, compute cost, or regulatory issues delay IPO timing.",
+    },
+    confirmPatterns: [/s-1|filing|ipo|public listing|preparation|preparing/i],
+    invalidatePatterns: [/delay|delayed|governance|regulatory|compute cost|postpone|postponed/i],
+    riskLevel: "High",
   },
   {
     category: "Polymarket",
@@ -110,6 +192,14 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if odds move with rising liquidity and corroborating external evidence.",
     bearishCondition: "Bearish if odds move on thin volume or resolution criteria weaken the signal.",
     defaultHorizon: "Event-driven",
+    monitoringSources: ["Polymarket market page", "Resolution criteria", "Liquidity and volume changes", "External catalyst reports"],
+    monitoringRule: {
+      confirmedIf: "Confirmed if odds move with stronger liquidity and corroborating external evidence.",
+      invalidatedIf: "Invalidated if odds reverse on strong liquidity or resolution criteria undermine the thesis.",
+    },
+    confirmPatterns: [/odds|probability|liquidity|volume/i, /increase|rises|higher|confirmed|corroborat/i],
+    invalidatePatterns: [/odds|probability|liquidity|volume|criteria/i, /reverse|falls|lower|thin|weak|invalid/i],
+    riskLevel: "Medium",
   },
 ];
 
@@ -147,6 +237,12 @@ export function extractAlanSignals(input: string, now = new Date()): AlanSignal[
       createdDate,
       status: "Watching",
       priority: priorityFromConfidence(confidence),
+      monitoringSources: rule.monitoringSources,
+      latestUpdates: [],
+      lastChecked: createdDate,
+      evidenceLog: [],
+      monitoringRule: rule.monitoringRule,
+      riskLevel: rule.riskLevel,
     });
   }
 
@@ -169,8 +265,111 @@ export function extractAlanSignals(input: string, now = new Date()): AlanSignal[
       createdDate,
       status: "Watching",
       priority: "Low",
+      monitoringSources: ["Manual review"],
+      latestUpdates: [],
+      lastChecked: createdDate,
+      evidenceLog: [],
+      monitoringRule: {
+        confirmedIf: "Confirmed when a concrete observable trigger supports the thesis.",
+        invalidatedIf: "Invalidated when a concrete observable trigger breaks the thesis.",
+      },
+      riskLevel: "High",
     },
   ];
+}
+
+export function normalizeAlanSignal(signal: Partial<AlanSignal>): AlanSignal {
+  const entity = signal.entity ?? "Unclassified";
+  const rule = findRuleForEntity(entity);
+  const createdDate = signal.createdDate ?? new Date().toISOString();
+
+  return {
+    id: signal.id ?? createSignalId(entity),
+    category: signal.category ?? rule?.category ?? "Other",
+    entity,
+    thesis: signal.thesis ?? "Review signal thesis.",
+    observableTrigger: signal.observableTrigger ?? rule?.observableTrigger ?? "Define observable trigger.",
+    bullishCondition: signal.bullishCondition ?? rule?.bullishCondition ?? "Define bullish condition.",
+    bearishCondition: signal.bearishCondition ?? rule?.bearishCondition ?? "Define bearish condition.",
+    timeHorizon: signal.timeHorizon ?? rule?.defaultHorizon ?? "Unspecified",
+    confidence: signal.confidence ?? "Low",
+    sourceExcerpt: signal.sourceExcerpt ?? "",
+    createdDate,
+    status: signal.status ?? "Watching",
+    priority: signal.priority ?? "Low",
+    monitoringSources: signal.monitoringSources ?? rule?.monitoringSources ?? ["Manual review"],
+    latestUpdates: signal.latestUpdates ?? [],
+    lastChecked: signal.lastChecked ?? createdDate,
+    evidenceLog: signal.evidenceLog ?? [],
+    monitoringRule: signal.monitoringRule ??
+      rule?.monitoringRule ?? {
+        confirmedIf: "Confirmed when new evidence supports the thesis.",
+        invalidatedIf: "Invalidated when new evidence breaks the thesis.",
+      },
+    riskLevel: signal.riskLevel ?? rule?.riskLevel ?? "High",
+  };
+}
+
+export function evaluateSignalUpdate(signal: AlanSignal, update: string, now = new Date()): AlanSignal {
+  const normalizedUpdate = update.trim();
+
+  if (!normalizedUpdate) {
+    return {
+      ...signal,
+      lastChecked: now.toISOString(),
+    };
+  }
+
+  const rule = findRuleForEntity(signal.entity);
+  const status = evaluateStatus(normalizedUpdate, rule) ?? signal.status;
+  const date = now.toISOString();
+
+  return {
+    ...signal,
+    status,
+    lastChecked: date,
+    latestUpdates: [truncateExcerpt(normalizedUpdate), ...signal.latestUpdates].slice(0, 5),
+    evidenceLog: [
+      {
+        id: createSignalId("evidence"),
+        date,
+        text: truncateExcerpt(normalizedUpdate),
+        statusAfter: status,
+      },
+      ...signal.evidenceLog,
+    ].slice(0, 20),
+  };
+}
+
+function findRuleForEntity(entity: string) {
+  return parserRules.find((rule) => rule.entity.toLowerCase() === entity.toLowerCase());
+}
+
+function evaluateStatus(update: string, rule: ParserRule | undefined): AlanSignalStatus | undefined {
+  if (!rule) {
+    if (/confirm|confirmed|valid|validated/i.test(update)) {
+      return "Confirmed";
+    }
+
+    if (/invalid|invalidated|broken|failed/i.test(update)) {
+      return "Invalidated";
+    }
+
+    return undefined;
+  }
+
+  const confirmed = rule.confirmPatterns.every((pattern) => pattern.test(update));
+  const invalidated = rule.invalidatePatterns.every((pattern) => pattern.test(update));
+
+  if (confirmed) {
+    return "Confirmed";
+  }
+
+  if (invalidated) {
+    return "Invalidated";
+  }
+
+  return undefined;
 }
 
 function splitIntoSignalChunks(input: string) {

@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { BarChart3, Building2, Cpu, LayoutDashboard, Newspaper, Orbit, RadioTower, TrendingUp } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  Building2,
+  Cpu,
+  LayoutDashboard,
+  Newspaper,
+  Orbit,
+  RadioTower,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -9,6 +19,7 @@ const navItems = [
   { href: "/space", label: "Space", icon: Orbit },
   { href: "/macro", label: "Macro", icon: TrendingUp },
   { href: "/alan-chan", label: "Alan Chan Signals", icon: RadioTower },
+  { href: "/signal-monitor", label: "Signal Monitor", icon: Activity },
   { href: "/news", label: "News", icon: Newspaper },
 ];
 

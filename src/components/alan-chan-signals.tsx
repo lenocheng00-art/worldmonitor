@@ -1,20 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ClipboardList, Edit3, Save, Search, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, ClipboardList, Edit3, History, Save, Search, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  alanSignalsStorageKey,
+  evaluateSignalUpdate,
   extractAlanSignals,
+  normalizeAlanSignal,
   type AlanSignal,
   type AlanSignalCategory,
   type AlanSignalPriority,
   type AlanSignalStatus,
 } from "@/lib/alan-chan-parser";
 import { cn } from "@/lib/utils";
-
-const storageKey = "worldmonitor:alan-chan-signals";
 
 const categories: Array<AlanSignalCategory | "All"> = [
   "All",
@@ -54,22 +55,22 @@ export function AlanChanSignals() {
   const [priorityFilter, setPriorityFilter] = useState<AlanSignalPriority | "All">("All");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey);
+    const stored = window.localStorage.getItem(alanSignalsStorageKey);
 
     if (!stored) {
       return;
     }
 
     try {
-      const parsed = JSON.parse(stored) as AlanSignal[];
-      setSignals(parsed);
+      const parsed = JSON.parse(stored) as Partial<AlanSignal>[];
+      setSignals(parsed.map((signal) => normalizeAlanSignal(signal)));
     } catch {
-      window.localStorage.removeItem(storageKey);
+      window.localStorage.removeItem(alanSignalsStorageKey);
     }
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(signals));
+    window.localStorage.setItem(alanSignalsStorageKey, JSON.stringify(signals));
   }, [signals]);
 
   const entities = useMemo(() => {
@@ -104,6 +105,12 @@ export function AlanChanSignals() {
 
   function updateSignal(id: string, patch: Partial<AlanSignal>) {
     setSignals((current) => current.map((signal) => (signal.id === id ? { ...signal, ...patch } : signal)));
+  }
+
+  function addMonitorUpdate(id: string, update: string) {
+    setSignals((current) =>
+      current.map((signal) => (signal.id === id ? evaluateSignalUpdate(signal, update) : signal)),
+    );
   }
 
   function deleteSignal(id: string) {
@@ -182,6 +189,7 @@ export function AlanChanSignals() {
                 onSave={() => setEditingId(null)}
                 onDelete={() => deleteSignal(signal.id)}
                 onChange={(patch) => updateSignal(signal.id, patch)}
+                onMonitorUpdate={(update) => addMonitorUpdate(signal.id, update)}
               />
             ))}
           </div>
@@ -237,6 +245,7 @@ function SignalEditorCard({
   onSave,
   onDelete,
   onChange,
+  onMonitorUpdate,
 }: {
   signal: AlanSignal;
   editing: boolean;
@@ -244,7 +253,15 @@ function SignalEditorCard({
   onSave: () => void;
   onDelete: () => void;
   onChange: (patch: Partial<AlanSignal>) => void;
+  onMonitorUpdate: (update: string) => void;
 }) {
+  const [monitorUpdate, setMonitorUpdate] = useState("");
+
+  function handleMonitorUpdate() {
+    onMonitorUpdate(monitorUpdate);
+    setMonitorUpdate("");
+  }
+
   return (
     <Card className={cn("overflow-hidden", signal.status === "Invalidated" && "opacity-75")}>
       <CardHeader className="pb-3">
@@ -297,8 +314,28 @@ function SignalEditorCard({
           <ReadOnlySignal signal={signal} />
         )}
 
+        <div className="rounded-md border bg-background p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <History className="size-4" />
+            Monitoring Update
+          </div>
+          <textarea
+            value={monitorUpdate}
+            onChange={(event) => setMonitorUpdate(event.target.value)}
+            placeholder="Paste a new update or evidence note. Matching rules will move this signal to Confirmed or Invalidated when triggered."
+            className="min-h-24 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <div className="mt-2 flex justify-end">
+            <Button type="button" size="sm" onClick={handleMonitorUpdate} disabled={!monitorUpdate.trim()}>
+              Apply Update
+            </Button>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs text-muted-foreground">Created {formatDate(signal.createdDate)}</div>
+          <div className="text-xs text-muted-foreground">
+            Created {formatDate(signal.createdDate)} · Last checked {formatDate(signal.lastChecked)}
+          </div>
           <div className="flex gap-2">
             {editing ? (
               <Button type="button" size="sm" onClick={onSave}>
@@ -351,6 +388,34 @@ function EditableSignalForm({
           onChange={(value) => onChange({ priority: value as AlanSignalPriority })}
         />
       </div>
+      <EditableText
+        label="Risk level"
+        value={signal.riskLevel}
+        rows={1}
+        onChange={(value) => onChange({ riskLevel: coerceRiskLevel(value) })}
+      />
+      <EditableText
+        label="Monitoring sources"
+        value={signal.monitoringSources.join("\n")}
+        onChange={(value) =>
+          onChange({
+            monitoringSources: value
+              .split("\n")
+              .map((source) => source.trim())
+              .filter(Boolean),
+          })
+        }
+      />
+      <EditableText
+        label="Confirmed rule"
+        value={signal.monitoringRule.confirmedIf}
+        onChange={(value) => onChange({ monitoringRule: { ...signal.monitoringRule, confirmedIf: value } })}
+      />
+      <EditableText
+        label="Invalidated rule"
+        value={signal.monitoringRule.invalidatedIf}
+        onChange={(value) => onChange({ monitoringRule: { ...signal.monitoringRule, invalidatedIf: value } })}
+      />
       <EditableText label="Thesis" value={signal.thesis} onChange={(value) => onChange({ thesis: value })} />
       <EditableText
         label="Observable trigger"
@@ -416,12 +481,70 @@ function ReadOnlySignal({ signal }: { signal: AlanSignal }) {
         <SignalField label="Bullish condition" value={signal.bullishCondition} />
         <SignalField label="Bearish condition" value={signal.bearishCondition} />
       </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <SignalField label="Signal status" value={signal.status} />
+        <SignalField label="Risk level" value={signal.riskLevel} />
+      </div>
+      <div className="rounded-md border bg-muted/45 p-3">
+        <div className="mb-2 text-xs font-medium text-muted-foreground">Monitoring sources</div>
+        <div className="flex flex-wrap gap-2">
+          {signal.monitoringSources.map((source) => (
+            <Badge key={source} variant="outline">
+              {source}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <SignalField label="Confirmed rule" value={signal.monitoringRule.confirmedIf} />
+        <SignalField label="Invalidated rule" value={signal.monitoringRule.invalidatedIf} />
+      </div>
+      <div className="rounded-md border bg-muted/45 p-3">
+        <div className="mb-1 text-xs font-medium text-muted-foreground">Latest updates</div>
+        {signal.latestUpdates.length ? (
+          <ul className="space-y-2">
+            {signal.latestUpdates.map((update) => (
+              <li key={update} className="text-sm leading-6">
+                {update}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">No monitoring updates logged yet.</p>
+        )}
+      </div>
+      <div className="rounded-md border bg-muted/45 p-3">
+        <div className="mb-1 text-xs font-medium text-muted-foreground">Evidence log</div>
+        {signal.evidenceLog.length ? (
+          <div className="space-y-3">
+            {signal.evidenceLog.slice(0, 3).map((entry) => (
+              <div key={entry.id} className="border-b pb-3 last:border-0 last:pb-0">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <Badge variant={badgeByStatus[entry.statusAfter]}>{entry.statusAfter}</Badge>
+                  <span className="text-xs text-muted-foreground">{formatDate(entry.date)}</span>
+                </div>
+                <p className="text-sm leading-6">{entry.text}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No evidence logged yet.</p>
+        )}
+      </div>
       <div className="rounded-md border bg-muted/45 p-3">
         <div className="mb-1 text-xs font-medium text-muted-foreground">Source text excerpt</div>
         <p className="text-sm leading-6">{signal.sourceExcerpt}</p>
       </div>
     </div>
   );
+}
+
+function coerceRiskLevel(value: string) {
+  if (value === "High" || value === "Medium" || value === "Low") {
+    return value;
+  }
+
+  return "Medium";
 }
 
 function SignalField({ label, value }: { label: string; value: string }) {
