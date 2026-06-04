@@ -7,7 +7,7 @@ export default function AiLabsPage() {
     <CompanyPage
       eyebrow="Frontier model labs"
       title="AI Labs"
-      description="Mock operating indicators for OpenAI, Anthropic, xAI, and DeepSeek."
+      description="Private operating indicators for OpenAI, Anthropic, xAI, and DeepSeek."
       icon={Building2}
       items={marketGroups.aiLabs}
     />

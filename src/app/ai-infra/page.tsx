@@ -1,8 +1,12 @@
 import { Cpu } from "lucide-react";
 import { CompanyPage } from "@/components/company-page";
-import { marketGroups } from "@/lib/data";
+import { getLiveMarketData } from "@/lib/yahoo-finance";
 
-export default function AiInfraPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AiInfraPage() {
+  const { marketGroups } = await getLiveMarketData();
+
   return (
     <CompanyPage
       eyebrow="AI compute supply chain"

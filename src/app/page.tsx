@@ -3,9 +3,14 @@ import { DashboardSection } from "@/components/dashboard-section";
 import { NewsFeed } from "@/components/news-feed";
 import { PageHeader } from "@/components/page-header";
 import { SignalCard } from "@/components/signal-card";
-import { marketGroups, newsItems, overviewStats } from "@/lib/data";
+import { newsItems } from "@/lib/data";
+import { getLiveMarketData } from "@/lib/yahoo-finance";
 
-export default function DashboardPage() {
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const { marketGroups, overviewStats } = await getLiveMarketData();
+
   return (
     <div className="space-y-8">
       <PageHeader

@@ -1,8 +1,12 @@
 import { Orbit } from "lucide-react";
 import { CompanyPage } from "@/components/company-page";
-import { marketGroups } from "@/lib/data";
+import { getLiveMarketData } from "@/lib/yahoo-finance";
 
-export default function SpacePage() {
+export const dynamic = "force-dynamic";
+
+export default async function SpacePage() {
+  const { marketGroups } = await getLiveMarketData();
+
   return (
     <CompanyPage
       eyebrow="Launch and orbital networks"

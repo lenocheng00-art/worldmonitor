@@ -3,6 +3,7 @@ export type Trend = "up" | "down" | "flat";
 export type SignalItem = {
   name: string;
   ticker?: string;
+  yahooSymbol?: string;
   value: string;
   change: string;
   trend: Trend;
@@ -28,8 +29,9 @@ export const marketGroups = {
     {
       name: "Nvidia",
       ticker: "NVDA",
-      value: "$1,182.40",
-      change: "+2.8%",
+      yahooSymbol: "NVDA",
+      value: "Unavailable",
+      change: "No quote",
       trend: "up",
       status: "Constructive",
       description: "Data center GPU demand remains the core growth driver.",
@@ -42,8 +44,9 @@ export const marketGroups = {
     {
       name: "AMD",
       ticker: "AMD",
-      value: "$168.12",
-      change: "+1.1%",
+      yahooSymbol: "AMD",
+      value: "Unavailable",
+      change: "No quote",
       trend: "up",
       status: "Watch",
       description: "MI300 ramp execution is the key near-term catalyst.",
@@ -56,8 +59,9 @@ export const marketGroups = {
     {
       name: "Broadcom",
       ticker: "AVGO",
-      value: "$1,436.50",
-      change: "+0.6%",
+      yahooSymbol: "AVGO",
+      value: "Unavailable",
+      change: "No quote",
       trend: "up",
       status: "Constructive",
       description: "Custom silicon and networking exposure support AI infrastructure demand.",
@@ -70,8 +74,9 @@ export const marketGroups = {
     {
       name: "TSMC",
       ticker: "TSM",
-      value: "$169.88",
-      change: "-0.4%",
+      yahooSymbol: "TSM",
+      value: "Unavailable",
+      change: "No quote",
       trend: "down",
       status: "Elevated",
       description: "Advanced packaging capacity and geopolitical exposure remain central variables.",
@@ -166,8 +171,9 @@ export const marketGroups = {
     {
       name: "Rocket Lab",
       ticker: "RKLB",
-      value: "$5.62",
-      change: "-1.7%",
+      yahooSymbol: "RKLB",
+      value: "Unavailable",
+      change: "No quote",
       trend: "down",
       status: "Watch",
       description: "Neutron progress and mission backlog determine investor confidence.",
@@ -181,8 +187,10 @@ export const marketGroups = {
   macro: [
     {
       name: "DXY",
-      value: "104.21",
-      change: "+0.2%",
+      ticker: "^DX-Y.NYB",
+      yahooSymbol: "^DX-Y.NYB",
+      value: "Unavailable",
+      change: "No quote",
       trend: "up",
       status: "Neutral",
       description: "Dollar strength shapes global liquidity and risk asset appetite.",
@@ -194,8 +202,10 @@ export const marketGroups = {
     },
     {
       name: "US10Y",
-      value: "4.42%",
-      change: "-5 bps",
+      ticker: "^TNX",
+      yahooSymbol: "^TNX",
+      value: "Unavailable",
+      change: "No quote",
       trend: "down",
       status: "Watch",
       description: "Long rates remain a key constraint on growth multiples.",
@@ -207,8 +217,10 @@ export const marketGroups = {
     },
     {
       name: "Gold",
-      value: "$2,342",
-      change: "+0.9%",
+      ticker: "GC=F",
+      yahooSymbol: "GC=F",
+      value: "Unavailable",
+      change: "No quote",
       trend: "up",
       status: "Constructive",
       description: "Reserve demand and rate expectations support precious metals.",
@@ -220,8 +232,10 @@ export const marketGroups = {
     },
     {
       name: "WTI Oil",
-      value: "$78.60",
-      change: "-1.2%",
+      ticker: "CL=F",
+      yahooSymbol: "CL=F",
+      value: "Unavailable",
+      change: "No quote",
       trend: "down",
       status: "Neutral",
       description: "Supply discipline and demand uncertainty keep crude range-bound.",
@@ -237,11 +251,11 @@ export const marketGroups = {
 export const overviewStats: SignalItem[] = [
   {
     name: "AI Infra Composite",
-    value: "+1.4%",
-    change: "3 of 4 up",
+    value: "Live",
+    change: "Yahoo quotes",
     trend: "up",
     status: "Constructive",
-    description: "Compute supply chain breadth is positive in the mock tape.",
+    description: "Compute supply chain breadth is calculated from live Yahoo Finance quotes.",
     metrics: [
       { label: "Leaders", value: "NVDA, AVGO" },
       { label: "Lag", value: "TSMC" },
@@ -251,7 +265,7 @@ export const overviewStats: SignalItem[] = [
   {
     name: "AI Labs Momentum",
     value: "+12%",
-    change: "Mock growth",
+    change: "Private growth",
     trend: "up",
     status: "Constructive",
     description: "Frontier lab demand remains strong across enterprise and developer channels.",
