@@ -1,5 +1,6 @@
 import { Building2, Cpu, Newspaper, Orbit, TrendingUp } from "lucide-react";
 import { DashboardSection } from "@/components/dashboard-section";
+import { MarketKline } from "@/components/market-kline";
 import { NewsFeed } from "@/components/news-feed";
 import { PageHeader } from "@/components/page-header";
 import { SignalCard } from "@/components/signal-card";
@@ -24,6 +25,8 @@ export default async function DashboardPage() {
           <SignalCard key={stat.name} item={stat} />
         ))}
       </section>
+
+      <MarketKline />
 
       <DashboardSection
         title="AI Infra"
@@ -63,8 +66,8 @@ export default async function DashboardPage() {
             <Newspaper className="size-4" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold tracking-normal">News Feed</h2>
-            <p className="text-sm text-muted-foreground">Latest AI and space headlines from mock sources.</p>
+            <h2 className="text-xl font-semibold tracking-normal">News Intelligence</h2>
+            <p className="text-sm text-muted-foreground">Breaking context, catalysts, and signal-ranked market notes.</p>
           </div>
         </div>
         <NewsFeed items={newsItems.slice(0, 6)} />

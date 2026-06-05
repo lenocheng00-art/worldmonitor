@@ -22,6 +22,7 @@ export type NewsItem = {
   source: string;
   publishedAt: string;
   summary: string;
+  url?: string;
 };
 
 export const marketGroups = {
