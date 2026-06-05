@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   alanSignalsStorageKey,
+  clearEvidenceQueue,
   evaluateSignalUpdate,
   normalizeAlanSignal,
   type AlanSignal,
@@ -80,6 +81,10 @@ export function SignalMonitor() {
     );
   }
 
+  function clearQueue(id: string) {
+    setSignals((current) => current.map((signal) => (signal.id === id ? clearEvidenceQueue(signal) : signal)));
+  }
+
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-3">
@@ -141,19 +146,59 @@ export function SignalMonitor() {
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
+                    <MonitorList label="Latest News" values={signal.latestNews} emptyText="No news evidence yet." />
+                    <MonitorList
+                      label="Latest Market Data"
+                      values={signal.latestMarketData}
+                      emptyText="No market data evidence yet."
+                    />
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
                     <MonitorField label="Confirmed rule" value={signal.monitoringRule.confirmedIf} />
                     <MonitorField label="Invalidated rule" value={signal.monitoringRule.invalidatedIf} />
                   </div>
 
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <BadgeList label="Monitoring Sources" values={signal.monitoringSources} />
+                    <BadgeList label="Source Mappings" values={signal.sourceMappings} />
+                  </div>
+
                   <div className="rounded-md border bg-muted/45 p-3">
-                    <div className="mb-2 text-xs font-medium text-muted-foreground">Monitoring sources</div>
-                    <div className="flex flex-wrap gap-2">
-                      {signal.monitoringSources.map((source) => (
-                        <Badge key={source} variant="outline">
-                          {source}
-                        </Badge>
-                      ))}
+                    <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-xs font-medium text-muted-foreground">Evidence Queue</div>
+                        <div className="text-xs text-muted-foreground">
+                          {signal.evidenceQueue.length} queued evidence items.
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => clearQueue(signal.id)}
+                        disabled={!signal.evidenceQueue.length}
+                      >
+                        Clear Queue
+                      </Button>
                     </div>
+                    {signal.evidenceQueue.length ? (
+                      <div className="space-y-3">
+                        {signal.evidenceQueue.slice(0, 3).map((entry) => (
+                          <div key={entry.id} className="border-b pb-3 last:border-0 last:pb-0">
+                            <div className="mb-1 flex flex-wrap items-center gap-2">
+                              <Badge variant="outline">{entry.sourceType}</Badge>
+                              <Badge variant={badgeByStatus[entry.statusAfter]}>{entry.statusAfter}</Badge>
+                              <Badge variant={badgeByRisk[entry.riskAfter]}>{entry.riskAfter} risk</Badge>
+                              <span className="text-xs text-muted-foreground">{formatDate(entry.date)}</span>
+                            </div>
+                            <p className="text-sm leading-6">{entry.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No queued evidence.</p>
+                    )}
                   </div>
 
                   <div className="rounded-md border bg-background p-3">
@@ -224,6 +269,40 @@ function MonitorField({ label, value }: { label: string; value: string }) {
     <div>
       <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
       <p className="text-sm leading-6">{value}</p>
+    </div>
+  );
+}
+
+function MonitorList({ label, values, emptyText }: { label: string; values: string[]; emptyText: string }) {
+  return (
+    <div className="rounded-md border bg-muted/45 p-3">
+      <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
+      {values.length ? (
+        <ul className="space-y-2">
+          {values.slice(0, 3).map((value) => (
+            <li key={value} className="text-sm leading-6">
+              {value}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">{emptyText}</p>
+      )}
+    </div>
+  );
+}
+
+function BadgeList({ label, values }: { label: string; values: string[] }) {
+  return (
+    <div className="rounded-md border bg-muted/45 p-3">
+      <div className="mb-2 text-xs font-medium text-muted-foreground">{label}</div>
+      <div className="flex flex-wrap gap-2">
+        {values.map((value) => (
+          <Badge key={value} variant="outline">
+            {value}
+          </Badge>
+        ))}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ export type AlanSignalStatus = "Watching" | "Confirmed" | "Invalidated";
 export type AlanSignalPriority = "High" | "Medium" | "Low";
 export type AlanSignalConfidence = "High" | "Medium" | "Low";
 export type AlanSignalRiskLevel = "High" | "Medium" | "Low";
+export type AlanEvidenceType = "Earnings" | "Filing" | "News" | "Market Data" | "Other";
 
 export const alanSignalsStorageKey = "worldmonitor:alan-chan-signals";
 
@@ -10,7 +11,10 @@ export type AlanEvidenceEntry = {
   id: string;
   date: string;
   text: string;
+  sourceType: AlanEvidenceType;
   statusAfter: AlanSignalStatus;
+  confidenceAfter: AlanSignalConfidence;
+  riskAfter: AlanSignalRiskLevel;
 };
 
 export type AlanMonitoringRule = {
@@ -33,9 +37,13 @@ export type AlanSignal = {
   status: AlanSignalStatus;
   priority: AlanSignalPriority;
   monitoringSources: string[];
+  sourceMappings: string[];
   latestUpdates: string[];
+  latestNews: string[];
+  latestMarketData: string[];
   lastChecked: string;
   evidenceLog: AlanEvidenceEntry[];
+  evidenceQueue: AlanEvidenceEntry[];
   monitoringRule: AlanMonitoringRule;
   riskLevel: AlanSignalRiskLevel;
 };
@@ -50,6 +58,7 @@ type ParserRule = {
   bearishCondition: string;
   defaultHorizon: string;
   monitoringSources: string[];
+  sourceMappings: string[];
   monitoringRule: AlanMonitoringRule;
   confirmPatterns: RegExp[];
   invalidatePatterns: RegExp[];
@@ -66,7 +75,8 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if TPU adoption expands while capex translates into cloud growth or margin durability.",
     bearishCondition: "Bearish if capex rises without visible AI revenue acceleration or if GPU dependency increases.",
     defaultHorizon: "6-18 months",
-    monitoringSources: ["Alphabet earnings", "Alphabet 10-Q/10-K", "Cloud capex guidance", "TPU deployment commentary"],
+    monitoringSources: ["GOOG earnings", "Capex guidance"],
+    sourceMappings: ["Google Capex -> GOOG earnings", "Google Capex -> capex guidance"],
     monitoringRule: {
       confirmedIf: "Confirmed if capex guidance increases.",
       invalidatedIf: "Invalidated if capex guidance declines.",
@@ -84,7 +94,8 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if custom ASIC orders broaden beyond one or two anchor customers.",
     bearishCondition: "Bearish if AI custom silicon growth slows or customer concentration becomes a larger risk.",
     defaultHorizon: "6-12 months",
-    monitoringSources: ["Broadcom earnings", "AI semiconductor backlog", "Hyperscaler custom ASIC reports"],
+    monitoringSources: ["AVGO earnings", "AI backlog"],
+    sourceMappings: ["Broadcom ASIC -> AVGO earnings", "Broadcom ASIC -> AI backlog"],
     monitoringRule: {
       confirmedIf: "Confirmed if AI ASIC backlog grows.",
       invalidatedIf: "Invalidated if AI backlog shrinks.",
@@ -102,7 +113,8 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if orders and margins rise with AI data center deployments.",
     bearishCondition: "Bearish if backlog conversion slows or cooling demand is pulled forward.",
     defaultHorizon: "3-12 months",
-    monitoringSources: ["Vertiv earnings", "Data center order backlog", "Liquid cooling deployments"],
+    monitoringSources: ["VRT earnings", "Backlog"],
+    sourceMappings: ["Vertiv -> VRT earnings", "Vertiv -> backlog"],
     monitoringRule: {
       confirmedIf: "Confirmed if AI data center power/cooling orders or backlog grow.",
       invalidatedIf: "Invalidated if orders slow or backlog conversion weakens.",
@@ -121,6 +133,11 @@ const parserRules: ParserRule[] = [
     bearishCondition: "Bearish if regulators cap economics or data center power demand shifts away from nuclear.",
     defaultHorizon: "12-36 months",
     monitoringSources: ["Constellation earnings", "Power purchase agreements", "Nuclear restart filings", "Data center energy deals"],
+    sourceMappings: [
+      "Constellation Energy -> earnings",
+      "Constellation Energy -> nuclear power agreements",
+      "Constellation Energy -> data center energy demand",
+    ],
     monitoringRule: {
       confirmedIf: "Confirmed if nuclear power agreements with AI data center customers expand.",
       invalidatedIf: "Invalidated if contracts stall, economics weaken, or regulators block upside.",
@@ -138,7 +155,8 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if filings or credible IPO preparation point to a near-term listing.",
     bearishCondition: "Bearish if management delays listing plans or private valuation resets lower.",
     defaultHorizon: "12-24 months",
-    monitoringSources: ["SEC EDGAR", "SpaceX tender reports", "Starlink separation reports", "IPO preparation reporting"],
+    monitoringSources: ["IPO", "S-1", "Tender offer"],
+    sourceMappings: ["SpaceX IPO -> IPO", "SpaceX IPO -> S-1", "SpaceX IPO -> tender offer"],
     monitoringRule: {
       confirmedIf: "Confirmed if S-1 filing appears or IPO preparation is reported.",
       invalidatedIf: "Invalidated if listing plans are delayed or credible reports deny IPO preparation.",
@@ -156,7 +174,8 @@ const parserRules: ParserRule[] = [
     bullishCondition: "Bullish if filings show durable revenue growth and manageable compute cost structure.",
     bearishCondition: "Bearish if filings reveal weak margins, heavy dependence on one platform, or delayed timing.",
     defaultHorizon: "12-24 months",
-    monitoringSources: ["SEC EDGAR", "Anthropic financing reports", "Cloud partner disclosures", "IPO preparation reporting"],
+    monitoringSources: ["S-1", "Fundraising", "IPO"],
+    sourceMappings: ["Anthropic IPO -> S-1", "Anthropic IPO -> fundraising", "Anthropic IPO -> IPO"],
     monitoringRule: {
       confirmedIf: "Confirmed if S-1 filing appears.",
       invalidatedIf: "Invalidated if IPO timing is delayed or filing reports are credibly denied.",
@@ -175,6 +194,7 @@ const parserRules: ParserRule[] = [
     bearishCondition: "Bearish if governance, compute costs, or regulatory pressure delay public-market readiness.",
     defaultHorizon: "12-36 months",
     monitoringSources: ["OpenAI corporate updates", "IPO preparation reporting", "Revenue run-rate reports", "Cloud compute commitments"],
+    sourceMappings: ["OpenAI IPO -> IPO", "OpenAI IPO -> S-1", "OpenAI IPO -> preparation reports"],
     monitoringRule: {
       confirmedIf: "Confirmed if S-1 filing appears or credible IPO preparation is reported.",
       invalidatedIf: "Invalidated if governance, compute cost, or regulatory issues delay IPO timing.",
@@ -193,6 +213,7 @@ const parserRules: ParserRule[] = [
     bearishCondition: "Bearish if odds move on thin volume or resolution criteria weaken the signal.",
     defaultHorizon: "Event-driven",
     monitoringSources: ["Polymarket market page", "Resolution criteria", "Liquidity and volume changes", "External catalyst reports"],
+    sourceMappings: ["Polymarket -> odds", "Polymarket -> liquidity", "Polymarket -> resolution criteria"],
     monitoringRule: {
       confirmedIf: "Confirmed if odds move with stronger liquidity and corroborating external evidence.",
       invalidatedIf: "Invalidated if odds reverse on strong liquidity or resolution criteria undermine the thesis.",
@@ -238,9 +259,13 @@ export function extractAlanSignals(input: string, now = new Date()): AlanSignal[
       status: "Watching",
       priority: priorityFromConfidence(confidence),
       monitoringSources: rule.monitoringSources,
+      sourceMappings: rule.sourceMappings,
       latestUpdates: [],
+      latestNews: [],
+      latestMarketData: [],
       lastChecked: createdDate,
       evidenceLog: [],
+      evidenceQueue: [],
       monitoringRule: rule.monitoringRule,
       riskLevel: rule.riskLevel,
     });
@@ -266,9 +291,13 @@ export function extractAlanSignals(input: string, now = new Date()): AlanSignal[
       status: "Watching",
       priority: "Low",
       monitoringSources: ["Manual review"],
+      sourceMappings: ["Other -> manual evidence"],
       latestUpdates: [],
+      latestNews: [],
+      latestMarketData: [],
       lastChecked: createdDate,
       evidenceLog: [],
+      evidenceQueue: [],
       monitoringRule: {
         confirmedIf: "Confirmed when a concrete observable trigger supports the thesis.",
         invalidatedIf: "Invalidated when a concrete observable trigger breaks the thesis.",
@@ -298,9 +327,13 @@ export function normalizeAlanSignal(signal: Partial<AlanSignal>): AlanSignal {
     status: signal.status ?? "Watching",
     priority: signal.priority ?? "Low",
     monitoringSources: signal.monitoringSources ?? rule?.monitoringSources ?? ["Manual review"],
+    sourceMappings: signal.sourceMappings ?? rule?.sourceMappings ?? ["Other -> manual evidence"],
     latestUpdates: signal.latestUpdates ?? [],
+    latestNews: signal.latestNews ?? [],
+    latestMarketData: signal.latestMarketData ?? [],
     lastChecked: signal.lastChecked ?? createdDate,
-    evidenceLog: signal.evidenceLog ?? [],
+    evidenceLog: (signal.evidenceLog ?? []).map((entry) => normalizeEvidenceEntry(entry, signal)),
+    evidenceQueue: (signal.evidenceQueue ?? []).map((entry) => normalizeEvidenceEntry(entry, signal)),
     monitoringRule: signal.monitoringRule ??
       rule?.monitoringRule ?? {
         confirmedIf: "Confirmed when new evidence supports the thesis.",
@@ -322,22 +355,54 @@ export function evaluateSignalUpdate(signal: AlanSignal, update: string, now = n
 
   const rule = findRuleForEntity(signal.entity);
   const status = evaluateStatus(normalizedUpdate, rule) ?? signal.status;
+  const confidence = evaluateConfidence(signal, status, normalizedUpdate);
+  const risk = evaluateRisk(signal, status, normalizedUpdate);
+  const sourceType = classifyEvidence(normalizedUpdate);
   const date = now.toISOString();
+  const excerpt = truncateExcerpt(normalizedUpdate);
+  const entry = {
+    id: createSignalId("evidence"),
+    date,
+    text: excerpt,
+    sourceType,
+    statusAfter: status,
+    confidenceAfter: confidence,
+    riskAfter: risk,
+  };
 
   return {
     ...signal,
     status,
+    confidence,
+    riskLevel: risk,
     lastChecked: date,
-    latestUpdates: [truncateExcerpt(normalizedUpdate), ...signal.latestUpdates].slice(0, 5),
-    evidenceLog: [
-      {
-        id: createSignalId("evidence"),
-        date,
-        text: truncateExcerpt(normalizedUpdate),
-        statusAfter: status,
-      },
-      ...signal.evidenceLog,
-    ].slice(0, 20),
+    latestUpdates: [excerpt, ...signal.latestUpdates].slice(0, 5),
+    latestNews: sourceType === "News" || sourceType === "Filing" ? [excerpt, ...signal.latestNews].slice(0, 5) : signal.latestNews,
+    latestMarketData:
+      sourceType === "Market Data" || sourceType === "Earnings"
+        ? [excerpt, ...signal.latestMarketData].slice(0, 5)
+        : signal.latestMarketData,
+    evidenceLog: [entry, ...signal.evidenceLog].slice(0, 20),
+    evidenceQueue: [entry, ...signal.evidenceQueue].slice(0, 20),
+  };
+}
+
+export function clearEvidenceQueue(signal: AlanSignal): AlanSignal {
+  return {
+    ...signal,
+    evidenceQueue: [],
+  };
+}
+
+function normalizeEvidenceEntry(entry: Partial<AlanEvidenceEntry>, signal: Partial<AlanSignal>): AlanEvidenceEntry {
+  return {
+    id: entry.id ?? createSignalId("evidence"),
+    date: entry.date ?? new Date().toISOString(),
+    text: entry.text ?? "",
+    sourceType: entry.sourceType ?? classifyEvidence(entry.text ?? ""),
+    statusAfter: entry.statusAfter ?? signal.status ?? "Watching",
+    confidenceAfter: entry.confidenceAfter ?? signal.confidence ?? "Low",
+    riskAfter: entry.riskAfter ?? signal.riskLevel ?? "High",
   };
 }
 
@@ -370,6 +435,62 @@ function evaluateStatus(update: string, rule: ParserRule | undefined): AlanSigna
   }
 
   return undefined;
+}
+
+function evaluateConfidence(
+  signal: AlanSignal,
+  status: AlanSignalStatus,
+  update: string,
+): AlanSignalConfidence {
+  if (status === "Confirmed") {
+    return "High";
+  }
+
+  if (status === "Invalidated") {
+    return "Low";
+  }
+
+  if (/reported|filing|earnings|guidance|backlog|confirmed|official/i.test(update)) {
+    return signal.confidence === "Low" ? "Medium" : signal.confidence;
+  }
+
+  return signal.confidence;
+}
+
+function evaluateRisk(signal: AlanSignal, status: AlanSignalStatus, update: string): AlanSignalRiskLevel {
+  if (status === "Invalidated") {
+    return "High";
+  }
+
+  if (status === "Confirmed") {
+    return signal.riskLevel === "High" ? "Medium" : "Low";
+  }
+
+  if (/delay|decline|shrinks|cut|risk|denies|postpone/i.test(update)) {
+    return "High";
+  }
+
+  return signal.riskLevel;
+}
+
+function classifyEvidence(update: string): AlanEvidenceType {
+  if (/earnings|guidance|revenue|backlog|capex|orders/i.test(update)) {
+    return "Earnings";
+  }
+
+  if (/s-1|filing|sec|ipo/i.test(update)) {
+    return "Filing";
+  }
+
+  if (/price|stock|shares|market cap|valuation|tender|odds|probability|volume/i.test(update)) {
+    return "Market Data";
+  }
+
+  if (/reported|report|news|article|announced|sources/i.test(update)) {
+    return "News";
+  }
+
+  return "Other";
 }
 
 function splitIntoSignalChunks(input: string) {

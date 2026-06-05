@@ -407,6 +407,18 @@ function EditableSignalForm({
         }
       />
       <EditableText
+        label="Source mappings"
+        value={signal.sourceMappings.join("\n")}
+        onChange={(value) =>
+          onChange({
+            sourceMappings: value
+              .split("\n")
+              .map((source) => source.trim())
+              .filter(Boolean),
+          })
+        }
+      />
+      <EditableText
         label="Confirmed rule"
         value={signal.monitoringRule.confirmedIf}
         onChange={(value) => onChange({ monitoringRule: { ...signal.monitoringRule, confirmedIf: value } })}
@@ -495,9 +507,23 @@ function ReadOnlySignal({ signal }: { signal: AlanSignal }) {
           ))}
         </div>
       </div>
+      <div className="rounded-md border bg-muted/45 p-3">
+        <div className="mb-2 text-xs font-medium text-muted-foreground">Source mappings</div>
+        <div className="flex flex-wrap gap-2">
+          {signal.sourceMappings.map((source) => (
+            <Badge key={source} variant="outline">
+              {source}
+            </Badge>
+          ))}
+        </div>
+      </div>
       <div className="grid gap-3 md:grid-cols-2">
         <SignalField label="Confirmed rule" value={signal.monitoringRule.confirmedIf} />
         <SignalField label="Invalidated rule" value={signal.monitoringRule.invalidatedIf} />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <SignalList label="Latest news" values={signal.latestNews} emptyText="No news evidence yet." />
+        <SignalList label="Latest market data" values={signal.latestMarketData} emptyText="No market data evidence yet." />
       </div>
       <div className="rounded-md border bg-muted/45 p-3">
         <div className="mb-1 text-xs font-medium text-muted-foreground">Latest updates</div>
@@ -514,13 +540,35 @@ function ReadOnlySignal({ signal }: { signal: AlanSignal }) {
         )}
       </div>
       <div className="rounded-md border bg-muted/45 p-3">
+        <div className="mb-1 text-xs font-medium text-muted-foreground">Evidence queue</div>
+        {signal.evidenceQueue.length ? (
+          <div className="space-y-3">
+            {signal.evidenceQueue.slice(0, 3).map((entry) => (
+              <div key={entry.id} className="border-b pb-3 last:border-0 last:pb-0">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{entry.sourceType}</Badge>
+                  <Badge variant={badgeByStatus[entry.statusAfter]}>{entry.statusAfter}</Badge>
+                  <Badge variant="outline">{entry.confidenceAfter} confidence</Badge>
+                  <span className="text-xs text-muted-foreground">{formatDate(entry.date)}</span>
+                </div>
+                <p className="text-sm leading-6">{entry.text}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No queued evidence.</p>
+        )}
+      </div>
+      <div className="rounded-md border bg-muted/45 p-3">
         <div className="mb-1 text-xs font-medium text-muted-foreground">Evidence log</div>
         {signal.evidenceLog.length ? (
           <div className="space-y-3">
             {signal.evidenceLog.slice(0, 3).map((entry) => (
               <div key={entry.id} className="border-b pb-3 last:border-0 last:pb-0">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{entry.sourceType}</Badge>
                   <Badge variant={badgeByStatus[entry.statusAfter]}>{entry.statusAfter}</Badge>
+                  <Badge variant="outline">{entry.confidenceAfter} confidence</Badge>
                   <span className="text-xs text-muted-foreground">{formatDate(entry.date)}</span>
                 </div>
                 <p className="text-sm leading-6">{entry.text}</p>
@@ -552,6 +600,25 @@ function SignalField({ label, value }: { label: string; value: string }) {
     <div>
       <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
       <p className="text-sm leading-6">{value}</p>
+    </div>
+  );
+}
+
+function SignalList({ label, values, emptyText }: { label: string; values: string[]; emptyText: string }) {
+  return (
+    <div className="rounded-md border bg-muted/45 p-3">
+      <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
+      {values.length ? (
+        <ul className="space-y-2">
+          {values.slice(0, 3).map((value) => (
+            <li key={value} className="text-sm leading-6">
+              {value}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">{emptyText}</p>
+      )}
     </div>
   );
 }
