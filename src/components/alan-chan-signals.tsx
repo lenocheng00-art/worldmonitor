@@ -1,20 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, ClipboardList, Edit3, History, Save, Search, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  alanSignalsStorageKey,
   evaluateSignalUpdate,
   extractAlanSignals,
-  normalizeAlanSignal,
   type AlanSignal,
   type AlanSignalCategory,
   type AlanSignalPriority,
   type AlanSignalStatus,
 } from "@/lib/alan-chan-parser";
+import { useAlanSignals } from "@/lib/use-alan-signals";
 import { cn } from "@/lib/utils";
 
 const categories: Array<AlanSignalCategory | "All"> = [
@@ -47,31 +46,12 @@ const emptyPasteText =
 
 export function AlanChanSignals() {
   const [pasteText, setPasteText] = useState("");
-  const [signals, setSignals] = useState<AlanSignal[]>([]);
+  const [signals, setSignals] = useAlanSignals();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<AlanSignalCategory | "All">("All");
   const [entityFilter, setEntityFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<AlanSignalStatus | "All">("All");
   const [priorityFilter, setPriorityFilter] = useState<AlanSignalPriority | "All">("All");
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(alanSignalsStorageKey);
-
-    if (!stored) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored) as Partial<AlanSignal>[];
-      setSignals(parsed.map((signal) => normalizeAlanSignal(signal)));
-    } catch {
-      window.localStorage.removeItem(alanSignalsStorageKey);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(alanSignalsStorageKey, JSON.stringify(signals));
-  }, [signals]);
 
   const entities = useMemo(() => {
     const uniqueEntities = Array.from(new Set(signals.map((signal) => signal.entity))).sort((a, b) =>

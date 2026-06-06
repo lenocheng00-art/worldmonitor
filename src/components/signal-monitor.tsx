@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Activity, CheckCircle2, Clock3, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  alanSignalsStorageKey,
   clearEvidenceQueue,
   evaluateSignalUpdate,
-  normalizeAlanSignal,
-  type AlanSignal,
   type AlanSignalStatus,
 } from "@/lib/alan-chan-parser";
+import { useAlanSignals } from "@/lib/use-alan-signals";
 
 const badgeByStatus = {
   Watching: "outline",
@@ -27,28 +25,9 @@ const badgeByRisk = {
 } as const;
 
 export function SignalMonitor() {
-  const [signals, setSignals] = useState<AlanSignal[]>([]);
+  const [signals, setSignals] = useAlanSignals();
   const [updates, setUpdates] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<AlanSignalStatus | "All">("All");
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(alanSignalsStorageKey);
-
-    if (!stored) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored) as Partial<AlanSignal>[];
-      setSignals(parsed.map((signal) => normalizeAlanSignal(signal)));
-    } catch {
-      window.localStorage.removeItem(alanSignalsStorageKey);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(alanSignalsStorageKey, JSON.stringify(signals));
-  }, [signals]);
 
   const filteredSignals = useMemo(() => {
     return signals.filter((signal) => statusFilter === "All" || signal.status === statusFilter);
