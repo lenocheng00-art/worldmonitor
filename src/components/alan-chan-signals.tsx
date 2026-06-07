@@ -14,6 +14,7 @@ import {
   type AlanSignalStatus,
 } from "@/lib/alan-chan-parser";
 import { useAlanSignals } from "@/lib/use-alan-signals";
+import { useDecisionLoop } from "@/lib/decision-loop-store";
 import { cn } from "@/lib/utils";
 
 const categories: Array<AlanSignalCategory | "All"> = [
@@ -47,6 +48,7 @@ const emptyPasteText =
 export function AlanChanSignals() {
   const [pasteText, setPasteText] = useState("");
   const [signals, setSignals] = useAlanSignals();
+  const { createSignal } = useDecisionLoop();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<AlanSignalCategory | "All">("All");
   const [entityFilter, setEntityFilter] = useState("All");
@@ -80,6 +82,16 @@ export function AlanChanSignals() {
     }
 
     setSignals((current) => [...extracted, ...current]);
+    extracted.forEach((signal) => createSignal({
+      id: `signal-alan-${signal.id}`,
+      title: signal.entity,
+      source: "Alan Chan",
+      originalText: signal.sourceExcerpt,
+      extractedSignal: signal.thesis,
+      relatedTickers: inferTickers(signal.entity),
+      relatedIndustryChains: [signal.category],
+      priorityScore: signal.priority === "High" ? 90 : signal.priority === "Medium" ? 70 : 50,
+    }));
     setPasteText("");
   }
 
@@ -187,6 +199,19 @@ export function AlanChanSignals() {
       </section>
     </div>
   );
+}
+
+function inferTickers(entity: string) {
+  const mapping: Record<string, string[]> = {
+    Google: ["GOOGL", "AVGO"],
+    Broadcom: ["AVGO"],
+    Vertiv: ["VRT"],
+    "Constellation Energy": ["CEG"],
+    SpaceX: ["RKLB", "ASTS"],
+    Anthropic: ["AMZN", "GOOGL"],
+    OpenAI: ["MSFT", "ORCL"],
+  };
+  return mapping[entity] ?? [];
 }
 
 function FilterSelect({

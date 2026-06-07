@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertTriangle, Boxes, Building2, Layers3, RadioTower } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, Boxes, Building2, Gauge, Layers3, RadioTower } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/research-ui";
 import { semiconductorLayers } from "@/lib/research-data";
-import { useAlanSignals } from "@/lib/use-alan-signals";
+import { useDecisionLoop } from "@/lib/decision-loop-store";
 import { cn } from "@/lib/utils";
 
 const layerColors = [
@@ -33,11 +33,15 @@ const entityLayer: Record<string, string> = {
 };
 
 export function IndustryChainDashboard() {
-  const [signals] = useAlanSignals();
+  const { state } = useDecisionLoop();
+  const signals = state.signals;
   const signalsByLayer = useMemo(() => {
     const grouped = new Map<string, typeof signals>();
     signals.forEach((signal) => {
-      const layer = entityLayer[signal.entity];
+      const layer = signal.relatedIndustryChains.some((item) => item.includes("Cloud")) ? "cloud"
+        : signal.relatedIndustryChains.some((item) => item.includes("Compute") || item.includes("Semiconductor")) ? "compute"
+          : signal.relatedIndustryChains.some((item) => item.includes("Infrastructure") || item.includes("Memory")) ? "infrastructure"
+            : entityLayer[signal.title];
       if (!layer) return;
       grouped.set(layer, [...(grouped.get(layer) ?? []), signal]);
     });
@@ -60,6 +64,7 @@ export function IndustryChainDashboard() {
           action={<Badge variant="outline">Jensen Huang five-layer framework</Badge>}
         />
 
+        <div className="grid gap-5 xl:grid-cols-[1fr_300px]">
         <div className="relative space-y-4">
           <div className="absolute bottom-8 left-5 top-8 hidden w-px bg-border lg:block" />
           {semiconductorLayers.map((layer, index) => {
@@ -96,21 +101,53 @@ export function IndustryChainDashboard() {
                     <CompactList items={layer.risks} />
                   </ChainColumn>
                   <ChainColumn icon={RadioTower} label="Latest signal">
-                    <p className="text-sm leading-6">{mappedSignals[0]?.thesis ?? layer.latestSignal}</p>
+                    <p className="text-sm leading-6">{mappedSignals[0]?.extractedSignal ?? layer.latestSignal}</p>
                     {mappedSignals.length ? (
                       <div className="mt-2 text-xs font-medium text-amber-800">
                         {mappedSignals.length} Alan Chan signal{mappedSignals.length > 1 ? "s" : ""} mapped here
                       </div>
                     ) : null}
                   </ChainColumn>
+                  <div className="grid grid-cols-2 gap-3 border-t pt-4 lg:col-span-4 lg:grid-cols-5">
+                    <ScoreMetric label="Attractiveness" value={`${layerScore(layer.id)}/100`} />
+                    <ScoreMetric label="Momentum" value={layer.id === "infrastructure" ? "Accelerating" : "Positive"} />
+                    <ScoreMetric label="Valuation Pressure" value={layer.id === "compute" ? "High" : "Moderate"} />
+                    <ScoreMetric label="Bottleneck Strength" value={layer.id === "infrastructure" ? "Very high" : "Medium"} />
+                    <div><div className="text-xs font-semibold uppercase text-muted-foreground">Best Public Tickers</div><div className="mt-2 flex flex-wrap gap-1">{bestTickers(layer.id).map((ticker) => <Badge key={ticker} variant="outline">{ticker}</Badge>)}</div></div>
+                  </div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+        <Card className="h-fit xl:sticky xl:top-24">
+          <CardHeader className="border-b"><CardTitle className="flex items-center gap-2 text-base"><Gauge className="size-4 text-primary" /> Layer Opportunity Ranking</CardTitle></CardHeader>
+          <CardContent className="divide-y p-0">
+            {[...semiconductorLayers].sort((a, b) => layerScore(b.id) - layerScore(a.id)).map((layer, index) => (
+              <div key={layer.id} className="flex items-start gap-3 px-4 py-4">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">{index + 1}</div>
+                <div className="min-w-0 flex-1"><div className="text-sm font-semibold">{layer.name}</div><div className="mt-1 text-xs text-muted-foreground">{bestTickers(layer.id).join(", ")}</div></div>
+                <div className="flex items-center gap-1 text-sm font-semibold text-emerald-700"><ArrowUpRight className="size-3.5" />{layerScore(layer.id)}</div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        </div>
       </section>
     </div>
   );
+}
+
+function layerScore(id: string) {
+  return ({ application: 70, model: 64, cloud: 79, compute: 82, infrastructure: 91 } as Record<string, number>)[id] ?? 60;
+}
+
+function bestTickers(id: string) {
+  return ({ application: ["MSFT", "NOW"], model: ["GOOGL", "META"], cloud: ["AMZN", "ORCL"], compute: ["NVDA", "AVGO"], infrastructure: ["VRT", "MU", "GEV"] } as Record<string, string[]>)[id] ?? [];
+}
+
+function ScoreMetric({ label, value }: { label: string; value: string }) {
+  return <div><div className="text-xs font-semibold uppercase text-muted-foreground">{label}</div><div className="mt-1 text-sm font-semibold">{value}</div></div>;
 }
 
 function ChainStat({ label, value, note }: { label: string; value: string; note: string }) {
@@ -155,4 +192,3 @@ function CompactList({ items }: { items: string[] }) {
     </ul>
   );
 }
-

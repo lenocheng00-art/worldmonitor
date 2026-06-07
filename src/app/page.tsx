@@ -15,9 +15,11 @@ export default function DashboardPage() {
 
       <OverviewDashboard />
 
-      <MarketKline />
+      <div className="hidden md:block">
+        <MarketKline />
+      </div>
 
-      <section className="space-y-4">
+      <section className="hidden space-y-4 md:block">
         <div className="border-b pb-4">
           <h2 className="text-lg font-semibold tracking-normal">Research Newsflow</h2>
           <p className="mt-1 text-sm text-muted-foreground">Existing news intelligence remains available as a supporting research stream.</p>

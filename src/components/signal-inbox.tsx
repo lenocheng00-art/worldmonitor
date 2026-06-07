@@ -1,201 +1,337 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, FlaskConical, GitBranch, Inbox, RadioTower, Sparkles, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Ban,
+  BookmarkPlus,
+  FlaskConical,
+  GitBranch,
+  Inbox,
+  Loader2,
+  Plus,
+  RadioTower,
+  Users,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionHeader } from "@/components/research-ui";
-import { extractAlanSignals, type AlanSignal } from "@/lib/alan-chan-parser";
-import { useAlanSignals } from "@/lib/use-alan-signals";
+import { extractAlanSignals } from "@/lib/alan-chan-parser";
+import { type Signal, type SignalStatus } from "@/lib/decision-loop-data";
+import { useDecisionLoop } from "@/lib/decision-loop-store";
+import { cn } from "@/lib/utils";
 
-const tickerMappings: Record<string, string[]> = {
-  Google: ["GOOGL", "GOOG", "AVGO"],
-  Broadcom: ["AVGO"],
-  Vertiv: ["VRT"],
-  "Constellation Energy": ["CEG"],
-  SpaceX: ["RKLB", "ASTS"],
-  Anthropic: ["AMZN", "GOOGL"],
-  OpenAI: ["MSFT", "ORCL"],
-  Polymarket: ["COIN"],
-};
+const statuses: SignalStatus[] = ["New", "Tracking", "Linked", "Reviewed", "Backtested", "Invalidated"];
 
 export function SignalInbox() {
-  const [signals, setSignals] = useAlanSignals();
-  const [sourceText, setSourceText] = useState("");
-
-  const counts = useMemo(
-    () => ({
-      new: signals.filter((signal) => signal.status === "Watching" && !signal.latestUpdates.length).length,
-      tracking: signals.filter((signal) => signal.status === "Watching" && signal.latestUpdates.length).length,
-      confirmed: signals.filter((signal) => signal.status === "Confirmed").length,
-      invalidated: signals.filter((signal) => signal.status === "Invalidated").length,
-    }),
-    [signals],
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const {
+    state,
+    ready,
+    error,
+    createSignal,
+    createLogicChainFromSignal,
+    sendSignalToCommittee,
+    runBacktestFromSignal,
+    addToWatchlist,
+    updateSignalStatus,
+  } = useDecisionLoop();
+  const requestedTicker = searchParams.get("ticker");
+  const visibleSignals = useMemo(
+    () => requestedTicker
+      ? state.signals.filter((signal) => signal.relatedTickers.includes(requestedTicker))
+      : state.signals,
+    [requestedTicker, state.signals],
   );
+  const [activeStatus, setActiveStatus] = useState<SignalStatus | "All">("All");
+  const filtered = visibleSignals.filter((signal) => activeStatus === "All" || signal.status === activeStatus);
+  const [selectedId, setSelectedId] = useState(filtered[0]?.id ?? "");
+  const [pasteText, setPasteText] = useState("");
+  const [showImport, setShowImport] = useState(false);
+  const [busyAction, setBusyAction] = useState("");
+  const selected = filtered.find((signal) => signal.id === selectedId) ?? filtered[0];
 
-  function importSignals() {
-    const extracted = extractAlanSignals(sourceText);
-    if (!extracted.length) return;
+  useEffect(() => {
+    if (filtered.length && !filtered.some((signal) => signal.id === selectedId)) {
+      setSelectedId(filtered[0].id);
+    }
+  }, [filtered, selectedId]);
 
-    setSignals((current) => {
-      const existing = new Set(current.map((signal) => `${signal.entity}:${signal.sourceExcerpt}`));
-      const fresh = extracted.filter((signal) => !existing.has(`${signal.entity}:${signal.sourceExcerpt}`));
-      return [...fresh, ...current];
-    });
-    setSourceText("");
+  function importText() {
+    const parsed = extractAlanSignals(pasteText);
+    if (parsed.length) {
+      parsed.forEach((item) => createSignal({
+        title: item.entity,
+        source: "Alan Chan",
+        originalText: item.sourceExcerpt,
+        extractedSignal: item.thesis,
+        relatedTickers: inferTickers(item.entity),
+        relatedIndustryChains: [item.category],
+        priorityScore: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
+      }));
+    } else if (pasteText.trim()) {
+      createSignal({
+        title: pasteText.trim().slice(0, 64),
+        source: "Manual",
+        originalText: pasteText.trim(),
+        extractedSignal: pasteText.trim(),
+        relatedTickers: [],
+        relatedIndustryChains: ["Other"],
+        priorityScore: 60,
+      });
+    }
+    setPasteText("");
+    setShowImport(false);
+  }
+
+  function perform(action: string, callback: () => void) {
+    setBusyAction(action);
+    window.setTimeout(() => {
+      callback();
+      setBusyAction("");
+    }, 250);
+  }
+
+  if (!ready) {
+    return <WorkbenchState icon={Loader2} title="Loading research state" description="Restoring linked signals and prior decisions." spin />;
   }
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <InboxStat label="New" value={counts.new} tone="blue" />
-        <InboxStat label="Tracking" value={counts.tracking} tone="amber" />
-        <InboxStat label="Confirmed" value={counts.confirmed} tone="green" />
-        <InboxStat label="Invalidated" value={counts.invalidated} tone="red" />
-      </section>
+    <div className="space-y-4">
+      {error ? <div className="border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-900">{error}</div> : null}
 
-      <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <Card className="h-fit">
-          <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <RadioTower className="size-4 text-primary" />
-              Alan Chan Signal Import
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <Button size="sm" variant={activeStatus === "All" ? "default" : "outline"} onClick={() => setActiveStatus("All")}>
+            All <Badge className="ml-1 bg-white/20">{visibleSignals.length}</Badge>
+          </Button>
+          {statuses.map((status) => (
+            <Button key={status} size="sm" variant={activeStatus === status ? "default" : "outline"} onClick={() => setActiveStatus(status)}>
+              {status} <span className="text-xs opacity-70">{visibleSignals.filter((signal) => signal.status === status).length}</span>
+            </Button>
+          ))}
+        </div>
+        <Button size="sm" onClick={() => setShowImport((value) => !value)}>
+          <Plus className="size-4" /> Import signal
+        </Button>
+      </div>
+
+      {showImport ? (
+        <Card>
+          <CardContent className="grid gap-3 p-4 lg:grid-cols-[1fr_auto]">
             <textarea
-              value={sourceText}
-              onChange={(event) => setSourceText(event.target.value)}
-              placeholder="Paste an Alan Chan members-only post. Extraction runs locally in this browser."
-              className="min-h-72 w-full resize-y rounded-md border bg-background p-3 text-sm leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={pasteText}
+              onChange={(event) => setPasteText(event.target.value)}
+              placeholder="Paste an Alan Chan post or create a manual research signal."
+              className="min-h-28 w-full resize-y rounded-md border bg-background p-3 text-sm leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
-            <Button className="w-full" disabled={!sourceText.trim()} onClick={importSignals}>
-              <Sparkles className="size-4" />
-              Extract and route signals
-            </Button>
-            <p className="text-xs leading-5 text-muted-foreground">
-              Extracted signals are routed to this inbox, industry chains, logic chains, and watchlist catalysts.
-            </p>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/alan-chan">
-                Open full Alan Chan workspace
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+            <div className="flex gap-2 lg:flex-col">
+              <Button onClick={importText} disabled={!pasteText.trim()}>
+                <RadioTower className="size-4" /> Extract and create
+              </Button>
+              <Button variant="outline" onClick={() => setShowImport(false)}>Cancel</Button>
+            </div>
           </CardContent>
         </Card>
+      ) : null}
 
-        <div className="space-y-4">
-          <SectionHeader
-            icon={Inbox}
-            title="Signal Queue"
-            description="Normalized research signals with ownership, cadence, and next-check metadata."
-            action={<Badge variant="outline">{signals.length} total</Badge>}
-          />
-          {signals.length ? (
-            <div className="space-y-3">
-              {signals.map((signal) => <InboxSignal key={signal.id} signal={signal} />)}
-            </div>
-          ) : (
-            <div className="border-l-2 border-primary py-8 pl-4">
-              <div className="font-semibold">No signals in the inbox</div>
-              <p className="mt-1 text-sm text-muted-foreground">Paste a post to create the first tracked research signal.</p>
-            </div>
-          )}
-        </div>
-      </section>
+      {!filtered.length ? (
+        <WorkbenchState
+          icon={Inbox}
+          title="No signals in this queue"
+          description="Import an Alan Chan post, paste a signal, or create a manual research item."
+          action={<Button onClick={() => setShowImport(true)}><Plus className="size-4" /> Create signal</Button>}
+        />
+      ) : (
+        <section className="grid min-h-[640px] gap-4 xl:grid-cols-[0.7fr_1.25fr_0.75fr]">
+          <Card className="h-fit overflow-hidden">
+            <CardHeader className="border-b">
+              <CardTitle className="text-base">Signal Queue</CardTitle>
+            </CardHeader>
+            <CardContent className="divide-y p-0">
+              {filtered.map((signal) => (
+                <button
+                  key={signal.id}
+                  onClick={() => setSelectedId(signal.id)}
+                  className={cn(
+                    "w-full px-4 py-4 text-left transition hover:bg-muted/50",
+                    selected?.id === signal.id && "bg-muted",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-sm font-semibold leading-5">{signal.title}</span>
+                    <span className="shrink-0 text-xs font-semibold text-primary">{signal.priorityScore}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{signal.status}</Badge>
+                    <span className="text-xs text-muted-foreground">{signal.source}</span>
+                  </div>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {selected ? <SignalDetail signal={selected} /> : null}
+
+          {selected ? (
+            <Card className="h-fit xl:sticky xl:top-24">
+              <CardHeader className="border-b">
+                <CardTitle className="text-base">Action Panel</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-5">
+                <ActionButton
+                  icon={GitBranch}
+                  label={selected.linkedLogicChainId ? "Open Logic Chain" : "Create Logic Chain"}
+                  busy={busyAction === "logic"}
+                  onClick={() => perform("logic", () => {
+                    const chain = createLogicChainFromSignal(selected.id);
+                    if (chain) router.push(`/logic-chains?focus=${chain.id}`);
+                  })}
+                />
+                <ActionButton
+                  icon={Users}
+                  label={selected.linkedCommitteeReportId ? "Open Committee Review" : "Send to Committee"}
+                  busy={busyAction === "committee"}
+                  onClick={() => perform("committee", () => {
+                    const report = sendSignalToCommittee(selected.id);
+                    if (report) router.push(`/committee?report=${report.id}`);
+                  })}
+                />
+                <ActionButton
+                  icon={FlaskConical}
+                  label={selected.linkedBacktestId ? "Open Backtest" : "Run Backtest"}
+                  busy={busyAction === "backtest"}
+                  onClick={() => perform("backtest", () => {
+                    const result = runBacktestFromSignal(selected.id);
+                    if (result) router.push(`/backtest-lab?result=${result.id}`);
+                  })}
+                />
+                <ActionButton
+                  icon={BookmarkPlus}
+                  label="Add to Watchlist"
+                  busy={busyAction === "watchlist"}
+                  onClick={() => perform("watchlist", () => {
+                    selected.relatedTickers.forEach((ticker) => addToWatchlist(ticker, selected.id, selected.id));
+                  })}
+                />
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-red-700"
+                  onClick={() => updateSignalStatus(selected.id, "Invalidated")}
+                  disabled={selected.status === "Invalidated"}
+                >
+                  <Ban className="size-4" /> Mark Invalidated
+                </Button>
+                <div className="border-t pt-4 text-xs leading-5 text-muted-foreground">
+                  Every action writes status and linked IDs into the unified research state.
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </section>
+      )}
     </div>
   );
 }
 
-function InboxSignal({ signal }: { signal: AlanSignal }) {
-  const status = signal.status === "Watching" ? (signal.latestUpdates.length ? "Tracking" : "New") : signal.status;
-  const nextCheck = new Date(new Date(signal.lastChecked).getTime() + frequencyDays(signal.priority) * 86400000);
-  const topic = encodeURIComponent(`${signal.entity}: ${signal.thesis}`);
-
+function SignalDetail({ signal }: { signal: Signal }) {
+  const timeline = [
+    { label: "Created", active: true },
+    { label: "Logic linked", active: Boolean(signal.linkedLogicChainId) },
+    { label: "Committee reviewed", active: Boolean(signal.linkedCommitteeReportId) },
+    { label: "Backtested", active: Boolean(signal.linkedBacktestId) },
+    { label: "Actioned", active: signal.status === "Actioned" },
+  ];
   return (
-    <Card>
-      <CardContent className="grid gap-4 p-5 lg:grid-cols-[1.3fr_0.8fr_0.9fr]">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">Alan Chan</Badge>
-            <Badge variant={status === "Confirmed" ? "secondary" : status === "Invalidated" ? "destructive" : "outline"}>
-              {status}
-            </Badge>
-            <span className="text-xs text-muted-foreground">{signal.category}</span>
+    <Card className="h-fit">
+      <CardHeader className="border-b">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <Badge variant="outline">{signal.source}</Badge>
+            <CardTitle className="mt-3 text-xl">{signal.title}</CardTitle>
           </div>
-          <h3 className="mt-3 font-semibold">{signal.entity}</h3>
-          <p className="mt-1 text-sm leading-6">{signal.thesis}</p>
-          <details className="mt-3 text-xs text-muted-foreground">
-            <summary className="cursor-pointer font-medium text-foreground">Original text</summary>
-            <p className="mt-2 leading-5">{signal.sourceExcerpt}</p>
-          </details>
+          <Badge variant={signal.status === "Invalidated" ? "destructive" : "secondary"}>{signal.status}</Badge>
         </div>
-        <div className="space-y-3">
-          <InboxField label="Related tickers" value={(tickerMappings[signal.entity] ?? [signal.entity]).join(", ")} />
-          <InboxField label="Industry chain" value={signal.category} />
-          <InboxField label="Priority score" value={`${priorityScore(signal.priority)}/100`} />
+      </CardHeader>
+      <CardContent className="space-y-6 pt-5">
+        <Detail label="Original Text" value={signal.originalText} />
+        <Detail label="Extracted Signal" value={signal.extractedSignal} />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Tags label="Related Tickers" values={signal.relatedTickers} empty="No ticker mapped" />
+          <Tags label="Industry Chain" values={signal.relatedIndustryChains} empty="No chain mapped" />
+          <Detail label="Priority Score" value={`${signal.priorityScore}/100`} />
         </div>
-        <div className="space-y-3">
-          <InboxField label="Tracking frequency" value={`${frequencyDays(signal.priority)} day cadence`} />
-          <InboxField label="Next check date" value={nextCheck.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} />
-          <InboxField label="Validation data" value={signal.monitoringSources.join(", ")} />
+        <div className="border-t pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase text-muted-foreground">Status Timeline</div>
+          <div className="grid gap-2 sm:grid-cols-5">
+            {timeline.map((item, index) => (
+              <div key={item.label} className="relative">
+                <div className={cn("mb-2 h-1.5 rounded-full", item.active ? "bg-primary" : "bg-muted")} />
+                <div className={cn("text-xs", item.active ? "font-semibold" : "text-muted-foreground")}>
+                  {index + 1}. {item.label}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2 border-t pt-4 lg:col-span-3">
-          <Button asChild size="sm">
-            <Link href={`/committee?topic=${topic}&signal=${signal.id}`}>
-              <Users className="size-4" />
-              Send to Committee
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link href={`/backtest-lab?strategy=alan-signal&logic=signal-${signal.id}`}>
-              <FlaskConical className="size-4" />
-              Run Backtest
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link href={`/logic-chains?signal=${signal.id}`}>
-              <GitBranch className="size-4" />
-              Create Logic Chain
-            </Link>
-          </Button>
+        <div className="grid gap-3 border-t pt-5 sm:grid-cols-3">
+          <LinkedId label="Logic Chain" value={signal.linkedLogicChainId} />
+          <LinkedId label="Committee" value={signal.linkedCommitteeReportId} />
+          <LinkedId label="Backtest" value={signal.linkedBacktestId} />
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function InboxField({ label, value }: { label: string; value: string }) {
+function ActionButton({ icon: Icon, label, busy, onClick }: {
+  icon: typeof GitBranch; label: string; busy: boolean; onClick: () => void;
+}) {
+  return (
+    <Button className="w-full justify-start" variant="outline" onClick={onClick} disabled={busy}>
+      {busy ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
+      {label}
+    </Button>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return <div><div className="text-xs font-semibold uppercase text-muted-foreground">{label}</div><p className="mt-2 text-sm leading-6">{value}</p></div>;
+}
+
+function Tags({ label, values, empty }: { label: string; values: string[]; empty: string }) {
   return (
     <div>
-      <div className="text-xs font-semibold uppercase text-muted-foreground">{label}</div>
-      <div className="mt-1 text-sm leading-5">{value}</div>
+      <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{label}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {values.length ? values.map((value) => <Badge key={value} variant="outline">{value}</Badge>) : <span className="text-sm text-muted-foreground">{empty}</span>}
+      </div>
     </div>
   );
 }
 
-function InboxStat({ label, value, tone }: { label: string; value: number; tone: "blue" | "amber" | "green" | "red" }) {
-  const tones = {
-    blue: "border-blue-500 text-blue-700",
-    amber: "border-amber-500 text-amber-800",
-    green: "border-emerald-500 text-emerald-700",
-    red: "border-red-500 text-red-700",
-  };
+function LinkedId({ label, value }: { label: string; value?: string }) {
+  return <div><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 truncate text-xs font-medium">{value ?? "Not linked"}</div></div>;
+}
+
+function WorkbenchState({ icon: Icon, title, description, action, spin }: {
+  icon: typeof Inbox; title: string; description: string; action?: React.ReactNode; spin?: boolean;
+}) {
   return (
-    <div className={`border-l-2 pl-4 ${tones[tone]}`}>
-      <div className="text-xs font-semibold uppercase">{label}</div>
-      <div className="mt-1 text-3xl font-semibold text-foreground">{value}</div>
-    </div>
+    <Card><CardContent className="flex min-h-56 flex-col items-center justify-center gap-3 text-center">
+      <Icon className={cn("size-7 text-muted-foreground", spin && "animate-spin")} />
+      <div><div className="font-semibold">{title}</div><div className="mt-1 text-sm text-muted-foreground">{description}</div></div>
+      {action}
+    </CardContent></Card>
   );
 }
 
-function frequencyDays(priority: AlanSignal["priority"]) {
-  return priority === "High" ? 1 : priority === "Medium" ? 3 : 7;
-}
-
-function priorityScore(priority: AlanSignal["priority"]) {
-  return priority === "High" ? 90 : priority === "Medium" ? 70 : 50;
+function inferTickers(entity: string) {
+  const mapping: Record<string, string[]> = {
+    Google: ["GOOGL", "AVGO"], Broadcom: ["AVGO"], Vertiv: ["VRT"],
+    "Constellation Energy": ["CEG"], SpaceX: ["RKLB", "ASTS"],
+    Anthropic: ["AMZN", "GOOGL"], OpenAI: ["MSFT", "ORCL"],
+  };
+  return mapping[entity] ?? [];
 }

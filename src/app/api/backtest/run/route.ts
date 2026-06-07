@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { buildMockBacktestResult, type BacktestStrategy } from "@/lib/decision-data";
+import { createBacktestResult, type BacktestStrategy } from "@/lib/decision-loop-data";
 
 export async function POST(request: Request) {
   const strategy = (await request.json()) as BacktestStrategy;
-  return NextResponse.json(buildMockBacktestResult(strategy));
+  return NextResponse.json(createBacktestResult(strategy, {
+    signalId: strategy.triggerSignalId,
+    logicChainId: strategy.linkedLogicChainId,
+  }));
 }
-

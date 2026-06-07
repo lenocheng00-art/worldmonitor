@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowUpCircle,
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
@@ -17,15 +18,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfidenceBar } from "@/components/research-ui";
-import { logicChains, macroRegime, researchStocks } from "@/lib/research-data";
-import { useAlanSignals } from "@/lib/use-alan-signals";
-import { useBacktestResults, useCommitteeReports } from "@/lib/use-decision-runs";
+import { macroRegime, researchStocks } from "@/lib/research-data";
+import { useDecisionLoop } from "@/lib/decision-loop-store";
 import { cn } from "@/lib/utils";
 
 export function OverviewDashboard() {
-  const [signals] = useAlanSignals();
-  const [committeeReports] = useCommitteeReports();
-  const [backtestResults] = useBacktestResults();
+  const { state } = useDecisionLoop();
+  const { signals, committeeReports, backtestResults, logicChains, watchlist } = state;
   const topSignals = signals.slice(0, 3);
   const latestDecision = committeeReports[0];
   const bestBacktest = [...backtestResults].sort((a, b) => b.sharpeRatio - a.sharpeRatio)[0];
@@ -33,9 +32,29 @@ export function OverviewDashboard() {
     .sort((a, b) => Math.abs(Number.parseFloat(b.change)) - Math.abs(Number.parseFloat(a.change)))
     .slice(0, 5);
 
+  const pendingReviews = signals.filter((signal) => !signal.linkedCommitteeReportId).length;
+  const waitingBacktests = committeeReports.filter((report) => !report.linkedBacktestId).length;
+  const actionSignals = signals.filter((signal) => ["New", "Tracking", "Linked"].includes(signal.status)).slice(0, 3);
+
   return (
-    <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-12">
-      <Card className="xl:col-span-5">
+    <div className="space-y-4">
+      <Card className="overflow-hidden border-primary/20">
+        <CardHeader className="border-b bg-primary text-primary-foreground">
+          <CardTitle className="flex items-center gap-2 text-lg text-primary-foreground">
+            <ArrowUpCircle className="size-5" /> Today&apos;s Decision Brief
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-5 pt-5 md:grid-cols-2 xl:grid-cols-5">
+          <BriefItem label="Research Priorities" value="Validate AI capex breadth and rate sensitivity" href="/logic-chains" />
+          <BriefItem label="Signals Requiring Action" value={`${actionSignals.length} high-priority items`} href="/signal-inbox" />
+          <BriefItem label="Pending Committee" value={`${pendingReviews} reviews`} href="/committee" />
+          <BriefItem label="Backtests Waiting" value={`${waitingBacktests} hypotheses`} href="/backtest-lab" />
+          <BriefItem label="Watchlist Actions" value={`${watchlist.length} candidates`} href="/stocks" />
+        </CardContent>
+      </Card>
+
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-12">
+      <Card className="hidden md:block xl:col-span-5">
         <CardHeader className="border-b">
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="text-base">Macro Regime</CardTitle>
@@ -55,7 +74,7 @@ export function OverviewDashboard() {
         </CardContent>
       </Card>
 
-      <Card className="xl:col-span-3">
+      <Card className="hidden md:block xl:col-span-3">
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2 text-base">
             <Shield className="size-4 text-amber-600" />
@@ -74,6 +93,7 @@ export function OverviewDashboard() {
             <RiskLine text="AI earnings revisions stay positive" tone="positive" />
             <RiskLine text="Manufacturing momentum is soft" tone="negative" />
           </ul>
+          <Button asChild variant="outline" size="sm"><Link href="/macro">Review asset impacts <ArrowRight className="size-4" /></Link></Button>
         </CardContent>
       </Card>
 
@@ -91,13 +111,20 @@ export function OverviewDashboard() {
           {topSignals.length ? topSignals.map((signal) => (
             <div key={signal.id} className="px-5 py-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-semibold">{signal.entity}</span>
-                <Badge variant={signal.status === "Confirmed" ? "secondary" : "outline"}>{signal.status}</Badge>
+                <span className="font-semibold">{signal.title}</span>
+                <Badge variant={["Backtested", "Actioned"].includes(signal.status) ? "secondary" : "outline"}>{signal.status}</Badge>
               </div>
-              <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{signal.thesis}</p>
+              <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{signal.extractedSignal}</p>
             </div>
           )) : (
-            <div className="px-5 py-8 text-sm text-muted-foreground">No imported signals yet.</div>
+            <div className="space-y-3 px-5 py-6">
+              <div className="text-sm text-muted-foreground">No imported signals yet.</div>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm"><Link href="/alan-chan">Import Alan Chan Signal</Link></Button>
+                <Button asChild size="sm" variant="outline"><Link href="/signal-inbox">Paste Signal</Link></Button>
+                <Button asChild size="sm" variant="outline"><Link href="/signal-inbox">Create Manual Signal</Link></Button>
+              </div>
+            </div>
           )}
           <div className="px-5 py-4">
             <Button asChild variant="outline" size="sm">
@@ -107,7 +134,7 @@ export function OverviewDashboard() {
         </CardContent>
       </Card>
 
-      <Card className="xl:col-span-7">
+      <Card className="hidden md:block xl:col-span-7">
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2 text-base">
             <GitBranch className="size-4 text-primary" />
@@ -120,7 +147,7 @@ export function OverviewDashboard() {
               <div>
                 <div className="font-semibold">{chain.title}</div>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  {chain.path.slice(0, 4).map((step, index) => (
+                  {chain.transmissionPath.slice(0, 4).map((step, index) => (
                     <div key={step} className="contents">
                       <span className="rounded-md bg-muted px-2 py-1 text-xs">{step}</span>
                       {index < 3 ? <ArrowRight className="size-3 text-muted-foreground" /> : null}
@@ -128,9 +155,10 @@ export function OverviewDashboard() {
                   ))}
                 </div>
               </div>
-              <ConfidenceBar value={chain.confidence} />
+              <ConfidenceBar value={chain.confidenceScore} />
             </div>
           ))}
+          <Button asChild variant="outline" size="sm"><Link href="/logic-chains">Open logic chains <ArrowRight className="size-4" /></Link></Button>
         </CardContent>
       </Card>
 
@@ -158,6 +186,7 @@ export function OverviewDashboard() {
               </div>
             );
           })}
+          <div className="px-5 py-4"><Button asChild variant="outline" size="sm"><Link href="/stocks">Open position candidates <ArrowRight className="size-4" /></Link></Button></div>
         </CardContent>
       </Card>
 
@@ -175,10 +204,10 @@ export function OverviewDashboard() {
           <CardContent className="space-y-4 pt-5">
             <div>
               <div className="text-xl font-semibold">{latestDecision.topic}</div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{latestDecision.triggerSignal}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{signals.find((signal) => signal.id === latestDecision.triggerSignalId)?.extractedSignal ?? "Committee-generated research opportunity."}</p>
             </div>
             <div className="grid gap-3 border-y py-4 sm:grid-cols-3">
-              <OverviewMetric label="Confidence" value={`${latestDecision.confidenceScore}/100`} />
+              <OverviewMetric label="Confidence" value={`${latestDecision.finalConfidenceScore}/100`} />
               <OverviewMetric label="Time horizon" value={latestDecision.timeHorizon} />
               <OverviewMetric label="Tickers" value={latestDecision.relatedTickers.slice(0, 3).join(", ")} />
             </div>
@@ -214,7 +243,17 @@ export function OverviewDashboard() {
           </CardContent>
         </Card>
       ) : null}
-    </section>
+      </section>
+    </div>
+  );
+}
+
+function BriefItem({ label, value, href }: { label: string; value: string; href: string }) {
+  return (
+    <Link href={href} className="group block border-l-2 border-primary pl-3">
+      <div className="text-xs font-semibold uppercase text-muted-foreground">{label}</div>
+      <div className="mt-1 text-sm font-semibold leading-5 group-hover:text-primary">{value}</div>
+    </Link>
   );
 }
 

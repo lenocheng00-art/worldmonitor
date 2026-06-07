@@ -1,4 +1,4 @@
-import { Activity, ArrowRight, Banknote, Gauge, Landmark, Sparkles } from "lucide-react";
+import { Activity, ArrowRight, Banknote, Gauge, Grid3X3, Landmark, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DirectionLabel, SectionHeader } from "@/components/research-ui";
 import { macroIndicators, macroRegime } from "@/lib/research-data";
@@ -101,6 +101,71 @@ export function MacroDashboard() {
           ))}
         </div>
       </section>
+
+      <AssetImpactMatrix />
+    </div>
+  );
+}
+
+const impactAssets = ["SPY", "QQQ", "SMH", "TLT", "GLD", "DXY", "NVDA", "AVGO", "VRT"];
+const impactRows = macroIndicators.filter((item) => ["nfp", "cpi", "pce", "unemployment", "pmi", "us10y", "fedwatch"].includes(item.id));
+
+function AssetImpactMatrix() {
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        icon={Grid3X3}
+        title="Asset Impact Matrix"
+        description="Current macro surprise direction translated into cross-asset implications."
+      />
+      <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
+        <table className="w-full min-w-[1120px] text-left text-xs">
+          <thead className="border-b bg-muted/60 uppercase text-muted-foreground">
+            <tr><th className="px-3 py-3">Driver</th>{impactAssets.map((asset) => <th key={asset} className="px-3 py-3">{asset}</th>)}</tr>
+          </thead>
+          <tbody className="divide-y">
+            {impactRows.map((row, rowIndex) => (
+              <tr key={row.id}>
+                <td className="px-3 py-3 font-semibold">{row.shortName}</td>
+                {impactAssets.map((asset, assetIndex) => {
+                  const impact = matrixImpact(rowIndex, assetIndex, row.direction);
+                  return <td key={asset} className="px-3 py-3"><ImpactCell {...impact} /></td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="space-y-3 md:hidden">
+        {impactRows.map((row, rowIndex) => (
+          <Card key={row.id}>
+            <CardHeader className="pb-3"><CardTitle className="text-base">{row.shortName} asset impact</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3">
+              {impactAssets.map((asset, assetIndex) => <div key={asset} className="border-t pt-2"><div className="mb-1 text-xs font-semibold">{asset}</div><ImpactCell {...matrixImpact(rowIndex, assetIndex, row.direction)} /></div>)}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function matrixImpact(row: number, column: number, base: "Positive" | "Negative" | "Mixed") {
+  const options = ["Positive", "Negative", "Mixed", "Neutral"] as const;
+  const direction = options[(row + column + (base === "Positive" ? 0 : base === "Negative" ? 1 : 2)) % options.length];
+  return {
+    direction,
+    confidence: 58 + ((row * 7 + column * 5) % 34),
+    reason: direction === "Positive" ? "Supports growth or duration" : direction === "Negative" ? "Raises discount or earnings risk" : direction === "Mixed" ? "Competing rate and growth effects" : "Limited direct transmission",
+  };
+}
+
+function ImpactCell({ direction, confidence, reason }: ReturnType<typeof matrixImpact>) {
+  const color = direction === "Positive" ? "bg-emerald-500" : direction === "Negative" ? "bg-red-500" : direction === "Mixed" ? "bg-amber-500" : "bg-slate-400";
+  return (
+    <div title={reason}>
+      <div className="flex items-center gap-1.5 font-semibold"><span className={`size-2 rounded-full ${color}`} />{direction}</div>
+      <div className="mt-1 text-[11px] text-muted-foreground">{confidence}% · {reason}</div>
     </div>
   );
 }
@@ -166,4 +231,3 @@ function Metric({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
