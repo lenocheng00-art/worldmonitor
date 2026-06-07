@@ -3,8 +3,8 @@ import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 
 export const metadata: Metadata = {
-  title: "WorldMonitor",
-  description: "Operational intelligence dashboard for AI, space, macro, and news signals.",
+  title: "WorldMonitor Research OS",
+  description: "An investment research operating system for macro, equities, industry chains, and signals.",
 };
 
 export default function RootLayout({

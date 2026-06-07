@@ -1,19 +1,15 @@
-import { TrendingUp } from "lucide-react";
-import { CompanyPage } from "@/components/company-page";
-import { getLiveMarketData } from "@/lib/yahoo-finance";
+import { MacroDashboard } from "@/components/macro-dashboard";
+import { PageHeader } from "@/components/page-header";
 
-export const dynamic = "force-dynamic";
-
-export default async function MacroPage() {
-  const { marketGroups } = await getLiveMarketData();
-
+export default function MacroPage() {
   return (
-    <CompanyPage
-      eyebrow="Market backdrop"
-      title="Macro"
-      description="DXY, US10Y, Gold, and WTI Oil context for global risk, liquidity, and inflation pressure."
-      icon={TrendingUp}
-      items={marketGroups.macro}
-    />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Macro regime and market transmission"
+        title="Macro Dashboard"
+        description="Economic releases, rate expectations, liquidity, and AI-assisted cross-asset impact analysis."
+      />
+      <MacroDashboard />
+    </div>
   );
 }
