@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, GitBranch, Plus, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, FlaskConical, GitBranch, History, Plus, Sparkles, Users, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -168,6 +169,26 @@ function LogicChainCard({ chain }: { chain: LogicChain }) {
           <TagList label="Affected Assets" items={chain.affectedAssets} />
           <TagList label="Follow-up Indicators" items={chain.followUpIndicators} />
         </div>
+        <div className="flex flex-wrap gap-2 border-t pt-4">
+          <Button asChild size="sm">
+            <Link href={`/backtest-lab?strategy=${strategyForChain(chain.id)}&logic=${chain.id}`}>
+              <FlaskConical className="size-4" />
+              Test This Logic
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/committee?topic=${encodeURIComponent(chain.title)}&signal=${chain.id}`}>
+              <Users className="size-4" />
+              Committee Review
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/backtest-lab?strategy=${strategyForChain(chain.id)}&logic=${chain.id}#trade-log`}>
+              <History className="size-4" />
+              Historical Validation
+            </Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -205,3 +226,8 @@ function inferAssets(entity: string) {
   return mappings[entity] ?? [entity];
 }
 
+function strategyForChain(chainId: string) {
+  if (chainId.includes("nfp") || chainId.includes("rate")) return "nfp-shock";
+  if (chainId.startsWith("signal-")) return "alan-signal";
+  return "ai-capex";
+}

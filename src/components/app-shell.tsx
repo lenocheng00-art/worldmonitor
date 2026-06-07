@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Boxes,
+  FlaskConical,
   GitBranch,
   Inbox,
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
   Settings,
   Sparkles,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,8 @@ const navItems = [
   { href: "/stocks", label: "Stocks", icon: BarChart3 },
   { href: "/industry-chains", label: "Industry Chains", icon: Boxes },
   { href: "/logic-chains", label: "Logic Chains", icon: GitBranch },
+  { href: "/committee", label: "Committee", icon: Users },
+  { href: "/backtest-lab", label: "Backtest Lab", icon: FlaskConical },
   { href: "/signal-inbox", label: "Signal Inbox", icon: Inbox },
   { href: "/alan-chan", label: "Alan Chan", icon: RadioTower },
   { href: "/settings", label: "Settings", icon: Settings },

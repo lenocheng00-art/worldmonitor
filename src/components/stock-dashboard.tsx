@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarDays, ChevronRight, Star } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, ChevronRight, FlaskConical, Inbox, Star, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,7 +76,7 @@ export function StockDashboard() {
 
         <div className="overflow-hidden rounded-lg border bg-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1120px] text-left text-sm">
+            <table className="w-full min-w-[1380px] text-left text-sm">
               <thead className="border-b bg-muted/60 text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Company</th>
@@ -85,6 +86,7 @@ export function StockDashboard() {
                   <th className="px-4 py-3 font-semibold">Latest catalyst</th>
                   <th className="px-4 py-3 font-semibold">AI rating</th>
                   <th className="px-4 py-3 font-semibold">Confidence</th>
+                  <th className="px-4 py-3 font-semibold">Research actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -124,6 +126,28 @@ export function StockDashboard() {
                       </td>
                       <td className="px-4 py-4">
                         <ConfidenceBar value={stock.confidence} />
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex min-w-44 flex-col items-start gap-1">
+                          <Button asChild variant="ghost" size="sm">
+                            <Link href={`/committee?topic=${encodeURIComponent(`${stock.ticker} investment review`)}&signal=${stock.ticker}`}>
+                              <Users className="size-4" />
+                              Committee View
+                            </Link>
+                          </Button>
+                          <Button asChild variant="ghost" size="sm">
+                            <Link href={`/backtest-lab?strategy=ai-capex&logic=${stock.ticker}`}>
+                              <FlaskConical className="size-4" />
+                              Backtest History
+                            </Link>
+                          </Button>
+                          <Button asChild variant="ghost" size="sm">
+                            <Link href={`/signal-inbox?ticker=${stock.ticker}`}>
+                              <Inbox className="size-4" />
+                              Related Signals
+                            </Link>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );

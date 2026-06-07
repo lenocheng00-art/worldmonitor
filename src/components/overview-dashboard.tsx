@@ -1,18 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, GitBranch, RadioTower, Shield, TrendingUp } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  FlaskConical,
+  GitBranch,
+  RadioTower,
+  Shield,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfidenceBar } from "@/components/research-ui";
 import { logicChains, macroRegime, researchStocks } from "@/lib/research-data";
 import { useAlanSignals } from "@/lib/use-alan-signals";
+import { useBacktestResults, useCommitteeReports } from "@/lib/use-decision-runs";
 import { cn } from "@/lib/utils";
 
 export function OverviewDashboard() {
   const [signals] = useAlanSignals();
+  const [committeeReports] = useCommitteeReports();
+  const [backtestResults] = useBacktestResults();
   const topSignals = signals.slice(0, 3);
+  const latestDecision = committeeReports[0];
+  const bestBacktest = [...backtestResults].sort((a, b) => b.sharpeRatio - a.sharpeRatio)[0];
   const movers = [...researchStocks]
     .sort((a, b) => Math.abs(Number.parseFloat(b.change)) - Math.abs(Number.parseFloat(a.change)))
     .slice(0, 5);
@@ -144,6 +160,60 @@ export function OverviewDashboard() {
           })}
         </CardContent>
       </Card>
+
+      {latestDecision ? (
+        <Card className="xl:col-span-6">
+          <CardHeader className="border-b">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="size-4 text-primary" />
+                Latest Committee Decision
+              </CardTitle>
+              <Badge variant="outline">{latestDecision.finalDecision}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-5">
+            <div>
+              <div className="text-xl font-semibold">{latestDecision.topic}</div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{latestDecision.triggerSignal}</p>
+            </div>
+            <div className="grid gap-3 border-y py-4 sm:grid-cols-3">
+              <OverviewMetric label="Confidence" value={`${latestDecision.confidenceScore}/100`} />
+              <OverviewMetric label="Time horizon" value={latestDecision.timeHorizon} />
+              <OverviewMetric label="Tickers" value={latestDecision.relatedTickers.slice(0, 3).join(", ")} />
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/committee">Review committee report <ArrowRight className="size-4" /></Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {bestBacktest ? (
+        <Card className="xl:col-span-6">
+          <CardHeader className="border-b">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FlaskConical className="size-4 text-primary" />
+                Best Backtest Result
+              </CardTitle>
+              <Badge variant="secondary">Sharpe {bestBacktest.sharpeRatio.toFixed(2)}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-5">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <OverviewMetric label="Total return" value={`+${bestBacktest.totalReturn}%`} />
+              <OverviewMetric label="Annualized" value={`+${bestBacktest.annualizedReturn}%`} />
+              <OverviewMetric label="Max drawdown" value={`${bestBacktest.maxDrawdown}%`} />
+              <OverviewMetric label="Win rate" value={`${bestBacktest.winRate}%`} />
+            </div>
+            <p className="border-t pt-4 text-sm leading-6 text-muted-foreground">{bestBacktest.conclusion}</p>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/backtest-lab">Open backtest lab <ArrowRight className="size-4" /></Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </section>
   );
 }
@@ -169,4 +239,3 @@ function RiskLine({ text, tone }: { text: string; tone: "positive" | "negative" 
     </li>
   );
 }
-

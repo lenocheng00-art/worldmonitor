@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Inbox, RadioTower, Sparkles } from "lucide-react";
+import { ArrowRight, FlaskConical, GitBranch, Inbox, RadioTower, Sparkles, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,6 +113,7 @@ export function SignalInbox() {
 function InboxSignal({ signal }: { signal: AlanSignal }) {
   const status = signal.status === "Watching" ? (signal.latestUpdates.length ? "Tracking" : "New") : signal.status;
   const nextCheck = new Date(new Date(signal.lastChecked).getTime() + frequencyDays(signal.priority) * 86400000);
+  const topic = encodeURIComponent(`${signal.entity}: ${signal.thesis}`);
 
   return (
     <Card>
@@ -141,6 +142,26 @@ function InboxSignal({ signal }: { signal: AlanSignal }) {
           <InboxField label="Tracking frequency" value={`${frequencyDays(signal.priority)} day cadence`} />
           <InboxField label="Next check date" value={nextCheck.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} />
           <InboxField label="Validation data" value={signal.monitoringSources.join(", ")} />
+        </div>
+        <div className="flex flex-wrap gap-2 border-t pt-4 lg:col-span-3">
+          <Button asChild size="sm">
+            <Link href={`/committee?topic=${topic}&signal=${signal.id}`}>
+              <Users className="size-4" />
+              Send to Committee
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/backtest-lab?strategy=alan-signal&logic=signal-${signal.id}`}>
+              <FlaskConical className="size-4" />
+              Run Backtest
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/logic-chains?signal=${signal.id}`}>
+              <GitBranch className="size-4" />
+              Create Logic Chain
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -178,4 +199,3 @@ function frequencyDays(priority: AlanSignal["priority"]) {
 function priorityScore(priority: AlanSignal["priority"]) {
   return priority === "High" ? 90 : priority === "Medium" ? 70 : 50;
 }
-
