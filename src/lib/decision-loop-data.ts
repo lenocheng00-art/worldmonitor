@@ -7,8 +7,19 @@ export type SignalStatus =
   | "Actioned"
   | "Invalidated";
 
+export type SourcePost = {
+  id: string;
+  source: string;
+  title: string;
+  originalText: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Signal = {
   id: string;
+  sourcePostId?: string;
   title: string;
   source: string;
   originalText: string;

@@ -21,7 +21,9 @@ import {
   type LogicChainValidationStatus,
   type Signal,
   type SignalStatus,
+  type SourcePost,
 } from "@/lib/decision-loop-data";
+import { worldmonitorRepository } from "@/lib/storage/worldmonitor-repository";
 
 const storageKey = "worldmonitor:decision-loop-v1";
 const alanStorageKey = "worldmonitor:alan-chan-signals";
@@ -31,7 +33,11 @@ const oldBacktestKey = "worldmonitor:backtest-results";
 type CreateSignalInput = Omit<
   Signal,
   "id" | "createdAt" | "updatedAt" | "status"
-> & { id?: string; status?: SignalStatus };
+> & {
+  id?: string;
+  status?: SignalStatus;
+  sourcePost?: Omit<SourcePost, "createdAt" | "updatedAt">;
+};
 
 type DecisionLoopContextValue = {
   state: DecisionLoopState;
@@ -69,25 +75,39 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(storageKey);
-      if (stored) {
-        setState(normalizeState(JSON.parse(stored) as Partial<DecisionLoopState>));
-      } else {
-        setState(migrateLegacyState(initialDecisionLoopState));
+    let cancelled = false;
+
+    async function loadState() {
+      try {
+        const stored = window.localStorage.getItem(storageKey);
+        const localState = stored
+          ? normalizeState(JSON.parse(stored) as Partial<DecisionLoopState>)
+          : migrateLegacyState(initialDecisionLoopState);
+        const result = await worldmonitorRepository.loadState(localState);
+
+        if (!cancelled) {
+          setState(result.data);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Saved research state could not be loaded. Built-in data is active.");
+          setState(initialDecisionLoopState);
+        }
+      } finally {
+        if (!cancelled) setReady(true);
       }
-    } catch {
-      setError("Saved research state could not be loaded. Built-in data is active.");
-      setState(initialDecisionLoopState);
-    } finally {
-      setReady(true);
     }
+
+    void loadState();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(state));
+      worldmonitorRepository.saveLocalState(state);
     } catch {
       setError("Research state could not be saved in this browser.");
     }
@@ -95,24 +115,39 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
 
   const createSignal = useCallback((input: CreateSignalInput) => {
     const timestamp = new Date().toISOString();
+    const { sourcePost: sourcePostInput, ...signalInput } = input;
+    const sourcePost = sourcePostInput
+      ? { ...sourcePostInput, createdAt: timestamp, updatedAt: timestamp }
+      : undefined;
     const signal: Signal = {
-      ...input,
+      ...signalInput,
       id: input.id ?? `signal-${Date.now()}`,
+      sourcePostId: sourcePost?.id ?? input.sourcePostId,
       status: input.status ?? "New",
       createdAt: timestamp,
       updatedAt: timestamp,
     };
     setState((current) => ({ ...current, signals: [signal, ...current.signals] }));
+    void (sourcePost
+      ? worldmonitorRepository.saveSourcePostAndSignal(sourcePost, signal)
+      : worldmonitorRepository.saveSignal(signal));
     return signal;
   }, []);
 
   const updateSignalStatus = useCallback((signalId: string, status: SignalStatus) => {
-    setState((current) => ({
-      ...current,
-      signals: current.signals.map((signal) =>
-        signal.id === signalId ? { ...signal, status, updatedAt: new Date().toISOString() } : signal,
-      ),
-    }));
+    setState((current) => {
+      let updatedSignal: Signal | undefined;
+      const next = {
+        ...current,
+        signals: current.signals.map((signal) => {
+          if (signal.id !== signalId) return signal;
+          updatedSignal = { ...signal, status, updatedAt: new Date().toISOString() };
+          return updatedSignal;
+        }),
+      };
+      if (updatedSignal) void worldmonitorRepository.saveSignal(updatedSignal);
+      return next;
+    });
   }, []);
 
   const createLogicChainFromSignal = useCallback((signalId: string) => {
@@ -144,15 +179,18 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       nextDataPoint: "Next company or macro update",
       lastCheckedAt: new Date().toISOString(),
     };
+    const updatedSignal: Signal = {
+      ...signal,
+      status: "Linked",
+      linkedLogicChainId: chain.id,
+      updatedAt: new Date().toISOString(),
+    };
     setState((current) => ({
       ...current,
       logicChains: [chain, ...current.logicChains],
-      signals: current.signals.map((item) =>
-        item.id === signalId
-          ? { ...item, status: "Linked", linkedLogicChainId: chain.id, updatedAt: new Date().toISOString() }
-          : item,
-      ),
+      signals: current.signals.map((item) => item.id === signalId ? updatedSignal : item),
     }));
+    void worldmonitorRepository.saveLogicChain(chain, updatedSignal);
     return chain;
   }, [state.logicChains, state.signals]);
 
@@ -162,28 +200,43 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       id: `chain-${Date.now()}`,
       lastCheckedAt: new Date().toISOString(),
     };
-    setState((current) => ({
-      ...current,
-      logicChains: [chain, ...current.logicChains],
-      signals: current.signals.map((signal) =>
-        signal.id === chain.triggerSignalId
-          ? { ...signal, status: "Linked", linkedLogicChainId: chain.id, updatedAt: new Date().toISOString() }
-          : signal,
-      ),
-    }));
+    setState((current) => {
+      let linkedSignal: Signal | undefined;
+      const next = {
+        ...current,
+        logicChains: [chain, ...current.logicChains],
+        signals: current.signals.map((signal) => {
+          if (signal.id !== chain.triggerSignalId) return signal;
+          linkedSignal = {
+            ...signal,
+            status: "Linked" as const,
+            linkedLogicChainId: chain.id,
+            updatedAt: new Date().toISOString(),
+          };
+          return linkedSignal;
+        }),
+      };
+      void worldmonitorRepository.saveLogicChain(chain, linkedSignal);
+      return next;
+    });
     return chain;
   }, []);
 
   const updateLogicChainValidation = useCallback(
     (logicChainId: string, validationStatus: LogicChainValidationStatus) => {
-      setState((current) => ({
-        ...current,
-        logicChains: current.logicChains.map((chain) =>
-          chain.id === logicChainId
-            ? { ...chain, validationStatus, lastCheckedAt: new Date().toISOString() }
-            : chain,
-        ),
-      }));
+      setState((current) => {
+        let updatedChain: LogicChain | undefined;
+        const next = {
+          ...current,
+          logicChains: current.logicChains.map((chain) => {
+            if (chain.id !== logicChainId) return chain;
+            updatedChain = { ...chain, validationStatus, lastCheckedAt: new Date().toISOString() };
+            return updatedChain;
+          }),
+        };
+        if (updatedChain) void worldmonitorRepository.saveLogicChain(updatedChain);
+        return next;
+      });
     },
     [],
   );
@@ -192,6 +245,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
     (input: Parameters<typeof createCommitteeReportFromInput>[0]) => {
       const report = createCommitteeReportFromInput(input);
       setState((current) => ({ ...current, committeeReports: [report, ...current.committeeReports] }));
+      void worldmonitorRepository.saveCommitteeReport(report);
       return report;
     },
     [],
@@ -209,20 +263,23 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       relatedTickers: signal.relatedTickers,
       relatedIndustryChains: signal.relatedIndustryChains,
     });
+    const updatedSignal: Signal = {
+      ...signal,
+      status: "Reviewed",
+      linkedCommitteeReportId: report.id,
+      updatedAt: new Date().toISOString(),
+    };
+    const linkedChain = state.logicChains.find((chain) => chain.id === signal.linkedLogicChainId);
+    const updatedChain = linkedChain ? { ...linkedChain, linkedCommitteeReportId: report.id } : undefined;
     setState((current) => ({
       ...current,
       committeeReports: [report, ...current.committeeReports],
-      signals: current.signals.map((item) =>
-        item.id === signalId
-          ? { ...item, status: "Reviewed", linkedCommitteeReportId: report.id, updatedAt: new Date().toISOString() }
-          : item,
-      ),
-      logicChains: current.logicChains.map((chain) =>
-        chain.id === signal.linkedLogicChainId ? { ...chain, linkedCommitteeReportId: report.id } : chain,
-      ),
+      signals: current.signals.map((item) => item.id === signalId ? updatedSignal : item),
+      logicChains: current.logicChains.map((chain) => chain.id === updatedChain?.id ? updatedChain : chain),
     }));
+    void worldmonitorRepository.saveCommitteeReport(report, updatedSignal, updatedChain);
     return report;
-  }, [state.committeeReports, state.signals]);
+  }, [state.committeeReports, state.logicChains, state.signals]);
 
   const sendLogicChainToCommittee = useCallback((logicChainId: string) => {
     const chain = state.logicChains.find((item) => item.id === logicChainId);
@@ -237,28 +294,39 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       relatedTickers: chain.affectedAssets,
       relatedIndustryChains: signal?.relatedIndustryChains ?? [],
     });
+    const updatedChain: LogicChain = { ...chain, linkedCommitteeReportId: report.id };
+    const updatedSignal = signal
+      ? {
+          ...signal,
+          status: "Reviewed" as const,
+          linkedCommitteeReportId: report.id,
+          updatedAt: new Date().toISOString(),
+        }
+      : undefined;
     setState((current) => ({
       ...current,
       committeeReports: [report, ...current.committeeReports],
-      logicChains: current.logicChains.map((item) =>
-        item.id === logicChainId ? { ...item, linkedCommitteeReportId: report.id } : item,
-      ),
-      signals: current.signals.map((item) =>
-        item.id === chain.triggerSignalId
-          ? { ...item, status: "Reviewed", linkedCommitteeReportId: report.id, updatedAt: new Date().toISOString() }
-          : item,
-      ),
+      logicChains: current.logicChains.map((item) => item.id === logicChainId ? updatedChain : item),
+      signals: current.signals.map((item) => item.id === updatedSignal?.id ? updatedSignal : item),
     }));
+    void worldmonitorRepository.saveCommitteeReport(report, updatedSignal, updatedChain);
     return report;
   }, [state.committeeReports, state.logicChains, state.signals]);
 
   const updateCommitteeReport = useCallback((reportId: string, patch: Partial<CommitteeReport>) => {
-    setState((current) => ({
-      ...current,
-      committeeReports: current.committeeReports.map((report) =>
-        report.id === reportId ? { ...report, ...patch } : report,
-      ),
-    }));
+    setState((current) => {
+      let updatedReport: CommitteeReport | undefined;
+      const next = {
+        ...current,
+        committeeReports: current.committeeReports.map((report) => {
+          if (report.id !== reportId) return report;
+          updatedReport = { ...report, ...patch };
+          return updatedReport;
+        }),
+      };
+      if (updatedReport) void worldmonitorRepository.saveCommitteeReport(updatedReport);
+      return next;
+    });
   }, []);
 
   const runBacktest = useCallback((
@@ -266,7 +334,11 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
     links: { signalId?: string; logicChainId?: string; committeeReportId?: string } = {},
   ) => {
     const result = createBacktestResult(strategy, links);
-    setState((current) => linkResultIntoState(current, strategy, result));
+    setState((current) => {
+      const next = linkResultIntoState(current, strategy, result);
+      persistBacktest(next, strategy, result);
+      return next;
+    });
     return result;
   }, []);
 
@@ -287,7 +359,11 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       logicChainId: signal.linkedLogicChainId,
       committeeReportId: signal.linkedCommitteeReportId,
     });
-    setState((current) => linkResultIntoState(current, strategy, result));
+    setState((current) => {
+      const next = linkResultIntoState(current, strategy, result);
+      persistBacktest(next, strategy, result);
+      return next;
+    });
     return result;
   }, [state.signals]);
 
@@ -307,7 +383,11 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       logicChainId,
       committeeReportId: chain.linkedCommitteeReportId,
     });
-    setState((current) => linkResultIntoState(current, strategy, result));
+    setState((current) => {
+      const next = linkResultIntoState(current, strategy, result);
+      persistBacktest(next, strategy, result);
+      return next;
+    });
     return result;
   }, [state.logicChains]);
 
@@ -321,64 +401,72 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       const result = current.backtestResults.find((item) => item.id === resultId);
       const strategy = result && current.backtestStrategies.find((item) => item.id === result.strategyId);
       if (!result || !strategy) return current;
-      return linkResultIntoState(
+      const next = linkResultIntoState(
         { ...current, backtestResults: current.backtestResults.filter((item) => item.id !== resultId) },
         strategy,
         { ...result, linkedSignalId: signalId, linkedLogicChainId: logicChainId, linkedCommitteeReportId: committeeReportId },
       );
+      const linkedResult = next.backtestResults.find((item) => item.id === resultId);
+      if (linkedResult) persistBacktest(next, strategy, linkedResult);
+      return next;
     });
   }, []);
 
   const addToWatchlist = useCallback((ticker: string, sourceObjectId: string, signalId?: string) => {
     setState((current) => {
       const existing = current.watchlist.find((item) => item.ticker === ticker);
+      const sourceSignal = signalId
+        ? current.signals.find((signal) => signal.id === signalId)
+        : undefined;
+      const actionedSignal = sourceSignal
+        ? { ...sourceSignal, status: "Actioned" as const, updatedAt: new Date().toISOString() }
+        : undefined;
+
       if (existing) {
-        return {
+        const updatedItem = {
+          ...existing,
+          sourceObjectId,
+          linkedSignalIds: signalId
+            ? Array.from(new Set([...existing.linkedSignalIds, signalId]))
+            : existing.linkedSignalIds,
+        };
+        const next = {
           ...current,
           watchlist: current.watchlist.map((item) =>
-            item.ticker === ticker
-              ? {
-                  ...item,
-                  sourceObjectId,
-                  linkedSignalIds: signalId
-                    ? Array.from(new Set([...item.linkedSignalIds, signalId]))
-                    : item.linkedSignalIds,
-                }
-              : item,
+            item.ticker === ticker ? updatedItem : item,
           ),
           signals: signalId
             ? current.signals.map((signal) =>
-                signal.id === signalId
-                  ? { ...signal, status: "Actioned", updatedAt: new Date().toISOString() }
-                  : signal,
+                signal.id === signalId && actionedSignal ? actionedSignal : signal,
               )
             : current.signals,
         };
+        void worldmonitorRepository.saveWatchlistItem(updatedItem, actionedSignal);
+        return next;
       }
-      return {
+
+      const newItem = {
+        ticker,
+        sourceObjectId,
+        entryTrigger: "Wait for price and fundamental confirmation",
+        invalidationLevel: "Trigger thesis reverses",
+        linkedSignalIds: signalId ? [signalId] : [],
+        committeeView: "Pending" as const,
+        backtestEdge: "Not tested",
+        suggestedAction: "Research",
+        addedAt: new Date().toISOString(),
+      };
+      const next = {
         ...current,
-        watchlist: [
-          {
-            ticker,
-            sourceObjectId,
-            entryTrigger: "Wait for price and fundamental confirmation",
-            invalidationLevel: "Trigger thesis reverses",
-            linkedSignalIds: signalId ? [signalId] : [],
-            committeeView: "Pending",
-            backtestEdge: "Not tested",
-            suggestedAction: "Research",
-            addedAt: new Date().toISOString(),
-          },
-          ...current.watchlist,
-        ],
+        watchlist: [newItem, ...current.watchlist],
         signals: signalId
           ? current.signals.map((signal) =>
-              signal.id === signalId
-                ? { ...signal, status: "Actioned", updatedAt: new Date().toISOString() }
-                : signal,
+              signal.id === signalId && actionedSignal ? actionedSignal : signal,
             )
           : current.signals,
       };
+      void worldmonitorRepository.saveWatchlistItem(newItem, actionedSignal);
+      return next;
     });
   }, []);
 
@@ -454,6 +542,20 @@ function linkResultIntoState(
         : item,
     ),
   };
+}
+
+function persistBacktest(
+  state: DecisionLoopState,
+  strategy: BacktestStrategy,
+  result: BacktestResult,
+) {
+  void worldmonitorRepository.saveBacktest(strategy, result, {
+    signal: state.signals.find((signal) => signal.id === result.linkedSignalId),
+    logicChain: state.logicChains.find((chain) => chain.id === result.linkedLogicChainId),
+    committeeReport: state.committeeReports.find(
+      (report) => report.id === result.linkedCommitteeReportId,
+    ),
+  });
 }
 
 function normalizeState(input: Partial<DecisionLoopState>): DecisionLoopState {

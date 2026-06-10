@@ -82,8 +82,10 @@ export function AlanChanSignals() {
     }
 
     setSignals((current) => [...extracted, ...current]);
+    const sourcePostId = `source-post-alan-${Date.now()}`;
     extracted.forEach((signal) => createSignal({
       id: `signal-alan-${signal.id}`,
+      sourcePostId,
       title: signal.entity,
       source: "Alan Chan",
       originalText: signal.sourceExcerpt,
@@ -91,6 +93,13 @@ export function AlanChanSignals() {
       relatedTickers: inferTickers(signal.entity),
       relatedIndustryChains: [signal.category],
       priorityScore: signal.priority === "High" ? 90 : signal.priority === "Medium" ? 70 : 50,
+      sourcePost: {
+        id: sourcePostId,
+        source: "Alan Chan",
+        title: extracted[0]?.entity ?? "Alan Chan member post",
+        originalText: pasteText.trim(),
+        metadata: { extractedSignalCount: extracted.length },
+      },
     }));
     setPasteText("");
   }

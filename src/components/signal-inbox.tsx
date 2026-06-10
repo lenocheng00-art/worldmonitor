@@ -61,7 +61,9 @@ export function SignalInbox() {
   function importText() {
     const parsed = extractAlanSignals(pasteText);
     if (parsed.length) {
+      const sourcePostId = `source-post-alan-${Date.now()}`;
       parsed.forEach((item) => createSignal({
+        sourcePostId,
         title: item.entity,
         source: "Alan Chan",
         originalText: item.sourceExcerpt,
@@ -69,6 +71,13 @@ export function SignalInbox() {
         relatedTickers: inferTickers(item.entity),
         relatedIndustryChains: [item.category],
         priorityScore: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
+        sourcePost: {
+          id: sourcePostId,
+          source: "Alan Chan",
+          title: parsed[0]?.entity ?? "Alan Chan member post",
+          originalText: pasteText.trim(),
+          metadata: { extractedSignalCount: parsed.length },
+        },
       }));
     } else if (pasteText.trim()) {
       createSignal({
