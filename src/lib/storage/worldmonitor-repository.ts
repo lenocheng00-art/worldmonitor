@@ -101,16 +101,24 @@ export const worldmonitorRepository = {
       const response = await withTimeout(
         fetch("/api/signals/create", {
           method: "POST",
+          cache: "no-store",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sourcePost, signals }),
         }),
         10_000,
         "Supabase signal import timed out.",
       );
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        persisted?: boolean;
+        count?: number;
+      };
 
       if (!response.ok) {
         throw new Error(payload.error ?? `Signal import returned HTTP ${response.status}.`);
+      }
+      if (!payload.persisted || payload.count !== signals.length) {
+        throw new Error("Supabase did not confirm every extracted signal.");
       }
 
       return { data: signals, backend: "supabase" as const };

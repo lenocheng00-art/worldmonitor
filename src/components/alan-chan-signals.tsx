@@ -180,7 +180,7 @@ export function AlanChanSignals() {
                 Manual paste only. Text is parsed locally, then source posts and normalized signals are persisted to Supabase.
               </CardDescription>
             </div>
-            <Badge variant="outline">Supabase-first</Badge>
+            <Badge variant="outline">Storage: Supabase primary / local fallback</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

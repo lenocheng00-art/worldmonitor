@@ -2,6 +2,8 @@ import { RadioTower } from "lucide-react";
 import { AlanChanSignals } from "@/components/alan-chan-signals";
 import { PageHeader } from "@/components/page-header";
 
+export const dynamic = "force-dynamic";
+
 export default function AlanChanPage() {
   return (
     <div className="space-y-6">
@@ -12,7 +14,7 @@ export default function AlanChanPage() {
         <PageHeader
           eyebrow="Manual member-post signal tracker"
           title="Alan Chan Signals"
-      description="Paste members-only post text, extract investable signals, and persist them into the shared research system."
+          description="Paste members-only post text, extract investable signals, and persist them into the shared research system."
         />
       </div>
       <AlanChanSignals />
