@@ -1,14 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
-export type DatabaseHealth =
-  | {
-      connected: true;
-      project: string;
-    }
-  | {
-      connected: false;
-      error: string;
-    };
+export type DatabaseHealth = {
+  connected: boolean;
+  project: string;
+  error: string;
+};
 
 export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,6 +13,7 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
   if (!supabaseUrl || !supabaseAnonKey) {
     return {
       connected: false,
+      project: "",
       error: "Supabase environment variables are not configured.",
     };
   }
@@ -36,10 +33,9 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
       },
     });
 
-    const response = await fetch(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/`, {
+    const response = await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/settings`, {
       headers: {
         apikey: supabaseAnonKey,
-        Authorization: `Bearer ${supabaseAnonKey}`,
       },
       cache: "no-store",
       signal: AbortSignal.timeout(5000),
@@ -52,11 +48,21 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
     return {
       connected: true,
       project,
+      error: "",
     };
   } catch (error) {
     return {
       connected: false,
+      project: getProjectId(supabaseUrl),
       error: error instanceof Error ? error.message : "Supabase connection test failed.",
     };
+  }
+}
+
+function getProjectId(supabaseUrl: string) {
+  try {
+    return new URL(supabaseUrl).hostname.split(".")[0] ?? "";
+  } catch {
+    return "";
   }
 }
