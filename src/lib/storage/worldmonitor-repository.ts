@@ -14,9 +14,9 @@ import type {
 
 const storageKey = "worldmonitor:decision-loop-v1";
 
-type StorageBackend = "supabase" | "localStorage";
+export type StorageBackend = "supabase" | "localStorage";
 
-type StorageResult<T> = {
+export type StorageResult<T> = {
   data: T;
   backend: StorageBackend;
   error?: string;
@@ -96,19 +96,48 @@ export const worldmonitorRepository = {
     window.localStorage.setItem(storageKey, JSON.stringify(state));
   },
 
+  async saveSourcePostAndSignals(sourcePost: SourcePost, signals: Signal[]) {
+    try {
+      const response = await withTimeout(
+        fetch("/api/signals/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sourcePost, signals }),
+        }),
+        10_000,
+        "Supabase signal import timed out.",
+      );
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? `Signal import returned HTTP ${response.status}.`);
+      }
+
+      return { data: signals, backend: "supabase" as const };
+    } catch (error) {
+      return {
+        data: signals,
+        backend: "localStorage" as const,
+        error: describeStorageError(error),
+      };
+    }
+  },
+
   async saveSourcePostAndSignal(sourcePost: SourcePost, signal: Signal) {
-    return runSupabaseFirst(async () => {
-      const supabase = createClient();
-      const sourceResult = await supabase.from("source_posts").upsert(toSourcePostRow(sourcePost));
-      if (sourceResult.error) throw sourceResult.error;
-      const signalResult = await supabase.from("signals").upsert(toSignalRow(signal));
-      if (signalResult.error) throw signalResult.error;
-    });
+    const result = await this.saveSourcePostAndSignals(sourcePost, [signal]);
+    return { ...result, data: null };
   },
 
   async saveSignal(signal: Signal) {
     return runSupabaseFirst(async () => {
       const { error } = await createClient().from("signals").upsert(toSignalRow(signal));
+      if (error) throw error;
+    });
+  },
+
+  async deleteSignal(signalId: string) {
+    return runSupabaseFirst(async () => {
+      const { error } = await createClient().from("signals").delete().eq("id", signalId);
       if (error) throw error;
     });
   },
@@ -193,18 +222,6 @@ async function runSupabaseFirst(operation: () => Promise<void>): Promise<Storage
       error: describeStorageError(error),
     };
   }
-}
-
-function toSourcePostRow(post: SourcePost) {
-  return {
-    id: post.id,
-    source: post.source,
-    title: post.title,
-    original_text: post.originalText,
-    metadata: post.metadata ?? {},
-    created_at: post.createdAt,
-    updated_at: post.updatedAt,
-  };
 }
 
 function toSignalRow(signal: Signal) {

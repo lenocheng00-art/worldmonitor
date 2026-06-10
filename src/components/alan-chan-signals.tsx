@@ -1,19 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, ClipboardList, Edit3, History, Save, Search, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, ClipboardList, Edit3, History, Loader2, Save, Search, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   evaluateSignalUpdate,
   extractAlanSignals,
+  normalizeAlanSignal,
   type AlanSignal,
   type AlanSignalCategory,
   type AlanSignalPriority,
   type AlanSignalStatus,
 } from "@/lib/alan-chan-parser";
-import { useAlanSignals } from "@/lib/use-alan-signals";
+import type { Signal } from "@/lib/decision-loop-data";
 import { useDecisionLoop } from "@/lib/decision-loop-store";
 import { cn } from "@/lib/utils";
 
@@ -43,17 +44,35 @@ const badgeByStatus = {
 } as const;
 
 const emptyPasteText =
-  "Paste Alan Chan members-only post text here. The parser runs locally in your browser and stores extracted signals in localStorage.";
+  "Paste Alan Chan members-only post text here. The parser extracts signals locally, then saves normalized research records to Supabase.";
 
 export function AlanChanSignals() {
   const [pasteText, setPasteText] = useState("");
-  const [signals, setSignals] = useAlanSignals();
-  const { createSignal } = useDecisionLoop();
+  const {
+    state,
+    ready,
+    importSignalsFromSource,
+    updateSignal: updateNormalizedSignal,
+    deleteSignal: deleteNormalizedSignal,
+  } = useDecisionLoop();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveNotice, setSaveNotice] = useState<{
+    tone: "success" | "fallback" | "error";
+    message: string;
+  }>();
   const [categoryFilter, setCategoryFilter] = useState<AlanSignalCategory | "All">("All");
   const [entityFilter, setEntityFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<AlanSignalStatus | "All">("All");
   const [priorityFilter, setPriorityFilter] = useState<AlanSignalPriority | "All">("All");
+  const normalizedSignals = useMemo(
+    () => state.signals.filter((signal) => signal.source === "Alan Chan"),
+    [state.signals],
+  );
+  const signals = useMemo(
+    () => normalizedSignals.map(toAlanSignal),
+    [normalizedSignals],
+  );
 
   const entities = useMemo(() => {
     const uniqueEntities = Array.from(new Set(signals.map((signal) => signal.entity))).sort((a, b) =>
@@ -74,48 +93,80 @@ export function AlanChanSignals() {
     });
   }, [categoryFilter, entityFilter, priorityFilter, signals, statusFilter]);
 
-  function handleExtract() {
+  async function handleExtract() {
     const extracted = extractAlanSignals(pasteText);
 
     if (!extracted.length) {
+      setSaveNotice({ tone: "error", message: "No investable signals were detected in this text." });
       return;
     }
 
-    setSignals((current) => [...extracted, ...current]);
+    setSaving(true);
+    setSaveNotice(undefined);
     const sourcePostId = `source-post-alan-${Date.now()}`;
-    extracted.forEach((signal) => createSignal({
-      id: `signal-alan-${signal.id}`,
-      sourcePostId,
-      title: signal.entity,
-      source: "Alan Chan",
-      originalText: signal.sourceExcerpt,
-      extractedSignal: signal.thesis,
-      relatedTickers: inferTickers(signal.entity),
-      relatedIndustryChains: [signal.category],
-      priorityScore: signal.priority === "High" ? 90 : signal.priority === "Medium" ? 70 : 50,
-      sourcePost: {
-        id: sourcePostId,
-        source: "Alan Chan",
-        title: extracted[0]?.entity ?? "Alan Chan member post",
-        originalText: pasteText.trim(),
-        metadata: { extractedSignalCount: extracted.length },
-      },
-    }));
-    setPasteText("");
+    try {
+      const result = await importSignalsFromSource(
+        {
+          id: sourcePostId,
+          source: "Alan Chan",
+          title: extracted[0]?.entity ?? "Alan Chan member post",
+          originalText: pasteText.trim(),
+          metadata: { extractedSignalCount: extracted.length },
+        },
+        extracted.map((signal, index) => ({
+          id: `signal-alan-${Date.now()}-${index}-${signal.id}`,
+          title: signal.entity,
+          source: "Alan Chan",
+          originalText: signal.sourceExcerpt,
+          extractedSignal: signal.thesis,
+          relatedTickers: inferTickers(signal.entity),
+          relatedIndustryChains: [signal.category],
+          priorityScore: signal.priority === "High" ? 90 : signal.priority === "Medium" ? 70 : 50,
+        })),
+      );
+
+      setSaveNotice(result.backend === "supabase"
+        ? {
+            tone: "success",
+            message: `${result.signals.length} signals saved to Supabase and sent to Signal Inbox.`,
+          }
+        : {
+            tone: "fallback",
+            message: `${result.signals.length} signals saved locally. Supabase retry is available after connectivity is restored.`,
+          });
+      setPasteText("");
+    } catch (error) {
+      setSaveNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Signal import failed.",
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   function updateSignal(id: string, patch: Partial<AlanSignal>) {
-    setSignals((current) => current.map((signal) => (signal.id === id ? { ...signal, ...patch } : signal)));
+    const current = signals.find((signal) => signal.id === id);
+    if (!current) return;
+    const next = { ...current, ...patch };
+    updateNormalizedSignal(id, {
+      title: next.entity,
+      originalText: next.sourceExcerpt,
+      extractedSignal: next.thesis,
+      relatedIndustryChains: [next.category],
+      priorityScore: priorityToScore(next.priority),
+      status: alanStatusToSignalStatus(next.status),
+    });
   }
 
   function addMonitorUpdate(id: string, update: string) {
-    setSignals((current) =>
-      current.map((signal) => (signal.id === id ? evaluateSignalUpdate(signal, update) : signal)),
-    );
+    const signal = signals.find((item) => item.id === id);
+    if (!signal) return;
+    updateSignal(id, evaluateSignalUpdate(signal, update));
   }
 
   function deleteSignal(id: string) {
-    setSignals((current) => current.filter((signal) => signal.id !== id));
+    deleteNormalizedSignal(id);
   }
 
   return (
@@ -125,9 +176,11 @@ export function AlanChanSignals() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <CardTitle>Paste Source Text</CardTitle>
-              <CardDescription>Manual paste only. Nothing is scraped, requested, or sent to a server.</CardDescription>
+              <CardDescription>
+                Manual paste only. Text is parsed locally, then source posts and normalized signals are persisted to Supabase.
+              </CardDescription>
             </div>
-            <Badge variant="outline">localStorage</Badge>
+            <Badge variant="outline">Supabase-first</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -142,11 +195,21 @@ export function AlanChanSignals() {
               Rules include Google TPU capex, Broadcom custom ASICs, Vertiv data center cooling, Constellation nuclear
               power, SpaceX IPO filings, Anthropic S-1, and OpenAI IPO timing.
             </div>
-            <Button onClick={handleExtract} disabled={!pasteText.trim()}>
-              <ClipboardList className="size-4" />
-              Extract Signals
+            <Button onClick={() => void handleExtract()} disabled={!pasteText.trim() || saving}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <ClipboardList className="size-4" />}
+              {saving ? "Saving Signals" : "Extract Signals"}
             </Button>
           </div>
+          {saveNotice ? (
+            <div className={cn(
+              "border-l-2 px-3 py-2 text-sm",
+              saveNotice.tone === "success" && "border-emerald-500 bg-emerald-50 text-emerald-900",
+              saveNotice.tone === "fallback" && "border-amber-500 bg-amber-50 text-amber-900",
+              saveNotice.tone === "error" && "border-red-500 bg-red-50 text-red-900",
+            )}>
+              {saveNotice.message}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -154,7 +217,9 @@ export function AlanChanSignals() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold tracking-normal">Tracked Signals</h2>
-            <p className="text-sm text-muted-foreground">{signals.length} saved signals on this device.</p>
+            <p className="text-sm text-muted-foreground">
+              {ready ? `${signals.length} normalized signals in the research system.` : "Loading saved signals."}
+            </p>
           </div>
           <div className="grid gap-2 sm:grid-cols-4">
             <FilterSelect
@@ -208,6 +273,43 @@ export function AlanChanSignals() {
       </section>
     </div>
   );
+}
+
+function toAlanSignal(signal: Signal): AlanSignal {
+  const category = isAlanCategory(signal.relatedIndustryChains[0])
+    ? signal.relatedIndustryChains[0]
+    : "Other";
+
+  return normalizeAlanSignal({
+    id: signal.id,
+    category,
+    entity: signal.title,
+    thesis: signal.extractedSignal,
+    sourceExcerpt: signal.originalText,
+    createdDate: signal.createdAt,
+    lastChecked: signal.updatedAt,
+    status: signal.status === "Invalidated"
+      ? "Invalidated"
+      : ["Reviewed", "Backtested", "Actioned"].includes(signal.status)
+        ? "Confirmed"
+        : "Watching",
+    priority: signal.priorityScore >= 80 ? "High" : signal.priorityScore >= 60 ? "Medium" : "Low",
+    confidence: signal.priorityScore >= 80 ? "High" : signal.priorityScore >= 60 ? "Medium" : "Low",
+  });
+}
+
+function isAlanCategory(value?: string): value is AlanSignalCategory {
+  return Boolean(value && categories.includes(value as AlanSignalCategory));
+}
+
+function priorityToScore(priority: AlanSignalPriority) {
+  return priority === "High" ? 90 : priority === "Medium" ? 70 : 50;
+}
+
+function alanStatusToSignalStatus(status: AlanSignalStatus): Signal["status"] {
+  if (status === "Invalidated") return "Invalidated";
+  if (status === "Confirmed") return "Tracking";
+  return "New";
 }
 
 function inferTickers(entity: string) {

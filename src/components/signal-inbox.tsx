@@ -31,6 +31,7 @@ export function SignalInbox() {
     ready,
     error,
     createSignal,
+    importSignalsFromSource,
     createLogicChainFromSignal,
     sendSignalToCommittee,
     runBacktestFromSignal,
@@ -58,27 +59,29 @@ export function SignalInbox() {
     }
   }, [filtered, selectedId]);
 
-  function importText() {
+  async function importText() {
     const parsed = extractAlanSignals(pasteText);
     if (parsed.length) {
       const sourcePostId = `source-post-alan-${Date.now()}`;
-      parsed.forEach((item) => createSignal({
-        sourcePostId,
-        title: item.entity,
-        source: "Alan Chan",
-        originalText: item.sourceExcerpt,
-        extractedSignal: item.thesis,
-        relatedTickers: inferTickers(item.entity),
-        relatedIndustryChains: [item.category],
-        priorityScore: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
-        sourcePost: {
+      await importSignalsFromSource(
+        {
           id: sourcePostId,
           source: "Alan Chan",
           title: parsed[0]?.entity ?? "Alan Chan member post",
           originalText: pasteText.trim(),
           metadata: { extractedSignalCount: parsed.length },
         },
-      }));
+        parsed.map((item, index) => ({
+          id: `signal-alan-${Date.now()}-${index}-${item.id}`,
+          title: item.entity,
+          source: "Alan Chan",
+          originalText: item.sourceExcerpt,
+          extractedSignal: item.thesis,
+          relatedTickers: inferTickers(item.entity),
+          relatedIndustryChains: [item.category],
+          priorityScore: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
+        })),
+      );
     } else if (pasteText.trim()) {
       createSignal({
         title: pasteText.trim().slice(0, 64),
@@ -136,7 +139,7 @@ export function SignalInbox() {
               className="min-h-28 w-full resize-y rounded-md border bg-background p-3 text-sm leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <div className="flex gap-2 lg:flex-col">
-              <Button onClick={importText} disabled={!pasteText.trim()}>
+              <Button onClick={() => void importText()} disabled={!pasteText.trim()}>
                 <RadioTower className="size-4" /> Extract and create
               </Button>
               <Button variant="outline" onClick={() => setShowImport(false)}>Cancel</Button>

@@ -12,7 +12,7 @@ export default function AlanChanPage() {
         <PageHeader
           eyebrow="Manual member-post signal tracker"
           title="Alan Chan Signals"
-          description="Paste members-only post text, extract investable signals, and track the setup locally on this device."
+      description="Paste members-only post text, extract investable signals, and persist them into the shared research system."
         />
       </div>
       <AlanChanSignals />

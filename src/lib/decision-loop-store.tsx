@@ -24,6 +24,7 @@ import {
   type SourcePost,
 } from "@/lib/decision-loop-data";
 import { worldmonitorRepository } from "@/lib/storage/worldmonitor-repository";
+import type { StorageBackend } from "@/lib/storage/worldmonitor-repository";
 
 const storageKey = "worldmonitor:decision-loop-v1";
 const alanStorageKey = "worldmonitor:alan-chan-signals";
@@ -39,11 +40,23 @@ type CreateSignalInput = Omit<
   sourcePost?: Omit<SourcePost, "createdAt" | "updatedAt">;
 };
 
+type ImportSignalsResult = {
+  signals: Signal[];
+  backend: StorageBackend;
+  error?: string;
+};
+
 type DecisionLoopContextValue = {
   state: DecisionLoopState;
   ready: boolean;
   error?: string;
   createSignal: (input: CreateSignalInput) => Signal;
+  importSignalsFromSource: (
+    sourcePost: Omit<SourcePost, "createdAt" | "updatedAt">,
+    inputs: Array<Omit<CreateSignalInput, "sourcePost" | "sourcePostId">>,
+  ) => Promise<ImportSignalsResult>;
+  updateSignal: (signalId: string, patch: Partial<Signal>) => void;
+  deleteSignal: (signalId: string) => void;
   updateSignalStatus: (signalId: string, status: SignalStatus) => void;
   createLogicChainFromSignal: (signalId: string) => LogicChain | undefined;
   createLogicChain: (input: Omit<LogicChain, "id" | "lastCheckedAt">) => LogicChain;
@@ -132,6 +145,63 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       ? worldmonitorRepository.saveSourcePostAndSignal(sourcePost, signal)
       : worldmonitorRepository.saveSignal(signal));
     return signal;
+  }, []);
+
+  const importSignalsFromSource = useCallback(async (
+    sourcePostInput: Omit<SourcePost, "createdAt" | "updatedAt">,
+    inputs: Array<Omit<CreateSignalInput, "sourcePost" | "sourcePostId">>,
+  ): Promise<ImportSignalsResult> => {
+    const timestamp = new Date().toISOString();
+    const sourcePost: SourcePost = {
+      ...sourcePostInput,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    const signals = inputs.map((input, index): Signal => ({
+      ...input,
+      id: input.id ?? `signal-${Date.now()}-${index}`,
+      sourcePostId: sourcePost.id,
+      status: input.status ?? "New",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }));
+
+    setState((current) => ({
+      ...current,
+      signals: [
+        ...signals,
+        ...current.signals.filter(
+          (existing) => !signals.some((signal) => signal.id === existing.id),
+        ),
+      ],
+    }));
+
+    const result = await worldmonitorRepository.saveSourcePostAndSignals(sourcePost, signals);
+    return { signals, backend: result.backend, error: result.error };
+  }, []);
+
+  const updateSignal = useCallback((signalId: string, patch: Partial<Signal>) => {
+    setState((current) => {
+      let updatedSignal: Signal | undefined;
+      const next = {
+        ...current,
+        signals: current.signals.map((signal) => {
+          if (signal.id !== signalId) return signal;
+          updatedSignal = { ...signal, ...patch, id: signal.id, updatedAt: new Date().toISOString() };
+          return updatedSignal;
+        }),
+      };
+      if (updatedSignal) void worldmonitorRepository.saveSignal(updatedSignal);
+      return next;
+    });
+  }, []);
+
+  const deleteSignal = useCallback((signalId: string) => {
+    setState((current) => ({
+      ...current,
+      signals: current.signals.filter((signal) => signal.id !== signalId),
+    }));
+    void worldmonitorRepository.deleteSignal(signalId);
   }, []);
 
   const updateSignalStatus = useCallback((signalId: string, status: SignalStatus) => {
@@ -475,6 +545,9 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
     ready,
     error,
     createSignal,
+    importSignalsFromSource,
+    updateSignal,
+    deleteSignal,
     updateSignalStatus,
     createLogicChainFromSignal,
     createLogicChain,
@@ -490,8 +563,10 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
     addToWatchlist,
   }), [
     addToWatchlist, createCommitteeReport, createLogicChain, createLogicChainFromSignal, createSignal,
-    error, linkBacktestResult, ready, runBacktest, runBacktestFromLogicChain, runBacktestFromSignal, sendLogicChainToCommittee,
-    sendSignalToCommittee, state, updateCommitteeReport, updateLogicChainValidation, updateSignalStatus,
+    deleteSignal, error, importSignalsFromSource, linkBacktestResult, ready, runBacktest,
+    runBacktestFromLogicChain, runBacktestFromSignal, sendLogicChainToCommittee,
+    sendSignalToCommittee, state, updateCommitteeReport, updateLogicChainValidation, updateSignal,
+    updateSignalStatus,
   ]);
 
   return <DecisionLoopContext.Provider value={value}>{children}</DecisionLoopContext.Provider>;
