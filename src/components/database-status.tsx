@@ -32,12 +32,12 @@ export function DatabaseStatus() {
 
         const health = (await response.json()) as DatabaseHealth;
 
-        if (health.connected) {
+        if (health.connected && health.project) {
           setState({ status: "connected", project: health.project });
-        } else if (health.error.includes("not configured")) {
+        } else if (health.error?.includes("not configured")) {
           setState({ status: "disconnected", error: health.error });
         } else {
-          setState({ status: "error", error: health.error });
+          setState({ status: "error", error: health.error ?? "Database health check failed." });
         }
       } catch (error) {
         if (controller.signal.aborted) return;

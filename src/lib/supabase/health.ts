@@ -2,8 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 export type DatabaseHealth = {
   connected: boolean;
-  project: string;
-  error: string;
+  project: string | null;
+  error: string | null;
 };
 
 export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
@@ -13,7 +13,7 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
   if (!supabaseUrl || !supabaseAnonKey) {
     return {
       connected: false,
-      project: "",
+      project: getProjectId(supabaseUrl),
       error: "Supabase environment variables are not configured.",
     };
   }
@@ -48,7 +48,7 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
     return {
       connected: true,
       project,
-      error: "",
+      error: null,
     };
   } catch (error) {
     return {
@@ -59,10 +59,12 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
   }
 }
 
-function getProjectId(supabaseUrl: string) {
+function getProjectId(supabaseUrl?: string): string | null {
+  if (!supabaseUrl) return null;
+
   try {
-    return new URL(supabaseUrl).hostname.split(".")[0] ?? "";
+    return new URL(supabaseUrl).hostname.split(".")[0] || null;
   } catch {
-    return "";
+    return null;
   }
 }
