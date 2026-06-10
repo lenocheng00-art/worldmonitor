@@ -34,10 +34,16 @@ export function DatabaseStatus() {
 
         if (health.connected && health.project) {
           setState({ status: "connected", project: health.project });
-        } else if (health.error?.includes("not configured")) {
-          setState({ status: "disconnected", error: health.error });
+        } else if (health.errorName === "ConfigurationError") {
+          setState({
+            status: "disconnected",
+            error: health.errorMessage ?? "Database is not configured.",
+          });
         } else {
-          setState({ status: "error", error: health.error ?? "Database health check failed." });
+          setState({
+            status: "error",
+            error: health.errorMessage ?? "Database health check failed.",
+          });
         }
       } catch (error) {
         if (controller.signal.aborted) return;

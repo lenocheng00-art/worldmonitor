@@ -1,122 +1,122 @@
-import { createClient } from "@supabase/supabase-js";
-
-type HealthKeyType = "anon key";
-
 export type DatabaseHealth = {
   connected: boolean;
   project: string | null;
-  endpoint: string | null;
-  keyType: HealthKeyType;
-  error: string | null;
+  supabaseUrl: string | null;
+  fetchTarget: string | null;
+  status: number | null;
+  statusText: string | null;
+  errorName: string | null;
+  errorMessage: string | null;
+  errorCause: string | null;
 };
 
 export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const keyType: HealthKeyType = "anon key";
-  const endpoint = getHealthEndpoint(supabaseUrl);
+  const configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = normalizeSupabaseUrl(configuredUrl);
+  const fetchTarget = supabaseUrl ? `${supabaseUrl}/rest/v1/` : null;
+  const project = getProjectId(supabaseUrl);
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !anonKey || !fetchTarget) {
     const missingVariables = [
-      !supabaseUrl ? "NEXT_PUBLIC_SUPABASE_URL" : null,
-      !supabaseAnonKey ? "NEXT_PUBLIC_SUPABASE_ANON_KEY" : null,
+      !configuredUrl ? "NEXT_PUBLIC_SUPABASE_URL" : null,
+      !anonKey ? "NEXT_PUBLIC_SUPABASE_ANON_KEY" : null,
     ].filter(Boolean);
-    const error = `Supabase environment variables are not configured. Missing: ${missingVariables.join(", ")}.`;
+    const errorMessage = missingVariables.length
+      ? `Missing environment variables: ${missingVariables.join(", ")}.`
+      : "NEXT_PUBLIC_SUPABASE_URL is invalid.";
 
-    console.error("[database-health] Configuration error", {
-      endpoint,
-      keyType,
-      error,
+    console.error("[database-health] Supabase configuration error", {
+      project,
+      supabaseUrl,
+      fetchTarget,
+      keyType: "anon key",
+      errorMessage,
     });
 
     return {
       connected: false,
-      project: getProjectId(supabaseUrl),
-      endpoint,
-      keyType,
-      error,
+      project,
+      supabaseUrl,
+      fetchTarget,
+      status: null,
+      statusText: null,
+      errorName: "ConfigurationError",
+      errorMessage,
+      errorCause: null,
     };
   }
 
+  console.info("[database-health] Fetching Supabase REST endpoint", {
+    project,
+    supabaseUrl,
+    fetchTarget,
+    keyType: "anon key",
+  });
+
   try {
-    const url = new URL(supabaseUrl);
-    const project = url.hostname.split(".")[0];
-
-    if (!project) {
-      throw new Error("Supabase project ID could not be determined.");
-    }
-
-    if (!endpoint) {
-      throw new Error("Supabase health endpoint could not be determined.");
-    }
-
-    createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-
-    console.info("[database-health] Testing Supabase connection", {
-      endpoint,
-      keyType,
-    });
-
-    const response = await fetch(endpoint, {
+    const response = await fetch(fetchTarget, {
       headers: {
-        apikey: supabaseAnonKey,
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
       },
       cache: "no-store",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10_000),
     });
 
-    if (!response.ok) {
-      const responseBody = await response.text();
-      throw new Error(
-        `Supabase returned HTTP ${response.status} ${response.statusText}${
-          responseBody ? `: ${responseBody.slice(0, 500)}` : ""
-        }`,
-      );
-    }
+    console.info("[database-health] Supabase REST endpoint responded", {
+      project,
+      fetchTarget,
+      keyType: "anon key",
+      status: response.status,
+      statusText: response.statusText,
+    });
 
     return {
       connected: true,
       project,
-      endpoint,
-      keyType,
-      error: null,
+      supabaseUrl,
+      fetchTarget,
+      status: response.status,
+      statusText: response.statusText || null,
+      errorName: null,
+      errorMessage: null,
+      errorCause: null,
     };
   } catch (error) {
-    const detailedError = formatConnectionError(error, endpoint, keyType);
+    const diagnostics = getErrorDiagnostics(error);
 
-    console.error("[database-health] Supabase connection failed", {
-      endpoint,
-      keyType,
-      error: detailedError,
-      cause: getErrorCause(error),
+    console.error("[database-health] Supabase REST fetch threw", {
+      project,
+      supabaseUrl,
+      fetchTarget,
+      keyType: "anon key",
+      ...diagnostics,
     });
 
     return {
       connected: false,
-      project: getProjectId(supabaseUrl),
-      endpoint,
-      keyType,
-      error: detailedError,
+      project,
+      supabaseUrl,
+      fetchTarget,
+      status: null,
+      statusText: null,
+      ...diagnostics,
     };
   }
 }
 
-function getHealthEndpoint(supabaseUrl?: string): string | null {
-  if (!supabaseUrl) return null;
+function normalizeSupabaseUrl(value?: string): string | null {
+  if (!value) return null;
 
   try {
-    return `${new URL(supabaseUrl).origin}/auth/v1/settings`;
+    return new URL(value).origin;
   } catch {
     return null;
   }
 }
 
-function getProjectId(supabaseUrl?: string): string | null {
+function getProjectId(supabaseUrl: string | null): string | null {
   if (!supabaseUrl) return null;
 
   try {
@@ -126,51 +126,44 @@ function getProjectId(supabaseUrl?: string): string | null {
   }
 }
 
-function formatConnectionError(
-  error: unknown,
-  endpoint: string | null,
-  keyType: HealthKeyType,
-) {
-  const details = describeError(error);
-  return `Supabase health request failed. URL: ${endpoint ?? "invalid URL"}. Key: ${keyType}. ${details}`;
-}
-
-function describeError(error: unknown): string {
+function getErrorDiagnostics(error: unknown) {
   if (!(error instanceof Error)) {
-    return String(error);
+    return {
+      errorName: "UnknownError",
+      errorMessage: String(error),
+      errorCause: null,
+    };
   }
 
-  const details = [`${error.name}: ${error.message}`];
-  const cause = getErrorCause(error);
-
-  if (cause) {
-    details.push(`Cause: ${cause}`);
-  }
-
-  return details.join(". ");
+  return {
+    errorName: error.name,
+    errorMessage: error.message,
+    errorCause: formatErrorCause(error.cause),
+  };
 }
 
-function getErrorCause(error: unknown): string | null {
-  if (!(error instanceof Error) || !error.cause) {
-    return null;
-  }
+function formatErrorCause(cause: unknown): string | null {
+  if (!cause) return null;
+  if (!(cause instanceof Error)) return String(cause);
 
-  if (!(error.cause instanceof Error)) {
-    return String(error.cause);
-  }
-
-  const cause = error.cause as Error & {
+  const networkCause = cause as Error & {
     code?: string;
     errno?: number | string;
     syscall?: string;
     hostname?: string;
+    address?: string;
+    port?: number;
   };
   const metadata = [
-    cause.code ? `code=${cause.code}` : null,
-    cause.errno !== undefined ? `errno=${cause.errno}` : null,
-    cause.syscall ? `syscall=${cause.syscall}` : null,
-    cause.hostname ? `hostname=${cause.hostname}` : null,
+    networkCause.code ? `code=${networkCause.code}` : null,
+    networkCause.errno !== undefined ? `errno=${networkCause.errno}` : null,
+    networkCause.syscall ? `syscall=${networkCause.syscall}` : null,
+    networkCause.hostname ? `hostname=${networkCause.hostname}` : null,
+    networkCause.address ? `address=${networkCause.address}` : null,
+    networkCause.port !== undefined ? `port=${networkCause.port}` : null,
   ].filter(Boolean);
 
-  return `${cause.name}: ${cause.message}${metadata.length ? ` (${metadata.join(", ")})` : ""}`;
+  return `${networkCause.name}: ${networkCause.message}${
+    metadata.length ? ` (${metadata.join(", ")})` : ""
+  }`;
 }
