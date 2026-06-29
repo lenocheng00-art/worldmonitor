@@ -53,6 +53,7 @@ export type PortfolioValuationMethod =
   | "cost_basis"
   | "latest_nav";
 export type PortfolioDataConfidence = "high" | "medium" | "low";
+export type PortfolioQualityBucket = "high" | "medium" | "low";
 
 export type PortfolioAsset = {
   id: string;
@@ -205,6 +206,22 @@ export type AssetTodo = {
 };
 
 export type AssetTodoFormValues = Omit<AssetTodo, "id" | "created_at" | "updated_at">;
+
+export type PortfolioDataQualityResult = {
+  score: number;
+  quality_bucket: PortfolioQualityBucket;
+  reasons: string[];
+};
+
+export type VerificationSuggestion = {
+  id: string;
+  asset_id: string;
+  asset_name: string;
+  suggested_action: string;
+  reason: string;
+  priority: AssetTodoPriority;
+  verification_type: AssetVerificationType;
+};
 
 export const cashFlowDirectionOptions: CashFlowDirection[] = ["inflow", "outflow"];
 export const cashFlowFrequencyOptions: CashFlowFrequency[] = ["monthly", "quarterly", "annual", "none"];
@@ -437,6 +454,98 @@ export function toAssetTodoFormValues(todo?: AssetTodo): AssetTodoFormValues {
   };
 }
 
+export function calculateDataQualityScore(asset: PortfolioAsset, todos: AssetTodo[] = []): PortfolioDataQualityResult {
+  const reasons: string[] = [];
+  let score = 100;
+  const ageDays = daysSince(asset.last_verified_at);
+  const hasOpenTodos = todos.some((todo) => todo.related_asset_id === asset.id && todo.status !== "done");
+
+  if (asset.data_confidence === "medium") {
+    score -= 15;
+    reasons.push("Data confidence is medium.");
+  }
+  if (asset.data_confidence === "low") {
+    score -= 30;
+    reasons.push("Data confidence is low.");
+  }
+  if (ageDays > 90) {
+    score -= 25;
+    reasons.push("Last verification is older than 90 days.");
+  } else if (ageDays > 30) {
+    score -= 10;
+    reasons.push("Last verification is older than 30 days.");
+  }
+  if (["estimated", "manual"].includes(asset.valuation_method)) {
+    score -= 15;
+    reasons.push("Valuation basis is manual or estimated.");
+  }
+  if (["last_round", "cost", "cost_basis"].includes(asset.valuation_method)) {
+    score -= 8;
+    reasons.push("Valuation is not a current market or cash mark.");
+  }
+  if (asset.liquidity_level === "locked") {
+    score -= 12;
+    reasons.push("Liquidity is locked.");
+  } else if (asset.liquidity_level === "low") {
+    score -= 8;
+    reasons.push("Liquidity is low.");
+  }
+  if (asset.research_links.length === 0) {
+    score -= 10;
+    reasons.push("No supporting research links are attached.");
+  }
+  if (hasOpenTodos) {
+    score -= 10;
+    reasons.push("Open verification todo exists.");
+  }
+
+  const bounded = Math.max(0, Math.min(100, score));
+  return {
+    score: bounded,
+    quality_bucket: bounded >= 75 ? "high" : bounded >= 50 ? "medium" : "low",
+    reasons: reasons.length > 0 ? reasons : ["Record is recently verified with strong supporting data."],
+  };
+}
+
+export function buildVerificationSuggestions(assets: PortfolioAsset[], todos: AssetTodo[] = []): VerificationSuggestion[] {
+  const openKeys = new Set(todos.filter((todo) => todo.status !== "done").map((todo) => `${todo.related_asset_id}:${todo.verification_type}:${todo.title}`));
+  const suggestions: VerificationSuggestion[] = [];
+
+  for (const asset of assets) {
+    const push = (suffix: string, suggested_action: string, reason: string, priority: AssetTodoPriority, verification_type: AssetVerificationType) => {
+      const key = `${asset.id}:${verification_type}:${suggested_action}`;
+      if (openKeys.has(key)) return;
+      suggestions.push({
+        id: `${asset.id}-${suffix}`,
+        asset_id: asset.id,
+        asset_name: asset.name,
+        suggested_action,
+        reason,
+        priority,
+        verification_type,
+      });
+    };
+
+    if (daysSince(asset.last_verified_at) > 90) {
+      push("stale-valuation", "Update valuation", "Last verification is older than 90 days.", "high", "valuation");
+    }
+    if (asset.data_confidence === "low") {
+      push("low-confidence", "Verify data source", "Record is marked low confidence.", "high", "document");
+    }
+    if (["estimated", "manual"].includes(asset.valuation_method)) {
+      push("valuation-basis", "Confirm valuation basis", "Valuation method is estimated or manual.", "medium", "valuation");
+    }
+    if (asset.liquidity_level === "locked") {
+      push("lockup", "Confirm lock-up and exit terms", "Liquidity level is locked.", "medium", "liquidity");
+    }
+    if (asset.research_links.length === 0) {
+      push("research-links", "Add supporting documents or research links", "No research links are attached.", "medium", "document");
+    }
+  }
+
+  return suggestions.sort((a, b) => priorityRank(b.priority) - priorityRank(a.priority));
+}
+
 export function normalizePortfolioAsset(asset: PortfolioAsset): PortfolioAsset {
   const fxRate = asset.fx_rate_to_base ?? fxRatesToCny[asset.currency] ?? 1;
   const currentValue = Number(asset.current_value) || 0;
@@ -554,6 +663,16 @@ export function assetValue(record: Pick<PortfolioAsset, "type" | "base_currency_
 
 export function liabilityValue(record: Pick<PortfolioAsset, "type" | "base_currency_value">) {
   return record.type === "liability" ? Math.abs(record.base_currency_value) : 0;
+}
+
+function daysSince(value: string) {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return 999;
+  return Math.floor((Date.now() - time) / (24 * 60 * 60 * 1000));
+}
+
+function priorityRank(priority: AssetTodoPriority) {
+  return priority === "high" ? 3 : priority === "medium" ? 2 : 1;
 }
 
 function researchLinksFromAsset(asset?: Partial<PortfolioAsset>) {

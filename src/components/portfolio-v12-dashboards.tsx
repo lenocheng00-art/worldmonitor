@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/research-ui";
 import {
   assetValue,
+  buildVerificationSuggestions,
   buildAssetTodo,
   buildCashFlow,
+  calculateDataQualityScore,
   cashFlowDirectionOptions,
   cashFlowFrequencyOptions,
   currencyOptions,
@@ -34,6 +36,7 @@ import {
   type CashFlowRecord,
   type CashFlowFormValues,
   type PortfolioAsset,
+  type VerificationSuggestion,
 } from "@/lib/portfolio-data";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +61,7 @@ export function BalanceSheetDashboard() {
         <BreakdownCard title="Asset Breakdown by Category" rows={groupRecords(assets.filter((asset) => asset.type === "asset"), "category", true)} />
         <BreakdownCard title="Liability Breakdown by Category" rows={groupRecords(assets.filter((asset) => asset.type === "liability"), "category", false)} />
         <BreakdownCard title="Net Worth by Account" rows={groupNetWorthByAccount(assets)} />
+        <BreakdownCard title="Value by Liquidity Level" rows={groupRecords(assets.filter((asset) => asset.type === "asset"), "liquidity_level", true)} />
         <ConfidenceCard records={assets} />
       </div>
       <StaleDataCard records={staleAssets} />
@@ -179,7 +183,15 @@ export function AssetTodosDashboard() {
 export function PortfolioOverviewDashboard() {
   const assets = usePortfolioRecords();
   const cashFlows = useCashFlows();
-  const todos = useAssetTodos();
+  const [todos, setTodos] = useState<AssetTodo[]>(mockAssetTodos);
+  const [todosHydrated, setTodosHydrated] = useState(false);
+  useEffect(() => {
+    setTodos(readStoredAssetTodos());
+    setTodosHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (todosHydrated) writeStoredAssetTodos(todos);
+  }, [todos, todosHydrated]);
   const totalAssets = assets.reduce((sum, asset) => sum + assetValue(asset), 0);
   const totalLiabilities = assets.reduce((sum, asset) => sum + liabilityValue(asset), 0);
   const netWorth = totalAssets - totalLiabilities;
@@ -187,8 +199,38 @@ export function PortfolioOverviewDashboard() {
   const illiquid = assets.filter((asset) => asset.liquidity_level === "locked" || asset.liquidity_level === "low").reduce((sum, asset) => sum + assetValue(asset), 0);
   const lowConfidence = assets.filter((asset) => asset.data_confidence === "low").reduce((sum, asset) => sum + assetValue(asset), 0);
   const staleValue = staleRecords(assets).reduce((sum, asset) => sum + assetValue(asset), 0);
-  const upcoming = upcomingCashFlows(cashFlows, 30);
+  const upcoming30 = upcomingCashFlows(cashFlows, 30);
+  const upcoming90 = upcomingCashFlows(cashFlows, 90);
   const highTodos = todos.filter((todo) => todo.status !== "done" && todo.priority === "high");
+  const qualityRows = assets.map((asset) => ({ asset, quality: calculateDataQualityScore(asset, todos) }));
+  const highQualityValue = qualityRows.filter((row) => row.quality.quality_bucket === "high").reduce((sum, row) => sum + assetValue(row.asset), 0);
+  const mediumQualityValue = qualityRows.filter((row) => row.quality.quality_bucket === "medium").reduce((sum, row) => sum + assetValue(row.asset), 0);
+  const lowQualityValue = qualityRows.filter((row) => row.quality.quality_bucket === "low").reduce((sum, row) => sum + assetValue(row.asset), 0);
+  const verificationRows = qualityRows.filter((row) => row.quality.quality_bucket === "low" || staleRecords([row.asset]).length > 0);
+  const highLiquidityValue = assets.filter((asset) => asset.liquidity_level === "high").reduce((sum, asset) => sum + assetValue(asset), 0);
+  const lowLockedValue = assets.filter((asset) => asset.liquidity_level === "low" || asset.liquidity_level === "locked").reduce((sum, asset) => sum + assetValue(asset), 0);
+  const scenarios = calculateScenarios(assets);
+  const suggestions = buildVerificationSuggestions(assets, todos);
+  const inflow30 = flowTotal(upcoming30, "inflow");
+  const outflow30 = flowTotal(upcoming30, "outflow");
+  const inflow90 = flowTotal(upcoming90, "inflow");
+  const outflow90 = flowTotal(upcoming90, "outflow");
+  const net90 = inflow90 - outflow90;
+  const coverage = outflow90 > 0 ? cashBalance / outflow90 : null;
+
+  function createTodoFromSuggestion(suggestion: VerificationSuggestion) {
+    const todo = buildAssetTodo({
+      title: suggestion.suggested_action,
+      status: "open",
+      priority: suggestion.priority,
+      related_asset_id: suggestion.asset_id,
+      related_cashflow_id: "",
+      due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      verification_type: suggestion.verification_type,
+      note: suggestion.reason,
+    });
+    setTodos((current) => [todo, ...current]);
+  }
 
   return (
     <div className="space-y-6">
@@ -200,15 +242,27 @@ export function PortfolioOverviewDashboard() {
         <MetricCard label="Illiquid Asset Exposure" value={cny(illiquid)} />
         <MetricCard label="Low-confidence Asset Value" value={cny(lowConfidence)} />
         <MetricCard label="Stale Asset Value" value={cny(staleValue)} />
-        <MetricCard label="30-day Net Cash Flow" value={cny(flowTotal(upcoming, "inflow") - flowTotal(upcoming, "outflow"))} />
+        <MetricCard label="30-day Net Cash Flow" value={cny(inflow30 - outflow30)} />
         <MetricCard label="Open High-priority Todos" value={`${highTodos.length}`} />
+      </MetricGrid>
+      <MetricGrid>
+        <MetricCard label="High-quality Value" value={cny(highQualityValue)} />
+        <MetricCard label="Medium-quality Value" value={cny(mediumQualityValue)} />
+        <MetricCard label="Low-quality Value" value={cny(lowQualityValue)} />
+        <MetricCard label="Records Needing Verification" value={`${verificationRows.length}`} />
       </MetricGrid>
       <div className="grid gap-4 xl:grid-cols-2">
         <BreakdownCard title="Asset Allocation by Category" rows={groupRecords(assets.filter((asset) => asset.type === "asset"), "category", true)} />
         <BreakdownCard title="Net Worth by Account" rows={groupNetWorthByAccount(assets)} />
-        <CashFlowRecurringCard title="Upcoming 30-day Cash Flows" records={upcoming} assets={assets} />
+        <BreakdownCard title="Value by Liquidity Level" rows={groupRecords(assets.filter((asset) => asset.type === "asset"), "liquidity_level", true)} />
+        <LiquidityRiskCard totalAssets={totalAssets} cashBalance={cashBalance} highLiquidityValue={highLiquidityValue} lowLockedValue={lowLockedValue} illiquid={illiquid} />
+        <ScenarioAnalysisCard scenarios={scenarios} />
+        <LiquidityCoverageCard inflow30={inflow30} outflow30={outflow30} inflow90={inflow90} outflow90={outflow90} net90={net90} cashBalance={cashBalance} coverage={coverage} />
+        <CashFlowRecurringCard title="Upcoming 30-day Cash Flows" records={upcoming30} assets={assets} />
         <TodoCompactCard todos={highTodos} assets={assets} />
       </div>
+      <DataQualityTable rows={verificationRows} />
+      <SuggestedVerificationActions suggestions={suggestions} onCreateTodo={createTodoFromSuggestion} />
     </div>
   );
 }
@@ -223,12 +277,6 @@ function useCashFlows() {
   const [records, setRecords] = useState<CashFlowRecord[]>(mockCashFlows);
   useEffect(() => setRecords(readStoredCashFlows()), []);
   return records;
-}
-
-function useAssetTodos() {
-  const [todos, setTodos] = useState<AssetTodo[]>(mockAssetTodos);
-  useEffect(() => setTodos(readStoredAssetTodos()), []);
-  return todos;
 }
 
 function MetricGrid({ children }: { children: React.ReactNode }) {
@@ -417,6 +465,161 @@ function TodoCompactCard({ todos, assets }: { todos: AssetTodo[]; assets: Portfo
   );
 }
 
+function LiquidityRiskCard({
+  totalAssets,
+  cashBalance,
+  highLiquidityValue,
+  lowLockedValue,
+  illiquid,
+}: {
+  totalAssets: number;
+  cashBalance: number;
+  highLiquidityValue: number;
+  lowLockedValue: number;
+  illiquid: number;
+}) {
+  const highPct = totalAssets ? highLiquidityValue / totalAssets : 0;
+  const lowLockedPct = totalAssets ? lowLockedValue / totalAssets : 0;
+  return (
+    <Card>
+      <CardHeader className="pb-3"><CardTitle>Liquidity Risk View</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <LiquidityLine label="High liquidity assets" value={highLiquidityValue} share={highPct} />
+        <LiquidityLine label="Low / locked assets" value={lowLockedValue} share={lowLockedPct} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <MiniMetric label="Cash Balance" value={cny(cashBalance)} />
+          <MiniMetric label="Illiquid Exposure" value={cny(illiquid)} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LiquidityLine({ label, value, share }: { label: string; value: number; share: number }) {
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium">{label}</span>
+        <span className="tabular-nums text-muted-foreground">{cny(value)} · {(share * 100).toFixed(1)}%</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(2, share * 100)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function ScenarioAnalysisCard({ scenarios }: { scenarios: ReturnType<typeof calculateScenarios> }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3"><CardTitle>Scenario Analysis</CardTitle></CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-2">
+        <MiniMetric label="Base Case Net Worth" value={cny(scenarios.base)} />
+        <MiniMetric label="Bear Case Net Worth" value={cny(scenarios.bear)} />
+        <MiniMetric label="Stress Case Net Worth" value={cny(scenarios.stress)} />
+        <MiniMetric label="Downside Amount" value={cny(scenarios.downside)} />
+        <MiniMetric label="Downside Percentage" value={`${scenarios.downsidePct.toFixed(1)}%`} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function LiquidityCoverageCard({
+  inflow30,
+  outflow30,
+  inflow90,
+  outflow90,
+  net90,
+  cashBalance,
+  coverage,
+}: {
+  inflow30: number;
+  outflow30: number;
+  inflow90: number;
+  outflow90: number;
+  net90: number;
+  cashBalance: number;
+  coverage: number | null;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3"><CardTitle>Cash Runway / Liquidity Coverage</CardTitle></CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-2">
+        <MiniMetric label="30-day Inflow" value={cny(inflow30)} />
+        <MiniMetric label="30-day Outflow" value={cny(outflow30)} />
+        <MiniMetric label="90-day Inflow" value={cny(inflow90)} />
+        <MiniMetric label="90-day Outflow" value={cny(outflow90)} />
+        <MiniMetric label="Net 90-day Cash Movement" value={cny(net90)} />
+        <MiniMetric label="Current Cash Balance" value={cny(cashBalance)} />
+        <MiniMetric label="90-day Liquidity Coverage" value={coverage === null ? "No outflow" : `${coverage.toFixed(2)}x`} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border p-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-2 font-semibold tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+function DataQualityTable({ rows }: { rows: { asset: PortfolioAsset; quality: ReturnType<typeof calculateDataQualityScore> }[] }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>Low-quality or Stale Records</CardTitle></CardHeader>
+      <CardContent className="overflow-x-auto">
+        <table className="min-w-[1100px] w-full text-left text-sm">
+          <thead className="border-b text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>{["Name", "Category", "Base Value", "Confidence", "Last Verified", "Score", "Reasons"].map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr>
+          </thead>
+          <tbody className="divide-y">
+            {rows.map(({ asset, quality }) => (
+              <tr key={asset.id}>
+                <td className="px-4 py-3 font-medium">{asset.name}</td>
+                <td className="px-4 py-3">{formatLabel(asset.category)}</td>
+                <td className="px-4 py-3 tabular-nums">{cny(assetValue(asset))}</td>
+                <td className="px-4 py-3">{formatLabel(asset.data_confidence)}</td>
+                <td className="px-4 py-3">{formatDate(asset.last_verified_at)}</td>
+                <td className="px-4 py-3 tabular-nums">{quality.score}</td>
+                <td className="px-4 py-3 text-muted-foreground">{quality.reasons.join(" ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SuggestedVerificationActions({
+  suggestions,
+  onCreateTodo,
+}: {
+  suggestions: VerificationSuggestion[];
+  onCreateTodo: (suggestion: VerificationSuggestion) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>Suggested Verification Actions</CardTitle></CardHeader>
+      <CardContent className="grid gap-3">
+        {suggestions.map((suggestion) => (
+          <div key={suggestion.id} className="grid gap-3 rounded-md border p-3 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <div className="font-medium">{suggestion.asset_name}</div>
+              <div className="mt-1 text-sm text-muted-foreground">{suggestion.suggested_action} · {suggestion.reason}</div>
+              <div className="mt-2"><PriorityBadge priority={suggestion.priority} /></div>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => onCreateTodo(suggestion)}>Create Todo</Button>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return <div className="flex gap-2"><Button size="sm" variant="outline" onClick={onEdit}><FilePenLine className="size-4" /> Edit</Button><Button size="sm" variant="outline" onClick={onDelete}><Trash2 className="size-4" /> Delete</Button></div>;
 }
@@ -437,7 +640,7 @@ function PriorityBadge({ priority }: { priority: AssetTodo["priority"] }) {
   return <Badge variant="outline" className={cn(priority === "high" && "border-red-200 bg-red-50 text-red-800", priority === "medium" && "border-blue-200 bg-blue-50 text-blue-800", priority === "low" && "border-muted bg-muted")}>{formatLabel(priority)}</Badge>;
 }
 
-function groupRecords(records: PortfolioAsset[], key: "category" | "account", assetsOnly: boolean): GroupRow[] {
+function groupRecords(records: PortfolioAsset[], key: "category" | "account" | "liquidity_level", assetsOnly: boolean): GroupRow[] {
   const totals = new Map<string, { value: number; count: number }>();
   for (const record of records) {
     const value = assetsOnly ? assetValue(record) : liabilityValue(record);
@@ -488,6 +691,29 @@ function staleRecords(records: PortfolioAsset[]) {
   const now = Date.now();
   const thirtyDays = 30 * 24 * 60 * 60 * 1000;
   return records.filter((record) => record.data_confidence === "low" || now - new Date(record.last_verified_at).getTime() > thirtyDays);
+}
+
+function calculateScenarios(records: PortfolioAsset[]) {
+  const base = records.reduce((sum, record) => sum + signedBaseValue(record), 0);
+  const bear = records.reduce((sum, record) => sum + scenarioValue(record, "bear"), 0);
+  const stress = records.reduce((sum, record) => sum + scenarioValue(record, "stress"), 0);
+  const downside = base - stress;
+  return {
+    base,
+    bear,
+    stress,
+    downside,
+    downsidePct: base > 0 ? (downside / base) * 100 : 0,
+  };
+}
+
+function scenarioValue(record: PortfolioAsset, scenario: "bear" | "stress") {
+  if (record.type === "liability") return -liabilityValue(record);
+  const baseHaircuts = scenario === "bear"
+    ? { high: 1, medium: 0.9, low: 0.7, locked: 0.6 }
+    : { high: 1, medium: 0.8, low: 0.5, locked: 0.4 };
+  const confidenceHaircut = record.data_confidence === "low" ? scenario === "bear" ? 0.9 : 0.8 : 1;
+  return assetValue(record) * baseHaircuts[record.liquidity_level] * confidenceHaircut;
 }
 
 function startOfToday() {
