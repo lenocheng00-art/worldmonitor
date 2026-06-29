@@ -119,6 +119,11 @@ export type PortfolioAssetFormValues = {
 export const portfolioStorageKey = "worldmonitor:portfolio-assets:v1";
 export const cashFlowStorageKey = "worldmonitor:cash-flows:v1";
 export const assetTodoStorageKey = "worldmonitor:asset-todos:v1";
+export const portfolioActivityLogStorageKey = "worldmonitor:portfolio-activity-log:v1";
+export const portfolioLatestBackupStorageKey = "worldmonitor:portfolio-backup:latest";
+export const portfolioPreviousBackupStorageKey = "worldmonitor:portfolio-backup:previous";
+export const portfolioMetadataStorageKey = "worldmonitor:portfolio-metadata:v1";
+export const portfolioSchemaVersion = "1.4";
 
 export const accountTypeOptions: PortfolioAccountType[] = [
   "mainland_bank",
@@ -221,6 +226,35 @@ export type VerificationSuggestion = {
   reason: string;
   priority: AssetTodoPriority;
   verification_type: AssetVerificationType;
+};
+
+export type PortfolioActivityAction = "create" | "update" | "delete" | "import" | "export" | "restore" | "clear";
+export type PortfolioActivityEntity = "portfolio" | "cash_flow" | "todo" | "system";
+
+export type PortfolioActivityLogEntry = {
+  id: string;
+  timestamp: string;
+  entity_type: PortfolioActivityEntity;
+  entity_id?: string;
+  action: PortfolioActivityAction;
+  title: string;
+  summary?: string;
+};
+
+export type PortfolioBackupPayload = {
+  schema_version: string;
+  exported_at: string;
+  app_name: "WorldMonitor Portfolio Register";
+  base_currency: "CNY";
+  portfolio_records: PortfolioAsset[];
+  cash_flow_records: CashFlowRecord[];
+  asset_todos: AssetTodo[];
+  activity_log: PortfolioActivityLogEntry[];
+};
+
+export type PortfolioMetadata = {
+  last_export_at?: string;
+  last_import_at?: string;
 };
 
 export const cashFlowDirectionOptions: CashFlowDirection[] = ["inflow", "outflow"];
@@ -428,6 +462,139 @@ export function writeStoredAssetTodos(todos: AssetTodo[]) {
   window.localStorage.setItem(assetTodoStorageKey, JSON.stringify(todos));
 }
 
+export function readActivityLog(): PortfolioActivityLogEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(portfolioActivityLogStorageKey) ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function appendActivityLog(entry: Omit<PortfolioActivityLogEntry, "id" | "timestamp">) {
+  if (typeof window === "undefined") return;
+  const next: PortfolioActivityLogEntry = {
+    id: `activity-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: new Date().toISOString(),
+    ...entry,
+  };
+  window.localStorage.setItem(portfolioActivityLogStorageKey, JSON.stringify([next, ...readActivityLog()].slice(0, 250)));
+}
+
+export function readPortfolioMetadata(): PortfolioMetadata {
+  if (typeof window === "undefined") return {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(portfolioMetadataStorageKey) ?? "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writePortfolioMetadata(metadata: PortfolioMetadata) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(portfolioMetadataStorageKey, JSON.stringify(metadata));
+}
+
+export function buildPortfolioBackupPayload(): PortfolioBackupPayload {
+  return {
+    schema_version: portfolioSchemaVersion,
+    exported_at: new Date().toISOString(),
+    app_name: "WorldMonitor Portfolio Register",
+    base_currency: "CNY",
+    portfolio_records: readStoredPortfolioAssets(),
+    cash_flow_records: readStoredCashFlows(),
+    asset_todos: readStoredAssetTodos(),
+    activity_log: readActivityLog(),
+  };
+}
+
+export function createLocalBackup() {
+  if (typeof window === "undefined") return;
+  const latest = window.localStorage.getItem(portfolioLatestBackupStorageKey);
+  if (latest) window.localStorage.setItem(portfolioPreviousBackupStorageKey, latest);
+  window.localStorage.setItem(portfolioLatestBackupStorageKey, JSON.stringify(buildPortfolioBackupPayload()));
+}
+
+export function readLocalBackup(slot: "latest" | "previous"): PortfolioBackupPayload | null {
+  if (typeof window === "undefined") return null;
+  const key = slot === "latest" ? portfolioLatestBackupStorageKey : portfolioPreviousBackupStorageKey;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return normalizeBackupPayload(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+export function normalizeBackupPayload(payload: unknown): PortfolioBackupPayload {
+  const record = payload as Partial<PortfolioBackupPayload>;
+  return {
+    schema_version: String(record.schema_version ?? "unknown"),
+    exported_at: String(record.exported_at ?? new Date().toISOString()),
+    app_name: "WorldMonitor Portfolio Register",
+    base_currency: "CNY",
+    portfolio_records: Array.isArray(record.portfolio_records) ? record.portfolio_records.map((item) => normalizePortfolioAsset(item as PortfolioAsset)) : [],
+    cash_flow_records: Array.isArray(record.cash_flow_records) ? record.cash_flow_records.map((item) => normalizeCashFlow(item as CashFlowRecord)) : [],
+    asset_todos: Array.isArray(record.asset_todos) ? record.asset_todos.map((item) => normalizeAssetTodo(item as AssetTodo)) : [],
+    activity_log: Array.isArray(record.activity_log) ? record.activity_log as PortfolioActivityLogEntry[] : [],
+  };
+}
+
+export function validateBackupPayload(payload: unknown): { ok: true; payload: PortfolioBackupPayload } | { ok: false; error: string } {
+  if (!payload || typeof payload !== "object") return { ok: false, error: "Backup file must be a JSON object." };
+  const record = payload as Partial<PortfolioBackupPayload>;
+  if (!record.schema_version) return { ok: false, error: "Missing schema_version." };
+  if (!Array.isArray(record.portfolio_records)) return { ok: false, error: "Missing portfolio_records array." };
+  if (!Array.isArray(record.cash_flow_records)) return { ok: false, error: "Missing cash_flow_records array." };
+  if (!Array.isArray(record.asset_todos)) return { ok: false, error: "Missing asset_todos array." };
+  return { ok: true, payload: normalizeBackupPayload(payload) };
+}
+
+export function applyImportedPortfolioData(payload: PortfolioBackupPayload, mode: "replace" | "merge") {
+  createLocalBackup();
+  if (mode === "replace") {
+    writeStoredPortfolioAssets(payload.portfolio_records);
+    writeStoredCashFlows(payload.cash_flow_records);
+    writeStoredAssetTodos(payload.asset_todos);
+    window.localStorage.setItem(portfolioActivityLogStorageKey, JSON.stringify(payload.activity_log));
+  } else {
+    writeStoredPortfolioAssets(mergeById(readStoredPortfolioAssets(), payload.portfolio_records));
+    writeStoredCashFlows(mergeById(readStoredCashFlows(), payload.cash_flow_records));
+    writeStoredAssetTodos(mergeById(readStoredAssetTodos(), payload.asset_todos));
+    window.localStorage.setItem(portfolioActivityLogStorageKey, JSON.stringify(mergeById(readActivityLog(), payload.activity_log)));
+  }
+  const metadata = readPortfolioMetadata();
+  writePortfolioMetadata({ ...metadata, last_import_at: new Date().toISOString() });
+  appendActivityLog({
+    entity_type: "system",
+    action: "import",
+    title: "Imported portfolio backup",
+    summary: `${mode} import · ${payload.portfolio_records.length} portfolio records, ${payload.cash_flow_records.length} cash flows, ${payload.asset_todos.length} todos.`,
+  });
+}
+
+export function restorePortfolioBackup(payload: PortfolioBackupPayload) {
+  createLocalBackup();
+  writeStoredPortfolioAssets(payload.portfolio_records);
+  writeStoredCashFlows(payload.cash_flow_records);
+  writeStoredAssetTodos(payload.asset_todos);
+  window.localStorage.setItem(portfolioActivityLogStorageKey, JSON.stringify(payload.activity_log));
+  appendActivityLog({ entity_type: "system", action: "restore", title: "Restored portfolio backup", summary: `Restored backup from ${payload.exported_at}.` });
+}
+
+export function clearPortfolioModuleData(scope: "portfolio" | "cash_flow" | "todo" | "all") {
+  if (typeof window === "undefined") return;
+  createLocalBackup();
+  if (scope === "portfolio" || scope === "all") window.localStorage.removeItem(portfolioStorageKey);
+  if (scope === "cash_flow" || scope === "all") window.localStorage.removeItem(cashFlowStorageKey);
+  if (scope === "todo" || scope === "all") window.localStorage.removeItem(assetTodoStorageKey);
+  if (scope === "all") window.localStorage.removeItem(portfolioActivityLogStorageKey);
+  appendActivityLog({ entity_type: "system", action: "clear", title: "Cleared portfolio module data", summary: `Scope: ${scope}.` });
+}
+
 export function buildAssetTodo(values: AssetTodoFormValues, existing?: AssetTodo): AssetTodo {
   const now = new Date().toISOString();
   return {
@@ -549,7 +716,8 @@ export function buildVerificationSuggestions(assets: PortfolioAsset[], todos: As
 export function normalizePortfolioAsset(asset: PortfolioAsset): PortfolioAsset {
   const fxRate = asset.fx_rate_to_base ?? fxRatesToCny[asset.currency] ?? 1;
   const currentValue = Number(asset.current_value) || 0;
-  const assetName = asset.assetName ?? asset.name ?? "Untitled Asset";
+  const legacy = asset as PortfolioAsset & { asset_name?: string };
+  const assetName = asset.assetName ?? asset.name ?? legacy.asset_name ?? "Untitled Asset";
   const type = asset.type ?? inferRecordType(asset.asset_type, currentValue);
   const liquidityTier = asset.liquidity_tier ?? "UNKNOWN";
 
@@ -673,6 +841,12 @@ function daysSince(value: string) {
 
 function priorityRank(priority: AssetTodoPriority) {
   return priority === "high" ? 3 : priority === "medium" ? 2 : 1;
+}
+
+function mergeById<T extends { id: string }>(current: T[], imported: T[]) {
+  const map = new Map(current.map((item) => [item.id, item]));
+  for (const item of imported) map.set(item.id, item);
+  return [...map.values()];
 }
 
 function researchLinksFromAsset(asset?: Partial<PortfolioAsset>) {

@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/research-ui";
 import {
+  appendActivityLog,
   assetValue,
   buildVerificationSuggestions,
   buildAssetTodo,
   buildCashFlow,
+  createLocalBackup,
   calculateDataQualityScore,
   cashFlowDirectionOptions,
   cashFlowFrequencyOptions,
@@ -20,6 +22,7 @@ import {
   mockCashFlows,
   mockPortfolioAssets,
   readStoredAssetTodos,
+  readActivityLog,
   readStoredCashFlows,
   readStoredPortfolioAssets,
   signedBaseValue,
@@ -36,6 +39,7 @@ import {
   type CashFlowRecord,
   type CashFlowFormValues,
   type PortfolioAsset,
+  type PortfolioActivityLogEntry,
   type VerificationSuggestion,
 } from "@/lib/portfolio-data";
 import { cn } from "@/lib/utils";
@@ -94,12 +98,30 @@ export function CashFlowDashboard() {
   function save(values: CashFlowFormValues) {
     const next = buildCashFlow(values, editing ?? undefined);
     setRecords((current) => (editing ? current.map((record) => (record.id === editing.id ? next : record)) : [next, ...current]));
+    appendActivityLog({
+      entity_type: "cash_flow",
+      entity_id: next.id,
+      action: editing ? "update" : "create",
+      title: `${editing ? "Updated" : "Created"} cash flow record`,
+      summary: `${next.direction} · ${next.category}`,
+    });
     setEditing(null);
     setFormOpen(false);
   }
 
   function remove(id: string) {
-    if (window.confirm("Delete this cash flow record?")) setRecords((current) => current.filter((record) => record.id !== id));
+    if (window.confirm("Delete this cash flow record?")) {
+      const record = records.find((item) => item.id === id);
+      createLocalBackup();
+      setRecords((current) => current.filter((item) => item.id !== id));
+      appendActivityLog({
+        entity_type: "cash_flow",
+        entity_id: id,
+        action: "delete",
+        title: "Deleted cash flow record",
+        summary: record ? `${record.direction} · ${record.category}` : undefined,
+      });
+    }
   }
 
   return (
@@ -149,12 +171,30 @@ export function AssetTodosDashboard() {
   function save(values: AssetTodoFormValues) {
     const next = buildAssetTodo(values, editing ?? undefined);
     setTodos((current) => (editing ? current.map((todo) => (todo.id === editing.id ? next : todo)) : [next, ...current]));
+    appendActivityLog({
+      entity_type: "todo",
+      entity_id: next.id,
+      action: editing ? "update" : "create",
+      title: `${editing ? "Updated" : "Created"} asset todo`,
+      summary: next.title,
+    });
     setEditing(null);
     setFormOpen(false);
   }
 
   function remove(id: string) {
-    if (window.confirm("Delete this asset todo?")) setTodos((current) => current.filter((todo) => todo.id !== id));
+    if (window.confirm("Delete this asset todo?")) {
+      const todo = todos.find((item) => item.id === id);
+      createLocalBackup();
+      setTodos((current) => current.filter((item) => item.id !== id));
+      appendActivityLog({
+        entity_type: "todo",
+        entity_id: id,
+        action: "delete",
+        title: "Deleted asset todo",
+        summary: todo?.title,
+      });
+    }
   }
 
   return (
@@ -183,6 +223,7 @@ export function AssetTodosDashboard() {
 export function PortfolioOverviewDashboard() {
   const assets = usePortfolioRecords();
   const cashFlows = useCashFlows();
+  const activity = useActivityLog();
   const [todos, setTodos] = useState<AssetTodo[]>(mockAssetTodos);
   const [todosHydrated, setTodosHydrated] = useState(false);
   useEffect(() => {
@@ -230,6 +271,13 @@ export function PortfolioOverviewDashboard() {
       note: suggestion.reason,
     });
     setTodos((current) => [todo, ...current]);
+    appendActivityLog({
+      entity_type: "todo",
+      entity_id: todo.id,
+      action: "create",
+      title: "Created todo from verification suggestion",
+      summary: `${suggestion.asset_name} · ${suggestion.suggested_action}`,
+    });
   }
 
   return (
@@ -263,6 +311,7 @@ export function PortfolioOverviewDashboard() {
       </div>
       <DataQualityTable rows={verificationRows} />
       <SuggestedVerificationActions suggestions={suggestions} onCreateTodo={createTodoFromSuggestion} />
+      <RecentActivityCard entries={activity} />
     </div>
   );
 }
@@ -277,6 +326,12 @@ function useCashFlows() {
   const [records, setRecords] = useState<CashFlowRecord[]>(mockCashFlows);
   useEffect(() => setRecords(readStoredCashFlows()), []);
   return records;
+}
+
+function useActivityLog() {
+  const [entries, setEntries] = useState<PortfolioActivityLogEntry[]>([]);
+  useEffect(() => setEntries(readActivityLog()), []);
+  return entries;
 }
 
 function MetricGrid({ children }: { children: React.ReactNode }) {
@@ -620,6 +675,26 @@ function SuggestedVerificationActions({
   );
 }
 
+function RecentActivityCard({ entries }: { entries: PortfolioActivityLogEntry[] }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        {entries.slice(0, 10).map((entry) => (
+          <div key={entry.id} className="rounded-md border p-3">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div className="font-medium">{entry.title}</div>
+              <div className="text-xs text-muted-foreground">{formatDateTime(entry.timestamp)}</div>
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">{formatLabel(entry.entity_type)} · {formatLabel(entry.action)}{entry.summary ? ` · ${entry.summary}` : ""}</div>
+          </div>
+        ))}
+        {entries.length === 0 ? <div className="text-sm text-muted-foreground">No activity recorded yet.</div> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return <div className="flex gap-2"><Button size="sm" variant="outline" onClick={onEdit}><FilePenLine className="size-4" /> Edit</Button><Button size="sm" variant="outline" onClick={onDelete}><Trash2 className="size-4" /> Delete</Button></div>;
 }
@@ -738,6 +813,10 @@ function formatLabel(value: string) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-HK", { timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit" });
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString("en-HK", { timeZone: "Asia/Hong_Kong" });
 }
 
 const inputClass = "h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground";

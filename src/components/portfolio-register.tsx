@@ -24,8 +24,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/research-ui";
 import {
   accountTypeOptions,
+  appendActivityLog,
   assetTypeOptions,
   buildPortfolioAsset,
+  createLocalBackup,
   currencyOptions,
   custodianOptions,
   dataConfidenceOptions,
@@ -121,6 +123,13 @@ export function PortfolioRegister() {
       if (!editingAsset) return [nextAsset, ...current];
       return current.map((asset) => (asset.id === editingAsset.id ? nextAsset : asset));
     });
+    appendActivityLog({
+      entity_type: "portfolio",
+      entity_id: nextAsset.id,
+      action: editingAsset ? "update" : "create",
+      title: `${editingAsset ? "Updated" : "Created"} portfolio record`,
+      summary: nextAsset.name,
+    });
     setEditingAsset(null);
     setFormOpen(false);
   }
@@ -129,7 +138,15 @@ export function PortfolioRegister() {
     const asset = assets.find((item) => item.id === assetId);
     if (!asset) return;
     if (window.confirm(`Delete ${asset.assetName}?`)) {
+      createLocalBackup();
       setAssets((current) => current.filter((item) => item.id !== assetId));
+      appendActivityLog({
+        entity_type: "portfolio",
+        entity_id: asset.id,
+        action: "delete",
+        title: "Deleted portfolio record",
+        summary: asset.name,
+      });
     }
   }
 
