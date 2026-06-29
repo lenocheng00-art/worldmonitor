@@ -280,6 +280,7 @@ function SignalDetail({ signal }: { signal: Signal }) {
           <LinkedId label="Committee" value={signal.linkedCommitteeReportId} />
           <LinkedId label="Backtest" value={signal.linkedBacktestId} />
         </div>
+        <Tags label="Linked Portfolio Assets" values={signal.related_asset_ids ?? []} empty="No asset linked" />
       </CardContent>
     </Card>
   );

@@ -22,6 +22,7 @@ export type Signal = {
   linkedLogicChainId?: string;
   linkedCommitteeReportId?: string;
   linkedBacktestId?: string;
+  related_asset_ids?: string[];
 };
 
 export type LogicChainValidationStatus = "Active" | "Validating" | "Confirmed" | "Broken";
@@ -45,6 +46,7 @@ export type LogicChain = {
   lastCheckedAt: string;
   linkedCommitteeReportId?: string;
   linkedBacktestId?: string;
+  related_asset_ids?: string[];
 };
 
 export type CommitteeView = "Bullish" | "Neutral" | "Bearish";
@@ -77,6 +79,7 @@ export type CommitteeReport = {
   followUpIndicators: string[];
   linkedBacktestId?: string;
   createdAt: string;
+  related_asset_ids?: string[];
 };
 
 export type BacktestStrategy = {
@@ -95,6 +98,7 @@ export type BacktestStrategy = {
   stopLoss: string;
   takeProfit: string;
   signalSource: string;
+  related_asset_ids?: string[];
 };
 
 export type EquityPoint = {
@@ -138,6 +142,7 @@ export type BacktestResult = {
   worstTrade: string;
   mainRisk: string;
   createdAt: string;
+  related_asset_ids?: string[];
 };
 
 export type WatchlistItem = {
@@ -193,6 +198,7 @@ export const seedSignals: Signal[] = [
     createdAt: now,
     updatedAt: now,
     linkedLogicChainId: "chain-nfp-duration",
+    related_asset_ids: ["futu-us-etf"],
   },
   {
     id: "signal-vertiv-cooling",
@@ -229,6 +235,7 @@ export const seedLogicChains: LogicChain[] = [
     lastCheckedAt: now,
     linkedCommitteeReportId: "committee-google-capex",
     linkedBacktestId: "result-ai-capex",
+    related_asset_ids: ["futu-us-etf"],
   },
   {
     id: "chain-nfp-duration",
@@ -318,6 +325,7 @@ export const seedCommitteeReports: CommitteeReport[] = [
     followUpIndicators: ["Google cloud backlog", "AVGO AI revenue", "VRT organic orders", "US 10Y"],
     linkedBacktestId: "result-ai-capex",
     createdAt: now,
+    related_asset_ids: ["futu-us-etf"],
   },
 ];
 
@@ -355,6 +363,7 @@ export const seedStrategies: BacktestStrategy[] = [
     stopLoss: "8% basket drawdown",
     takeProfit: "25% basket return",
     signalSource: "Investment Committee",
+    related_asset_ids: ["futu-us-etf"],
   },
   {
     id: "strategy-alan-signal",
@@ -419,6 +428,7 @@ export const seedBacktestResults: BacktestResult[] = [
     conclusion: "The thesis generated positive excess return when capex revisions and supplier earnings breadth confirmed together.",
     decisionImplication: "Validate the thesis, but size gradually and gate additions on backlog conversion.",
     createdAt: now,
+    related_asset_ids: ["futu-us-etf"],
   },
 ];
 
@@ -462,6 +472,7 @@ export function createCommitteeReportFromInput(input: {
   linkedLogicChainId?: string;
   relatedTickers?: string[];
   relatedIndustryChains?: string[];
+  related_asset_ids?: string[];
 }): CommitteeReport {
   return {
     id: `committee-${Date.now()}`,
@@ -479,6 +490,7 @@ export function createCommitteeReportFromInput(input: {
     invalidationCondition: "The next two follow-up data points contradict the transmission path.",
     followUpIndicators: ["Trigger data", "Price confirmation", "Earnings revisions", "Risk regime"],
     createdAt: new Date().toISOString(),
+    related_asset_ids: input.related_asset_ids ?? [],
   };
 }
 
@@ -499,5 +511,6 @@ export function createBacktestResult(
     annualizedReturn: Number((base.annualizedReturn + adjustment / 4).toFixed(1)),
     benchmarkReturn: Number((base.benchmarkReturn + adjustment / 3).toFixed(1)),
     createdAt: new Date().toISOString(),
+    related_asset_ids: strategy.related_asset_ids ?? [],
   };
 }

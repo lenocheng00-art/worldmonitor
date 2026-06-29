@@ -143,6 +143,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       historicalHitRate: 55,
       nextDataPoint: "Next company or macro update",
       lastCheckedAt: new Date().toISOString(),
+      related_asset_ids: signal.related_asset_ids ?? [],
     };
     setState((current) => ({
       ...current,
@@ -208,6 +209,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       linkedLogicChainId: signal.linkedLogicChainId,
       relatedTickers: signal.relatedTickers,
       relatedIndustryChains: signal.relatedIndustryChains,
+      related_asset_ids: signal.related_asset_ids ?? [],
     });
     setState((current) => ({
       ...current,
@@ -236,6 +238,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       linkedLogicChainId: chain.id,
       relatedTickers: chain.affectedAssets,
       relatedIndustryChains: signal?.relatedIndustryChains ?? [],
+      related_asset_ids: chain.related_asset_ids ?? signal?.related_asset_ids ?? [],
     });
     setState((current) => ({
       ...current,
@@ -281,6 +284,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       linkedLogicChainId: signal.linkedLogicChainId,
       tickers: signal.relatedTickers,
       signalSource: signal.source,
+      related_asset_ids: signal.related_asset_ids ?? [],
     };
     const result = createBacktestResult(strategy, {
       signalId,
@@ -301,6 +305,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       triggerSignalId: chain.triggerSignalId,
       linkedLogicChainId: chain.id,
       tickers: chain.affectedAssets.filter((asset) => !asset.includes("10Y")),
+      related_asset_ids: chain.related_asset_ids ?? [],
     };
     const result = createBacktestResult(strategy, {
       signalId: chain.triggerSignalId,
@@ -324,7 +329,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       return linkResultIntoState(
         { ...current, backtestResults: current.backtestResults.filter((item) => item.id !== resultId) },
         strategy,
-        { ...result, linkedSignalId: signalId, linkedLogicChainId: logicChainId, linkedCommitteeReportId: committeeReportId },
+        { ...result, linkedSignalId: signalId, linkedLogicChainId: logicChainId, linkedCommitteeReportId: committeeReportId, related_asset_ids: strategy.related_asset_ids ?? result.related_asset_ids ?? [] },
       );
     });
   }, []);
@@ -429,7 +434,7 @@ function linkResultIntoState(
     backtestResults: [result, ...current.backtestResults],
     signals: current.signals.map((signal) =>
       signal.id === signalId
-        ? { ...signal, status: "Backtested", linkedBacktestId: result.id, updatedAt: new Date().toISOString() }
+        ? { ...signal, status: "Backtested", linkedBacktestId: result.id, related_asset_ids: mergeIds(signal.related_asset_ids, result.related_asset_ids), updatedAt: new Date().toISOString() }
         : signal,
     ),
     logicChains: current.logicChains.map((chain) =>
@@ -437,13 +442,14 @@ function linkResultIntoState(
         ? {
             ...chain,
             linkedBacktestId: result.id,
+            related_asset_ids: mergeIds(chain.related_asset_ids, result.related_asset_ids),
             validationStatus: result.sharpeRatio >= 1 ? "Confirmed" : "Broken",
             lastCheckedAt: new Date().toISOString(),
           }
         : chain,
     ),
     committeeReports: current.committeeReports.map((report) =>
-      report.id === committeeReportId ? { ...report, linkedBacktestId: result.id } : report,
+      report.id === committeeReportId ? { ...report, linkedBacktestId: result.id, related_asset_ids: mergeIds(report.related_asset_ids, result.related_asset_ids) } : report,
     ),
     watchlist: current.watchlist.map((item) =>
       signalId && item.linkedSignalIds.includes(signalId)
@@ -521,4 +527,8 @@ function inferTickers(entity: string) {
     OpenAI: ["MSFT", "ORCL"],
   };
   return mapping[entity] ?? [entity.toUpperCase().replaceAll(" ", "-")];
+}
+
+function mergeIds(left?: string[], right?: string[]) {
+  return [...new Set([...(left ?? []), ...(right ?? [])])];
 }

@@ -242,7 +242,12 @@ const portfolioColumns: { header: string; value: (row: PortfolioAsset) => string
   { header: "last_verified_at", value: (row) => row.last_verified_at },
   { header: "liquidity_level", value: (row) => row.liquidity_level },
   { header: "valuation_method", value: (row) => row.valuation_method },
-  { header: "research_links", value: (row) => row.research_links.join(";") },
+  { header: "research_links", value: (row) => row.research_links.map((link) => [link.type, link.title, link.related_id ?? "", link.url ?? ""].filter(Boolean).join("|")).join(";") },
+  { header: "evidence_items", value: (row) => row.evidence_items.map((item) => [item.evidence_type, item.title, item.confidence, item.url ?? ""].filter(Boolean).join("|")).join(";") },
+  { header: "related_signal_ids", value: (row) => row.related_signal_ids.join(";") },
+  { header: "related_logic_chain_ids", value: (row) => row.related_logic_chain_ids.join(";") },
+  { header: "related_committee_report_ids", value: (row) => row.related_committee_report_ids.join(";") },
+  { header: "related_backtest_ids", value: (row) => row.related_backtest_ids.join(";") },
   { header: "notes", value: (row) => row.notes },
 ];
 

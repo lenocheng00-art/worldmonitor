@@ -168,6 +168,7 @@ function LogicChainCard({ chain, linkedSignalTitle, onBacktest, onCommittee, onC
         <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
           <Tags label="Affected Assets" values={chain.affectedAssets} />
           <Tags label="Follow-up Indicators" values={chain.followUpIndicators} />
+          <Tags label="Linked Portfolio Assets" values={chain.related_asset_ids ?? []} />
         </div>
         <div className="grid gap-2 border-t pt-4 text-xs sm:grid-cols-3">
           <Linked label="Signal" value={linkedSignalTitle ?? chain.triggerSignalId} />

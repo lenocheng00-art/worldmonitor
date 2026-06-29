@@ -315,6 +315,7 @@ function DecisionSummary({ result, onCommittee, onWatchlist }: {
           <div>Signal: {result.linkedSignalId ?? "Not linked"}</div>
           <div>Logic: {result.linkedLogicChainId ?? "Not linked"}</div>
           <div>Committee: {result.linkedCommitteeReportId ?? "Not linked"}</div>
+          <div>Portfolio Assets: {(result.related_asset_ids ?? []).join(", ") || "Not linked"}</div>
         </div>
       </CardContent>
     </Card>

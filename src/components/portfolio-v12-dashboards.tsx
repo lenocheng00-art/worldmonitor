@@ -45,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type GroupRow = { key: string; label: string; value: number; share: number; count: number };
+type ResearchCoverageRow = { asset: PortfolioAsset; quality: ReturnType<typeof calculateDataQualityScore>; openTodos: number; suggestedNextAction: string };
 
 export function BalanceSheetDashboard() {
   const assets = usePortfolioRecords();
@@ -252,6 +253,7 @@ export function PortfolioOverviewDashboard() {
   const lowLockedValue = assets.filter((asset) => asset.liquidity_level === "low" || asset.liquidity_level === "locked").reduce((sum, asset) => sum + assetValue(asset), 0);
   const scenarios = calculateScenarios(assets);
   const suggestions = buildVerificationSuggestions(assets, todos);
+  const researchCoverage = buildResearchCoverage(assets, todos, qualityRows);
   const inflow30 = flowTotal(upcoming30, "inflow");
   const outflow30 = flowTotal(upcoming30, "outflow");
   const inflow90 = flowTotal(upcoming90, "inflow");
@@ -299,6 +301,15 @@ export function PortfolioOverviewDashboard() {
         <MetricCard label="Low-quality Value" value={cny(lowQualityValue)} />
         <MetricCard label="Records Needing Verification" value={`${verificationRows.length}`} />
       </MetricGrid>
+      <MetricGrid>
+        <MetricCard label="Total Portfolio Records" value={`${researchCoverage.totalRecords}`} />
+        <MetricCard label="Assets With Research Links" value={`${researchCoverage.withResearchLinks}`} />
+        <MetricCard label="Assets With Evidence Items" value={`${researchCoverage.withEvidence}`} />
+        <MetricCard label="Assets With Committee Review" value={`${researchCoverage.withCommitteeReview}`} />
+        <MetricCard label="Assets With Backtest Support" value={`${researchCoverage.withBacktestSupport}`} />
+        <MetricCard label="Assets Without Research Coverage" value={`${researchCoverage.withoutResearchCoverage}`} />
+        <MetricCard label="Low-confidence Without Evidence" value={`${researchCoverage.lowConfidenceWithoutEvidence}`} />
+      </MetricGrid>
       <div className="grid gap-4 xl:grid-cols-2">
         <BreakdownCard title="Asset Allocation by Category" rows={groupRecords(assets.filter((asset) => asset.type === "asset"), "category", true)} />
         <BreakdownCard title="Net Worth by Account" rows={groupNetWorthByAccount(assets)} />
@@ -310,6 +321,7 @@ export function PortfolioOverviewDashboard() {
         <TodoCompactCard todos={highTodos} assets={assets} />
       </div>
       <DataQualityTable rows={verificationRows} />
+      <ResearchCoverageTable rows={researchCoverage.rows} />
       <SuggestedVerificationActions suggestions={suggestions} onCreateTodo={createTodoFromSuggestion} />
       <RecentActivityCard entries={activity} />
     </div>
@@ -649,6 +661,36 @@ function DataQualityTable({ rows }: { rows: { asset: PortfolioAsset; quality: Re
   );
 }
 
+function ResearchCoverageTable({ rows }: { rows: ResearchCoverageRow[] }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>Assets Needing Research Coverage</CardTitle></CardHeader>
+      <CardContent className="overflow-x-auto">
+        <table className="min-w-[1100px] w-full text-left text-sm">
+          <thead className="border-b text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>{["Asset Name", "Base Value", "Confidence", "Quality Score", "Research Links", "Evidence", "Open Todos", "Suggested Next Action"].map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr>
+          </thead>
+          <tbody className="divide-y">
+            {rows.map((row) => (
+              <tr key={row.asset.id}>
+                <td className="px-4 py-3 font-medium">{row.asset.name}</td>
+                <td className="px-4 py-3 tabular-nums">{cny(assetValue(row.asset))}</td>
+                <td className="px-4 py-3">{formatLabel(row.asset.data_confidence)}</td>
+                <td className="px-4 py-3 tabular-nums">{row.quality.score}</td>
+                <td className="px-4 py-3 tabular-nums">{row.asset.research_links.length}</td>
+                <td className="px-4 py-3 tabular-nums">{row.asset.evidence_items.length}</td>
+                <td className="px-4 py-3 tabular-nums">{row.openTodos}</td>
+                <td className="px-4 py-3 text-muted-foreground">{row.suggestedNextAction}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length === 0 ? <div className="py-4 text-sm text-muted-foreground">Every portfolio record has basic research coverage.</div> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 function SuggestedVerificationActions({
   suggestions,
   onCreateTodo,
@@ -732,6 +774,37 @@ function groupNetWorthByAccount(records: PortfolioAsset[]): GroupRow[] {
     totals.set(record.account, { value: current.value + signedBaseValue(record), count: current.count + 1 });
   }
   return toRows(totals);
+}
+
+function buildResearchCoverage(assets: PortfolioAsset[], todos: AssetTodo[], qualityRows: { asset: PortfolioAsset; quality: ReturnType<typeof calculateDataQualityScore> }[]) {
+  const rows = qualityRows
+    .map(({ asset, quality }) => {
+      const openTodos = todos.filter((todo) => todo.related_asset_id === asset.id && todo.status !== "done").length;
+      return { asset, quality, openTodos, suggestedNextAction: researchCoverageAction(asset, openTodos, quality.score) };
+    })
+    .filter((row) => row.suggestedNextAction !== "Coverage is sufficient")
+    .sort((a, b) => assetValue(b.asset) - assetValue(a.asset));
+
+  return {
+    totalRecords: assets.length,
+    withResearchLinks: assets.filter((asset) => asset.research_links.length > 0).length,
+    withEvidence: assets.filter((asset) => asset.evidence_items.length > 0).length,
+    withCommitteeReview: assets.filter((asset) => asset.related_committee_report_ids.length > 0).length,
+    withBacktestSupport: assets.filter((asset) => asset.related_backtest_ids.length > 0).length,
+    withoutResearchCoverage: assets.filter((asset) => asset.research_links.length === 0 && asset.evidence_items.length === 0).length,
+    lowConfidenceWithoutEvidence: assets.filter((asset) => asset.data_confidence === "low" && asset.evidence_items.length === 0).length,
+    rows,
+  };
+}
+
+function researchCoverageAction(asset: PortfolioAsset, openTodos: number, score: number) {
+  if (asset.evidence_items.length === 0 && asset.data_confidence !== "high") return "Add valuation and ownership evidence.";
+  if (asset.research_links.length === 0) return "Attach research link, memo, or external document.";
+  if (assetValue(asset) >= 500000 && asset.related_committee_report_ids.length === 0) return "Add committee review for large exposure.";
+  if (["private_equity", "pre_ipo", "ipo_allocation"].includes(asset.asset_type) && asset.related_backtest_ids.length === 0) return "Add backtest or comparable scenario support.";
+  if (openTodos > 0) return "Close open verification todos.";
+  if (score < 60) return "Review data quality reasons and add supporting evidence.";
+  return "Coverage is sufficient";
 }
 
 function groupCashFlows(records: CashFlowRecord[]): GroupRow[] {

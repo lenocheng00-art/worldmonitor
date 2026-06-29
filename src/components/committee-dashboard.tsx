@@ -204,6 +204,7 @@ function DecisionTicket({ report, onChange, onBacktest, onWatchlist }: {
         <TicketInput label="Stop Loss Logic" value={report.stopLossLogic} onChange={(value) => onChange({ stopLossLogic: value })} />
         <TicketInput label="Invalidation Condition" value={report.invalidationCondition} onChange={(value) => onChange({ invalidationCondition: value })} />
         <div><Label>Follow-up Indicators</Label><div className="mt-2 flex flex-wrap gap-1.5">{report.followUpIndicators.map((item) => <Badge key={item} variant="outline">{item}</Badge>)}</div></div>
+        <div><Label>Linked Portfolio Assets</Label><div className="mt-2 flex flex-wrap gap-1.5">{(report.related_asset_ids ?? []).length ? report.related_asset_ids?.map((item) => <Badge key={item} variant="outline">{item}</Badge>) : <span className="text-sm text-muted-foreground">No asset linked</span>}</div></div>
         <div className="grid gap-2 border-t pt-4">
           <Button onClick={onBacktest}><FlaskConical className="size-4" /> Run Backtest</Button>
           <Button variant="outline" onClick={onWatchlist}><BookmarkPlus className="size-4" /> Add to Watchlist</Button>

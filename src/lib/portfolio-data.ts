@@ -54,6 +54,29 @@ export type PortfolioValuationMethod =
   | "latest_nav";
 export type PortfolioDataConfidence = "high" | "medium" | "low";
 export type PortfolioQualityBucket = "high" | "medium" | "low";
+export type ResearchLinkType = "signal" | "logic_chain" | "committee_report" | "backtest" | "document" | "external_url" | "memo";
+export type EvidenceType = "ownership" | "valuation" | "liquidity" | "tax" | "counterparty" | "document" | "other";
+
+export type ResearchLink = {
+  id: string;
+  title: string;
+  url?: string;
+  type: ResearchLinkType;
+  related_id?: string;
+  note?: string;
+  created_at: string;
+};
+
+export type EvidenceItem = {
+  id: string;
+  title: string;
+  evidence_type: EvidenceType;
+  url?: string;
+  note?: string;
+  confidence: PortfolioDataConfidence;
+  created_at: string;
+  last_verified_at?: string;
+};
 
 export type PortfolioAsset = {
   id: string;
@@ -88,7 +111,12 @@ export type PortfolioAsset = {
   related_logic_chain_id: string | null;
   related_committee_report_id: string | null;
   related_backtest_id: string | null;
-  research_links: string[];
+  related_signal_ids: string[];
+  related_logic_chain_ids: string[];
+  related_committee_report_ids: string[];
+  related_backtest_ids: string[];
+  research_links: ResearchLink[];
+  evidence_items: EvidenceItem[];
   next_action: string;
   notes: string;
   created_at: string;
@@ -123,7 +151,7 @@ export const portfolioActivityLogStorageKey = "worldmonitor:portfolio-activity-l
 export const portfolioLatestBackupStorageKey = "worldmonitor:portfolio-backup:latest";
 export const portfolioPreviousBackupStorageKey = "worldmonitor:portfolio-backup:previous";
 export const portfolioMetadataStorageKey = "worldmonitor:portfolio-metadata:v1";
-export const portfolioSchemaVersion = "1.4";
+export const portfolioSchemaVersion = "1.5";
 
 export const accountTypeOptions: PortfolioAccountType[] = [
   "mainland_bank",
@@ -348,7 +376,12 @@ export function buildPortfolioAsset(values: PortfolioAssetFormValues, existing?:
     related_logic_chain_id: existing?.related_logic_chain_id ?? null,
     related_committee_report_id: existing?.related_committee_report_id ?? null,
     related_backtest_id: existing?.related_backtest_id ?? null,
-    research_links: existing?.research_links ?? researchLinksFromAsset(existing),
+    related_signal_ids: existing?.related_signal_ids ?? relatedIdsFromAsset(existing, "signal"),
+    related_logic_chain_ids: existing?.related_logic_chain_ids ?? relatedIdsFromAsset(existing, "logic_chain"),
+    related_committee_report_ids: existing?.related_committee_report_ids ?? relatedIdsFromAsset(existing, "committee_report"),
+    related_backtest_ids: existing?.related_backtest_ids ?? relatedIdsFromAsset(existing, "backtest"),
+    research_links: normalizeResearchLinks(existing?.research_links, existing),
+    evidence_items: normalizeEvidenceItems(existing?.evidence_items),
     next_action: values.next_action,
     notes: values.notes,
     created_at: existing?.created_at ?? now,
@@ -661,6 +694,10 @@ export function calculateDataQualityScore(asset: PortfolioAsset, todos: AssetTod
     score -= 10;
     reasons.push("No supporting research links are attached.");
   }
+  if (asset.evidence_items.length === 0 && asset.data_confidence !== "high") {
+    score -= 10;
+    reasons.push("No evidence items support a non-high-confidence record.");
+  }
   if (hasOpenTodos) {
     score -= 10;
     reasons.push("Open verification todo exists.");
@@ -708,6 +745,21 @@ export function buildVerificationSuggestions(assets: PortfolioAsset[], todos: As
     if (asset.research_links.length === 0) {
       push("research-links", "Add supporting documents or research links", "No research links are attached.", "medium", "document");
     }
+    if (asset.evidence_items.length === 0 && asset.data_confidence !== "high") {
+      push("valuation-evidence", "Add valuation evidence", "No evidence items support this non-high-confidence record.", "high", "valuation");
+    }
+    if (!asset.evidence_items.some((item) => item.evidence_type === "ownership")) {
+      push("ownership-evidence", "Add ownership evidence", "No ownership evidence is attached.", "medium", "ownership");
+    }
+    if (asset.liquidity_level === "locked" && !asset.evidence_items.some((item) => item.evidence_type === "liquidity")) {
+      push("liquidity-evidence", "Add lock-up or liquidity evidence", "Locked liquidity needs documented exit terms.", "medium", "liquidity");
+    }
+    if (["estimated", "manual"].includes(asset.valuation_method) && !asset.evidence_items.some((item) => item.evidence_type === "valuation")) {
+      push("valuation-basis-evidence", "Add valuation basis evidence", "Manual or estimated valuation needs source support.", "medium", "valuation");
+    }
+    if (assetValue(asset) >= 500000 && asset.related_committee_report_ids.length === 0) {
+      push("committee-review", "Add committee review", "Large asset has no linked committee report.", "high", "document");
+    }
   }
 
   return suggestions.sort((a, b) => priorityRank(b.priority) - priorityRank(a.priority));
@@ -716,10 +768,15 @@ export function buildVerificationSuggestions(assets: PortfolioAsset[], todos: As
 export function normalizePortfolioAsset(asset: PortfolioAsset): PortfolioAsset {
   const fxRate = asset.fx_rate_to_base ?? fxRatesToCny[asset.currency] ?? 1;
   const currentValue = Number(asset.current_value) || 0;
-  const legacy = asset as PortfolioAsset & { asset_name?: string };
+  const legacy = asset as PortfolioAsset & { asset_name?: string; research_links?: unknown; evidence_items?: unknown };
   const assetName = asset.assetName ?? asset.name ?? legacy.asset_name ?? "Untitled Asset";
   const type = asset.type ?? inferRecordType(asset.asset_type, currentValue);
   const liquidityTier = asset.liquidity_tier ?? "UNKNOWN";
+  const researchLinks = normalizeResearchLinks(legacy.research_links, asset);
+  const relatedSignalIds = uniqueStrings([...(asset.related_signal_ids ?? []), ...relatedIdsFromLinks(researchLinks, "signal"), asset.related_signal_id]);
+  const relatedLogicChainIds = uniqueStrings([...(asset.related_logic_chain_ids ?? []), ...relatedIdsFromLinks(researchLinks, "logic_chain"), asset.related_logic_chain_id]);
+  const relatedCommitteeReportIds = uniqueStrings([...(asset.related_committee_report_ids ?? []), ...relatedIdsFromLinks(researchLinks, "committee_report"), asset.related_committee_report_id]);
+  const relatedBacktestIds = uniqueStrings([...(asset.related_backtest_ids ?? []), ...relatedIdsFromLinks(researchLinks, "backtest"), asset.related_backtest_id]);
 
   return {
     ...asset,
@@ -739,7 +796,16 @@ export function normalizePortfolioAsset(asset: PortfolioAsset): PortfolioAsset {
     liquidity_level: asset.liquidity_level ?? liquidityTierToLevel(liquidityTier),
     data_confidence: asset.data_confidence ?? "medium",
     last_verified_at: asset.last_verified_at ?? asset.updated_at,
-    research_links: Array.isArray(asset.research_links) ? asset.research_links : researchLinksFromAsset(asset),
+    related_signal_id: asset.related_signal_id ?? relatedSignalIds[0] ?? null,
+    related_logic_chain_id: asset.related_logic_chain_id ?? relatedLogicChainIds[0] ?? null,
+    related_committee_report_id: asset.related_committee_report_id ?? relatedCommitteeReportIds[0] ?? null,
+    related_backtest_id: asset.related_backtest_id ?? relatedBacktestIds[0] ?? null,
+    related_signal_ids: relatedSignalIds,
+    related_logic_chain_ids: relatedLogicChainIds,
+    related_committee_report_ids: relatedCommitteeReportIds,
+    related_backtest_ids: relatedBacktestIds,
+    research_links: researchLinks,
+    evidence_items: normalizeEvidenceItems(legacy.evidence_items),
   };
 }
 
@@ -801,7 +867,12 @@ function entry(
     related_logic_chain_id,
     related_committee_report_id,
     related_backtest_id,
-    research_links: [related_logic_chain_id, related_committee_report_id, related_backtest_id].filter(Boolean) as string[],
+    related_signal_ids: [],
+    related_logic_chain_ids: related_logic_chain_id ? [related_logic_chain_id] : [],
+    related_committee_report_ids: related_committee_report_id ? [related_committee_report_id] : [],
+    related_backtest_ids: related_backtest_id ? [related_backtest_id] : [],
+    research_links: researchLinksFromAsset({ related_logic_chain_id, related_committee_report_id, related_backtest_id }),
+    evidence_items: evidenceItemsForAsset(id, asset_type, data_confidence, liquidity_tier, last_verified_at),
     next_action,
     notes: "Manual mock register entry. No bank, brokerage, crypto exchange, or prediction-market API is connected.",
     created_at: "2026-06-01T09:00:00+08:00",
@@ -849,9 +920,165 @@ function mergeById<T extends { id: string }>(current: T[], imported: T[]) {
   return [...map.values()];
 }
 
-function researchLinksFromAsset(asset?: Partial<PortfolioAsset>) {
+function researchLinksFromAsset(asset?: Partial<PortfolioAsset>): ResearchLink[] {
   if (!asset) return [];
-  return [asset.related_signal_id, asset.related_logic_chain_id, asset.related_committee_report_id, asset.related_backtest_id].filter(Boolean) as string[];
+  const created_at = new Date().toISOString();
+  const links: ResearchLink[] = [];
+  const push = (type: ResearchLinkType, related_id?: string | null) => {
+    if (!related_id) return;
+    links.push({
+      id: `research-${type}-${related_id}`,
+      title: formatResearchTitle(type, related_id),
+      type,
+      related_id,
+      created_at,
+    });
+  };
+  push("signal", asset.related_signal_id);
+  push("logic_chain", asset.related_logic_chain_id);
+  push("committee_report", asset.related_committee_report_id);
+  push("backtest", asset.related_backtest_id);
+  return links;
+}
+
+function normalizeResearchLinks(value: unknown, asset?: Partial<PortfolioAsset>): ResearchLink[] {
+  const now = new Date().toISOString();
+  const source = Array.isArray(value) ? value : [];
+  const normalized = source
+    .map((item, index): ResearchLink | null => {
+      if (typeof item === "string") {
+        return {
+          id: `research-legacy-${slug(item)}-${index}`,
+          title: item,
+          url: looksLikeUrl(item) ? item : undefined,
+          type: inferResearchType(item),
+          related_id: looksLikeUrl(item) ? undefined : item,
+          created_at: now,
+        };
+      }
+      if (!item || typeof item !== "object") return null;
+      const record = item as Partial<ResearchLink>;
+      const type = isResearchLinkType(record.type) ? record.type : inferResearchType(record.related_id ?? record.url ?? record.title ?? "");
+      return {
+        id: record.id ?? `research-${type}-${slug(record.related_id ?? record.title ?? record.url ?? String(index))}`,
+        title: record.title ?? formatResearchTitle(type, record.related_id ?? record.url ?? "Research link"),
+        url: record.url || undefined,
+        type,
+        related_id: record.related_id || undefined,
+        note: record.note || undefined,
+        created_at: record.created_at ?? now,
+      };
+    })
+    .filter(Boolean) as ResearchLink[];
+  return uniqueResearchLinks([...normalized, ...researchLinksFromAsset(asset)]);
+}
+
+function normalizeEvidenceItems(value: unknown): EvidenceItem[] {
+  const now = new Date().toISOString();
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item, index): EvidenceItem | null => {
+      if (!item || typeof item !== "object") return null;
+      const record = item as Partial<EvidenceItem>;
+      return {
+        id: record.id ?? `evidence-${slug(record.title ?? String(index))}`,
+        title: record.title ?? "Evidence item",
+        evidence_type: isEvidenceType(record.evidence_type) ? record.evidence_type : "other",
+        url: record.url || undefined,
+        note: record.note || undefined,
+        confidence: record.confidence ?? "medium",
+        created_at: record.created_at ?? now,
+        last_verified_at: record.last_verified_at || undefined,
+      };
+    })
+    .filter(Boolean) as EvidenceItem[];
+}
+
+function evidenceItemsForAsset(id: string, assetType: PortfolioAssetType, confidence: PortfolioDataConfidence, liquidityTier: PortfolioLiquidityTier, verifiedAt: string): EvidenceItem[] {
+  const items: EvidenceItem[] = [];
+  if (["private_equity", "pre_ipo", "ipo_allocation"].includes(assetType)) {
+    items.push({
+      id: `evidence-${id}-ownership`,
+      title: "Ownership register or subscription document",
+      evidence_type: "ownership",
+      confidence,
+      created_at: "2026-06-01T09:00:00+08:00",
+      last_verified_at: verifiedAt,
+    });
+  }
+  if (liquidityTier === "Y2_PLUS" || liquidityTier === "M6_24") {
+    items.push({
+      id: `evidence-${id}-liquidity`,
+      title: "Lock-up and exit terms memo",
+      evidence_type: "liquidity",
+      confidence: confidence === "low" ? "medium" : confidence,
+      created_at: "2026-06-01T09:00:00+08:00",
+      last_verified_at: verifiedAt,
+    });
+  }
+  if (["private_equity", "pre_ipo", "ipo_allocation", "public_equity", "fund_or_etf"].includes(assetType)) {
+    items.push({
+      id: `evidence-${id}-valuation`,
+      title: "Valuation basis note",
+      evidence_type: "valuation",
+      confidence,
+      created_at: "2026-06-01T09:00:00+08:00",
+      last_verified_at: verifiedAt,
+    });
+  }
+  return items;
+}
+
+function relatedIdsFromAsset(asset: Partial<PortfolioAsset> | undefined, type: ResearchLinkType) {
+  if (!asset) return [];
+  return relatedIdsFromLinks(normalizeResearchLinks(asset.research_links, asset), type);
+}
+
+function relatedIdsFromLinks(links: ResearchLink[], type: ResearchLinkType) {
+  return uniqueStrings(links.filter((link) => link.type === type).map((link) => link.related_id));
+}
+
+function uniqueResearchLinks(links: ResearchLink[]) {
+  const seen = new Set<string>();
+  return links.filter((link) => {
+    const key = `${link.type}:${link.related_id ?? link.url ?? link.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  return [...new Set(values.filter(Boolean) as string[])];
+}
+
+function inferResearchType(value: string): ResearchLinkType {
+  if (value.startsWith("logic-")) return "logic_chain";
+  if (value.startsWith("committee-")) return "committee_report";
+  if (value.startsWith("backtest-")) return "backtest";
+  if (value.startsWith("signal-")) return "signal";
+  if (looksLikeUrl(value)) return "external_url";
+  return "memo";
+}
+
+function formatResearchTitle(type: ResearchLinkType, value: string) {
+  return `${type.split("_").map((part) => part.toUpperCase()).join(" ")} · ${value}`;
+}
+
+function isResearchLinkType(value: unknown): value is ResearchLinkType {
+  return ["signal", "logic_chain", "committee_report", "backtest", "document", "external_url", "memo"].includes(String(value));
+}
+
+function isEvidenceType(value: unknown): value is EvidenceType {
+  return ["ownership", "valuation", "liquidity", "tax", "counterparty", "document", "other"].includes(String(value));
+}
+
+function looksLikeUrl(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function slug(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || Date.now().toString(36);
 }
 
 function cashFlowEntry(
