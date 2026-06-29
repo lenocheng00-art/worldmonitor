@@ -14,6 +14,7 @@ import {
   Sparkles,
   TrendingUp,
   Users,
+  WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/macro", label: "Macro", icon: TrendingUp },
   { href: "/stocks", label: "Stocks", icon: BarChart3 },
+  { href: "/portfolio", label: "Portfolio", icon: WalletCards },
   { href: "/industry-chains", label: "Industry Chains", icon: Boxes },
   { href: "/logic-chains", label: "Logic Chains", icon: GitBranch },
   { href: "/committee", label: "Committee", icon: Users },
