@@ -31,6 +31,7 @@ import {
   dataConfidenceOptions,
   fxRatesToCny,
   liquidityOptions,
+  mockPortfolioAssets,
   readStoredPortfolioAssets,
   regionOptions,
   riskOptions,
@@ -60,7 +61,7 @@ const filterOptions = [
 const emptyFilters: FilterState = Object.fromEntries(filterOptions.map((item) => [item.key, "all"])) as FilterState;
 
 export function PortfolioRegister() {
-  const [assets, setAssets] = useState<PortfolioAsset[]>([]);
+  const [assets, setAssets] = useState<PortfolioAsset[]>(mockPortfolioAssets);
   const [hydrated, setHydrated] = useState(false);
   const [filters, setFilters] = useState<FilterState>(emptyFilters);
   const [editingAsset, setEditingAsset] = useState<PortfolioAsset | null>(null);
