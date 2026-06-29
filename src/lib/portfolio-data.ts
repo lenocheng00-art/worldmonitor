@@ -39,11 +39,27 @@ export type PortfolioBaseCurrency = "CNY";
 export type PortfolioLiquidityTier = "T0" | "D1_7" | "M1_6" | "M6_24" | "Y2_PLUS" | "UNKNOWN";
 export type PortfolioRiskLevel = "low" | "medium" | "high" | "very_high";
 export type PortfolioStatus = "active" | "watching" | "committed" | "invested" | "locked" | "exited" | "written_off";
-export type PortfolioValuationMethod = "manual" | "bank_balance" | "market_price" | "last_round" | "cost" | "estimated" | "settlement_value";
+export type PortfolioRecordType = "asset" | "liability";
+export type PortfolioLiquidityLevel = "high" | "medium" | "low" | "locked";
+export type PortfolioValuationMethod =
+  | "manual"
+  | "bank_balance"
+  | "market_price"
+  | "last_round"
+  | "cost"
+  | "estimated"
+  | "settlement_value"
+  | "cash"
+  | "cost_basis"
+  | "latest_nav";
 export type PortfolioDataConfidence = "high" | "medium" | "low";
 
 export type PortfolioAsset = {
   id: string;
+  name: string;
+  type: PortfolioRecordType;
+  category: string;
+  account: string;
   assetName: string;
   account_type: PortfolioAccountType;
   custodian: PortfolioCustodian;
@@ -52,11 +68,14 @@ export type PortfolioAsset = {
   currency: PortfolioCurrency;
   cost_basis: number;
   current_value: number;
+  amount: number;
   original_currency_value: number;
   base_currency: PortfolioBaseCurrency;
   fx_rate_to_base: number;
+  fx_rate_to_cny: number;
   base_currency_value: number;
   liquidity_tier: PortfolioLiquidityTier;
+  liquidity_level: PortfolioLiquidityLevel;
   risk_level: PortfolioRiskLevel;
   status: PortfolioStatus;
   valuation_method: PortfolioValuationMethod;
@@ -68,6 +87,7 @@ export type PortfolioAsset = {
   related_logic_chain_id: string | null;
   related_committee_report_id: string | null;
   related_backtest_id: string | null;
+  research_links: string[];
   next_action: string;
   notes: string;
   created_at: string;
@@ -96,6 +116,8 @@ export type PortfolioAssetFormValues = {
 };
 
 export const portfolioStorageKey = "worldmonitor:portfolio-assets:v1";
+export const cashFlowStorageKey = "worldmonitor:cash-flows:v1";
+export const assetTodoStorageKey = "worldmonitor:asset-todos:v1";
 
 export const accountTypeOptions: PortfolioAccountType[] = [
   "mainland_bank",
@@ -140,8 +162,55 @@ export const currencyOptions: PortfolioCurrency[] = ["CNY", "HKD", "USD", "MOP",
 export const liquidityOptions: PortfolioLiquidityTier[] = ["T0", "D1_7", "M1_6", "M6_24", "Y2_PLUS", "UNKNOWN"];
 export const riskOptions: PortfolioRiskLevel[] = ["low", "medium", "high", "very_high"];
 export const statusOptions: PortfolioStatus[] = ["active", "watching", "committed", "invested", "locked", "exited", "written_off"];
-export const valuationMethodOptions: PortfolioValuationMethod[] = ["manual", "bank_balance", "market_price", "last_round", "cost", "estimated", "settlement_value"];
+export const valuationMethodOptions: PortfolioValuationMethod[] = ["manual", "cash", "bank_balance", "market_price", "last_round", "cost", "cost_basis", "latest_nav", "estimated", "settlement_value"];
 export const dataConfidenceOptions: PortfolioDataConfidence[] = ["high", "medium", "low"];
+
+export type CashFlowDirection = "inflow" | "outflow";
+export type CashFlowFrequency = "monthly" | "quarterly" | "annual" | "none";
+
+export type CashFlowRecord = {
+  id: string;
+  date: string;
+  direction: CashFlowDirection;
+  category: string;
+  account_id: string;
+  related_asset_id: string;
+  currency: PortfolioCurrency;
+  amount: number;
+  fx_rate_to_cny: number;
+  base_currency_value: number;
+  recurring: boolean;
+  frequency: CashFlowFrequency;
+  note: string;
+};
+
+export type CashFlowFormValues = Omit<CashFlowRecord, "id" | "fx_rate_to_cny" | "base_currency_value">;
+
+export type AssetTodoStatus = "open" | "in_progress" | "done" | "blocked";
+export type AssetTodoPriority = "low" | "medium" | "high";
+export type AssetVerificationType = "valuation" | "ownership" | "liquidity" | "tax" | "document" | "counterparty" | "other";
+
+export type AssetTodo = {
+  id: string;
+  title: string;
+  status: AssetTodoStatus;
+  priority: AssetTodoPriority;
+  related_asset_id: string;
+  related_cashflow_id: string;
+  due_date: string;
+  verification_type: AssetVerificationType;
+  note: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AssetTodoFormValues = Omit<AssetTodo, "id" | "created_at" | "updated_at">;
+
+export const cashFlowDirectionOptions: CashFlowDirection[] = ["inflow", "outflow"];
+export const cashFlowFrequencyOptions: CashFlowFrequency[] = ["monthly", "quarterly", "annual", "none"];
+export const todoStatusOptions: AssetTodoStatus[] = ["open", "in_progress", "done", "blocked"];
+export const todoPriorityOptions: AssetTodoPriority[] = ["low", "medium", "high"];
+export const verificationTypeOptions: AssetVerificationType[] = ["valuation", "ownership", "liquidity", "tax", "document", "counterparty", "other"];
 
 export const fxRatesToCny: Record<PortfolioCurrency, number> = {
   CNY: 1,
@@ -173,25 +242,50 @@ export const mockPortfolioAssets: PortfolioAsset[] = [
   entry("credit-card-payable", "信用卡或应付款 liability", "manual_other", "manual", "GLOBAL", "liability", "USD", -8600, -8600, "D1_7", "medium", "active", "manual", "medium", "2026-06-28T21:00:00+08:00", "Pay before statement due date", null, null, null, "2026-07-15"),
 ];
 
+export const mockCashFlows: CashFlowRecord[] = [
+  cashFlowEntry("cf-dividend-usd", "2026-06-05", "inflow", "Dividend", "futu", "futu-us-etf", "USD", 1200, false, "none", "Quarterly ETF dividend received manually."),
+  cashFlowEntry("cf-card-payment", "2026-06-15", "outflow", "Credit Card Payment", "manual", "credit-card-payable", "USD", 8600, false, "none", "Statement payment against liability."),
+  cashFlowEntry("cf-private-call", "2026-07-10", "outflow", "Capital Call", "private_equity_register", "yunling-optoelectronics", "CNY", 50000, true, "quarterly", "Expected follow-on capital call."),
+  cashFlowEntry("cf-bank-interest", "2026-07-25", "inflow", "Bank Interest", "hsbc_hk", "hsbc-hkd-cash", "HKD", 1800, true, "monthly", "Manual expected cash interest."),
+];
+
+export const mockAssetTodos: AssetTodo[] = [
+  todoEntry("todo-yunling-valuation", "Verify 云岭光电 latest round mark", "open", "high", "yunling-optoelectronics", "", "2026-07-15", "valuation", "Request cap table and latest round documentation."),
+  todoEntry("todo-smee-ownership", "Confirm 上海微电子 ownership docs", "in_progress", "high", "shanghai-microelectronics", "", "2026-07-20", "ownership", "Reconcile subscription documents against register."),
+  todoEntry("todo-binance-custody", "Review Binance custody exposure", "open", "medium", "binance-btc", "", "2026-07-08", "counterparty", "Decide exchange balance limit and cold-storage policy."),
+  todoEntry("todo-polymarket-settlement", "Verify Polymarket open position marks", "open", "medium", "polymarket-open-positions", "", "2026-07-05", "liquidity", "Check exit liquidity and event settlement assumptions."),
+  todoEntry("todo-tax-card-payment", "Archive credit card payment receipt", "blocked", "low", "credit-card-payable", "cf-card-payment", "2026-07-18", "document", "Waiting for statement PDF."),
+];
+
 export function buildPortfolioAsset(values: PortfolioAssetFormValues, existing?: PortfolioAsset): PortfolioAsset {
   const now = new Date().toISOString();
   const fxRate = fxRatesToCny[values.currency] ?? 1;
+  const currentValue = Number(values.current_value) || 0;
+  const assetName = values.name.trim() || "Untitled Asset";
+  const type = inferRecordType(values.asset_type, currentValue);
 
   return {
     id: existing?.id ?? `manual-${Date.now().toString(36)}`,
-    assetName: values.name.trim() || "Untitled Asset",
+    name: assetName,
+    type,
+    category: values.asset_type,
+    account: values.custodian,
+    assetName,
     account_type: values.account_type,
     custodian: values.custodian,
     region: values.region,
     asset_type: values.asset_type,
     currency: values.currency,
     cost_basis: Number(values.cost_basis) || 0,
-    current_value: Number(values.current_value) || 0,
-    original_currency_value: Number(values.current_value) || 0,
+    current_value: currentValue,
+    amount: currentValue,
+    original_currency_value: currentValue,
     base_currency: "CNY",
     fx_rate_to_base: fxRate,
-    base_currency_value: (Number(values.current_value) || 0) * fxRate,
+    fx_rate_to_cny: fxRate,
+    base_currency_value: currentValue * fxRate,
     liquidity_tier: values.liquidity_tier,
+    liquidity_level: liquidityTierToLevel(values.liquidity_tier),
     risk_level: values.risk_level,
     status: values.status,
     valuation_method: values.valuation_method,
@@ -203,6 +297,7 @@ export function buildPortfolioAsset(values: PortfolioAssetFormValues, existing?:
     related_logic_chain_id: existing?.related_logic_chain_id ?? null,
     related_committee_report_id: existing?.related_committee_report_id ?? null,
     related_backtest_id: existing?.related_backtest_id ?? null,
+    research_links: existing?.research_links ?? researchLinksFromAsset(existing),
     next_action: values.next_action,
     notes: values.notes,
     created_at: existing?.created_at ?? now,
@@ -251,18 +346,123 @@ export function writeStoredPortfolioAssets(assets: PortfolioAsset[]) {
   window.localStorage.setItem(portfolioStorageKey, JSON.stringify(assets));
 }
 
+export function readStoredCashFlows(): CashFlowRecord[] {
+  if (typeof window === "undefined") return mockCashFlows;
+
+  try {
+    const stored = window.localStorage.getItem(cashFlowStorageKey);
+    if (!stored) return mockCashFlows;
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.map(normalizeCashFlow) : mockCashFlows;
+  } catch {
+    return mockCashFlows;
+  }
+}
+
+export function writeStoredCashFlows(records: CashFlowRecord[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(cashFlowStorageKey, JSON.stringify(records));
+}
+
+export function buildCashFlow(values: CashFlowFormValues, existing?: CashFlowRecord): CashFlowRecord {
+  const fxRate = fxRatesToCny[values.currency] ?? 1;
+  const amount = Number(values.amount) || 0;
+  return {
+    ...values,
+    id: existing?.id ?? `cashflow-${Date.now().toString(36)}`,
+    account_id: values.account_id ?? "",
+    related_asset_id: values.related_asset_id ?? "",
+    amount,
+    fx_rate_to_cny: fxRate,
+    base_currency_value: amount * fxRate,
+  };
+}
+
+export function toCashFlowFormValues(record?: CashFlowRecord): CashFlowFormValues {
+  return {
+    date: record?.date ?? new Date().toISOString().slice(0, 10),
+    direction: record?.direction ?? "outflow",
+    category: record?.category ?? "",
+    account_id: record?.account_id ?? "",
+    related_asset_id: record?.related_asset_id ?? "",
+    currency: record?.currency ?? "CNY",
+    amount: record?.amount ?? 0,
+    recurring: record?.recurring ?? false,
+    frequency: record?.frequency ?? "none",
+    note: record?.note ?? "",
+  };
+}
+
+export function readStoredAssetTodos(): AssetTodo[] {
+  if (typeof window === "undefined") return mockAssetTodos;
+
+  try {
+    const stored = window.localStorage.getItem(assetTodoStorageKey);
+    if (!stored) return mockAssetTodos;
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.map(normalizeAssetTodo) : mockAssetTodos;
+  } catch {
+    return mockAssetTodos;
+  }
+}
+
+export function writeStoredAssetTodos(todos: AssetTodo[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(assetTodoStorageKey, JSON.stringify(todos));
+}
+
+export function buildAssetTodo(values: AssetTodoFormValues, existing?: AssetTodo): AssetTodo {
+  const now = new Date().toISOString();
+  return {
+    ...values,
+    id: existing?.id ?? `todo-${Date.now().toString(36)}`,
+    related_asset_id: values.related_asset_id ?? "",
+    related_cashflow_id: values.related_cashflow_id ?? "",
+    due_date: values.due_date ?? "",
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+}
+
+export function toAssetTodoFormValues(todo?: AssetTodo): AssetTodoFormValues {
+  return {
+    title: todo?.title ?? "",
+    status: todo?.status ?? "open",
+    priority: todo?.priority ?? "medium",
+    related_asset_id: todo?.related_asset_id ?? "",
+    related_cashflow_id: todo?.related_cashflow_id ?? "",
+    due_date: todo?.due_date ?? "",
+    verification_type: todo?.verification_type ?? "valuation",
+    note: todo?.note ?? "",
+  };
+}
+
 export function normalizePortfolioAsset(asset: PortfolioAsset): PortfolioAsset {
   const fxRate = asset.fx_rate_to_base ?? fxRatesToCny[asset.currency] ?? 1;
   const currentValue = Number(asset.current_value) || 0;
+  const assetName = asset.assetName ?? asset.name ?? "Untitled Asset";
+  const type = asset.type ?? inferRecordType(asset.asset_type, currentValue);
+  const liquidityTier = asset.liquidity_tier ?? "UNKNOWN";
 
   return {
     ...asset,
+    id: asset.id,
+    name: asset.name ?? assetName,
+    type,
+    category: asset.category ?? asset.asset_type ?? "other",
+    account: asset.account ?? asset.custodian ?? "manual",
+    assetName,
+    amount: Number.isFinite(asset.amount) ? asset.amount : currentValue,
     original_currency_value: asset.original_currency_value ?? currentValue,
     base_currency: "CNY",
     fx_rate_to_base: fxRate,
+    fx_rate_to_cny: asset.fx_rate_to_cny ?? fxRate,
     base_currency_value: Number.isFinite(asset.base_currency_value) ? asset.base_currency_value : currentValue * fxRate,
+    liquidity_tier: liquidityTier,
+    liquidity_level: asset.liquidity_level ?? liquidityTierToLevel(liquidityTier),
     data_confidence: asset.data_confidence ?? "medium",
     last_verified_at: asset.last_verified_at ?? asset.updated_at,
+    research_links: Array.isArray(asset.research_links) ? asset.research_links : researchLinksFromAsset(asset),
   };
 }
 
@@ -290,8 +490,13 @@ function entry(
   lockup_end_date: string | null = null,
 ): PortfolioAsset {
   const fxRate = fxRatesToCny[currency];
+  const type = inferRecordType(asset_type, current_value);
   return {
     id,
+    name: assetName,
+    type,
+    category: asset_type,
+    account: custodian,
     assetName,
     account_type,
     custodian,
@@ -300,11 +505,14 @@ function entry(
     currency,
     cost_basis,
     current_value,
+    amount: current_value,
     original_currency_value: current_value,
     base_currency: "CNY",
     fx_rate_to_base: fxRate,
+    fx_rate_to_cny: fxRate,
     base_currency_value: current_value * fxRate,
     liquidity_tier,
+    liquidity_level: liquidityTierToLevel(liquidity_tier),
     risk_level,
     status,
     valuation_method,
@@ -316,9 +524,125 @@ function entry(
     related_logic_chain_id,
     related_committee_report_id,
     related_backtest_id,
+    research_links: [related_logic_chain_id, related_committee_report_id, related_backtest_id].filter(Boolean) as string[],
     next_action,
     notes: "Manual mock register entry. No bank, brokerage, crypto exchange, or prediction-market API is connected.",
     created_at: "2026-06-01T09:00:00+08:00",
     updated_at: "2026-06-28T21:00:00+08:00",
+  };
+}
+
+export function inferRecordType(assetType: PortfolioAssetType, amount: number): PortfolioRecordType {
+  return assetType === "liability" || amount < 0 ? "liability" : "asset";
+}
+
+export function liquidityTierToLevel(tier: PortfolioLiquidityTier): PortfolioLiquidityLevel {
+  if (tier === "T0" || tier === "D1_7") return "high";
+  if (tier === "M1_6") return "medium";
+  if (tier === "M6_24") return "low";
+  return "locked";
+}
+
+export function signedBaseValue(record: Pick<PortfolioAsset, "type" | "base_currency_value">) {
+  const absolute = Math.abs(record.base_currency_value);
+  return record.type === "liability" ? -absolute : absolute;
+}
+
+export function assetValue(record: Pick<PortfolioAsset, "type" | "base_currency_value">) {
+  return record.type === "asset" ? Math.max(0, record.base_currency_value) : 0;
+}
+
+export function liabilityValue(record: Pick<PortfolioAsset, "type" | "base_currency_value">) {
+  return record.type === "liability" ? Math.abs(record.base_currency_value) : 0;
+}
+
+function researchLinksFromAsset(asset?: Partial<PortfolioAsset>) {
+  if (!asset) return [];
+  return [asset.related_signal_id, asset.related_logic_chain_id, asset.related_committee_report_id, asset.related_backtest_id].filter(Boolean) as string[];
+}
+
+function cashFlowEntry(
+  id: string,
+  date: string,
+  direction: CashFlowDirection,
+  category: string,
+  account_id: string,
+  related_asset_id: string,
+  currency: PortfolioCurrency,
+  amount: number,
+  recurring: boolean,
+  frequency: CashFlowFrequency,
+  note: string,
+): CashFlowRecord {
+  const fxRate = fxRatesToCny[currency] ?? 1;
+  return {
+    id,
+    date,
+    direction,
+    category,
+    account_id,
+    related_asset_id,
+    currency,
+    amount,
+    fx_rate_to_cny: fxRate,
+    base_currency_value: amount * fxRate,
+    recurring,
+    frequency,
+    note,
+  };
+}
+
+function normalizeCashFlow(record: CashFlowRecord): CashFlowRecord {
+  const fxRate = record.fx_rate_to_cny ?? fxRatesToCny[record.currency] ?? 1;
+  const amount = Number(record.amount) || 0;
+  return {
+    ...record,
+    account_id: record.account_id ?? "",
+    related_asset_id: record.related_asset_id ?? "",
+    fx_rate_to_cny: fxRate,
+    base_currency_value: Number.isFinite(record.base_currency_value) ? record.base_currency_value : amount * fxRate,
+    recurring: Boolean(record.recurring),
+    frequency: record.frequency ?? "none",
+    note: record.note ?? "",
+  };
+}
+
+function todoEntry(
+  id: string,
+  title: string,
+  status: AssetTodoStatus,
+  priority: AssetTodoPriority,
+  related_asset_id: string,
+  related_cashflow_id: string,
+  due_date: string,
+  verification_type: AssetVerificationType,
+  note: string,
+): AssetTodo {
+  return {
+    id,
+    title,
+    status,
+    priority,
+    related_asset_id,
+    related_cashflow_id,
+    due_date,
+    verification_type,
+    note,
+    created_at: "2026-06-28T09:00:00+08:00",
+    updated_at: "2026-06-28T09:00:00+08:00",
+  };
+}
+
+function normalizeAssetTodo(todo: AssetTodo): AssetTodo {
+  const now = new Date().toISOString();
+  return {
+    ...todo,
+    related_asset_id: todo.related_asset_id ?? "",
+    related_cashflow_id: todo.related_cashflow_id ?? "",
+    due_date: todo.due_date ?? "",
+    verification_type: todo.verification_type ?? "other",
+    note: todo.note ?? "",
+    created_at: todo.created_at ?? now,
+    updated_at: todo.updated_at ?? now,
   };
 }
