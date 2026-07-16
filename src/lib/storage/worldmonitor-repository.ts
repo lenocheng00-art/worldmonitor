@@ -290,9 +290,9 @@ function toSignalRow(signal: Signal) {
   return {
     id: signal.id,
     title: signal.title,
-    source_post_id: encodeMetadata(metadata),
+    source_post_id: signal.source_post_id ?? null,
     source: signal.source,
-    original_text: signal.originalText,
+    original_text: encodeTextMetadata(signal.originalText, metadata),
     extracted_signal: signal.extractedSignal,
     related_tickers: signal.relatedTickers,
     related_industry_chains: signal.relatedIndustryChains,
@@ -307,14 +307,15 @@ function toSignalRow(signal: Signal) {
 }
 
 function fromSignalRow(row: Record<string, unknown>): Signal {
-  const metadata = decodeMetadata(row.source_post_id) ?? {};
+  const encodedOriginalText = decodeTextMetadata(row.original_text);
+  const metadata = decodeMetadata(row.source_post_id) ?? encodedOriginalText.metadata;
   const createdAt = String(row.created_at ?? new Date().toISOString());
   return normalizeSignal({
     id: String(row.id),
     title: String(row.title ?? "Untitled signal"),
     summary: String(metadata.summary ?? row.extracted_signal ?? ""),
     original_source: String(metadata.original_source ?? row.source ?? "Manual"),
-    original_text: String(row.original_text ?? ""),
+    original_text: encodedOriginalText.text,
     source_url: optionalString(metadata.source_url) ?? null,
     source_post_id: optionalString(metadata.legacy_source_post_id) ?? (isEncoded(row.source_post_id) ? undefined : optionalString(row.source_post_id)),
     source_type: String(metadata.source_type ?? "TEXT") as Signal["source_type"],
@@ -331,7 +332,7 @@ function fromSignalRow(row: Record<string, unknown>): Signal {
     archive_after_days: optionalNumber(metadata.archive_after_days),
     committee_completed_at: optionalString(metadata.committee_completed_at),
     source: String(row.source ?? metadata.original_source ?? "Manual"),
-    originalText: String(row.original_text ?? ""),
+    originalText: encodedOriginalText.text,
     extractedSignal: String(row.extracted_signal ?? metadata.summary ?? ""),
     relatedTickers: stringArray(row.related_tickers),
     relatedIndustryChains: stringArray(row.related_industry_chains),
@@ -640,6 +641,20 @@ function fromWatchlistRow(row: Record<string, unknown>): WatchlistItem {
 
 function encodeMetadata(value: object) {
   return `${metadataPrefix}${JSON.stringify(value)}`;
+}
+
+function encodeTextMetadata(text: string, metadata: object) {
+  return `${text}\n\n${encodeMetadata(metadata)}`;
+}
+
+function decodeTextMetadata(value: unknown) {
+  const text = String(value ?? "");
+  const marker = `\n\n${metadataPrefix}`;
+  const markerIndex = text.lastIndexOf(marker);
+  if (markerIndex < 0) return { text, metadata: {} as Record<string, unknown> };
+  const metadata = decodeMetadata(text.slice(markerIndex + 2));
+  if (!metadata) return { text, metadata: {} as Record<string, unknown> };
+  return { text: text.slice(0, markerIndex), metadata };
 }
 
 function decodeMetadata(value: unknown): Record<string, unknown> | undefined {

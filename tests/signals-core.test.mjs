@@ -70,6 +70,8 @@ test("Committee, Backtests, and Watchlist persist through the migration-free Sup
   assert.match(repository, /toWatchlistRow/);
   assert.match(repository, /saveBacktestBundle/);
   assert.match(repository, /fetch\("\/api\/research-state"/);
+  assert.match(repository, /source_post_id: signal\.source_post_id \?\? null/);
+  assert.match(repository, /original_text: encodeTextMetadata\(signal\.originalText, metadata\)/);
   assert.doesNotMatch(repository, /from\("portfolio"\)/);
   assert.doesNotMatch(repository, /from\("committee_cases"\)/);
   assert.doesNotMatch(repository, /from\("research_links"\)/);
