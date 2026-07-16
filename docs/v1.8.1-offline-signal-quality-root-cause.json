@@ -1,0 +1,463 @@
+{
+  "summary": {
+    "generatedAt": "2026-07-16T18:39:24.968Z",
+    "source": "frozen local Supabase logical backup",
+    "productionWrites": 0,
+    "signalCount": 13,
+    "averageScoreOutOf7": 3.31,
+    "medianScoreOutOf7": 4,
+    "normalizedAverageOutOf5": 2.36,
+    "below3": [
+      "signal-alan-1781222941327-0-polymarket-1781222941326-7fu2he",
+      "signal-alan-1782726594854-0-other-1782726594854-7nmfei",
+      "signal-alan-1782726639246-0-other-1782726639246-diq5yi"
+    ],
+    "lossCategories": {
+      "Awaiting Future Event": 6,
+      "Incorrect Ticker": 3,
+      "Missing Direction": 13,
+      "Missing Horizon": 3,
+      "Missing Trigger": 3,
+      "Narrative Not Signal": 3,
+      "Unavailable Metric": 3,
+      "Unsupported Data Source": 7,
+      "Weak Confirmation": 13,
+      "Weak Invalidation": 13
+    },
+    "dataAvailabilityReasons": {
+      "AWAITING_EVENT": 6,
+      "INVALID_TICKER": 1,
+      "MANUAL_VERIFICATION_REQUIRED": 1,
+      "NON_MARKET_METRIC": 1,
+      "SOURCE_UNAVAILABLE": 7,
+      "UNSUPPORTED_INSTRUMENT": 1
+    },
+    "yahooFinanceFailuresObservedInBackup": 0
+  },
+  "signals": [
+    {
+      "signalId": "signal-alan-1781222941327-0-polymarket-1781222941326-7fu2he",
+      "sourceTextId": "source-post-alan-1781222941327",
+      "title": "Polymarket",
+      "relatedTickers": [],
+      "triggerEvent": "Prediction-market odds may provide a tradable consensus signal.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 0,
+        "correctTicker": 0,
+        "direction": 0,
+        "timeHorizon": 0,
+        "availableMetric": 0,
+        "invalidationCondition": 0
+      },
+      "score": 0,
+      "lossCategories": [
+        "Narrative Not Signal",
+        "Missing Trigger",
+        "Incorrect Ticker",
+        "Missing Direction",
+        "Missing Horizon",
+        "Unavailable Metric",
+        "Weak Confirmation",
+        "Weak Invalidation"
+      ],
+      "dataAvailabilityReasons": [
+        "UNSUPPORTED_INSTRUMENT"
+      ],
+      "sourceSupportsTrigger": true,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1781491973583-0-spacex-1781491973582-wqdqev",
+      "sourceTextId": "source-post-alan-1781491973583",
+      "title": "SpaceX",
+      "relatedTickers": [
+        "RKLB",
+        "ASTS"
+      ],
+      "triggerEvent": "SpaceX or Starlink IPO signals could create a frontier-company liquidity event.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 1,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 5,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation"
+      ],
+      "dataAvailabilityReasons": [],
+      "sourceSupportsTrigger": true,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726594854-0-other-1782726594854-7nmfei",
+      "sourceTextId": "source-post-alan-1782726594854",
+      "title": "FQ3",
+      "relatedTickers": [],
+      "triggerEvent": "Review pasted text for a potential investable signal.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 0,
+        "correctTicker": 0,
+        "direction": 0,
+        "timeHorizon": 0,
+        "availableMetric": 0,
+        "invalidationCondition": 0
+      },
+      "score": 0,
+      "lossCategories": [
+        "Narrative Not Signal",
+        "Missing Trigger",
+        "Incorrect Ticker",
+        "Missing Direction",
+        "Missing Horizon",
+        "Unavailable Metric",
+        "Weak Confirmation",
+        "Weak Invalidation"
+      ],
+      "dataAvailabilityReasons": [
+        "INVALID_TICKER"
+      ],
+      "sourceSupportsTrigger": true,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726611378-2-anthropic-1782726611377-q8h8ta",
+      "sourceTextId": "source-post-alan-1782726611378",
+      "title": "Anthropic",
+      "relatedTickers": [
+        "AMZN",
+        "GOOGL"
+      ],
+      "triggerEvent": "Anthropic filing activity could mark a path toward public AI lab exposure.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 4,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation",
+        "Unsupported Data Source",
+        "Awaiting Future Event"
+      ],
+      "dataAvailabilityReasons": [
+        "SOURCE_UNAVAILABLE",
+        "AWAITING_EVENT"
+      ],
+      "sourceSupportsTrigger": false,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726611378-3-openai-1782726611378-l3mhys",
+      "sourceTextId": "source-post-alan-1782726611378",
+      "title": "OpenAI",
+      "relatedTickers": [
+        "MSFT",
+        "ORCL"
+      ],
+      "triggerEvent": "OpenAI IPO timing could become a major signal for public AI application and platform valuations.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 4,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation",
+        "Unsupported Data Source",
+        "Awaiting Future Event"
+      ],
+      "dataAvailabilityReasons": [
+        "SOURCE_UNAVAILABLE",
+        "AWAITING_EVENT"
+      ],
+      "sourceSupportsTrigger": false,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726611378-0-google-1782726611377-9auiqm",
+      "sourceTextId": "source-post-alan-1782726611378",
+      "title": "Google",
+      "relatedTickers": [
+        "GOOGL",
+        "AVGO"
+      ],
+      "triggerEvent": "Google's TPU and capex cycle may signal an internal AI infrastructure advantage.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 4,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation",
+        "Unsupported Data Source"
+      ],
+      "dataAvailabilityReasons": [
+        "SOURCE_UNAVAILABLE"
+      ],
+      "sourceSupportsTrigger": false,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1781491973584-2-openai-1781491973583-zxwebq",
+      "sourceTextId": "source-post-alan-1781491973583",
+      "title": "OpenAI",
+      "relatedTickers": [
+        "MSFT",
+        "ORCL"
+      ],
+      "triggerEvent": "OpenAI IPO timing could become a major signal for public AI application and platform valuations.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 4,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation",
+        "Unsupported Data Source",
+        "Awaiting Future Event"
+      ],
+      "dataAvailabilityReasons": [
+        "SOURCE_UNAVAILABLE",
+        "AWAITING_EVENT"
+      ],
+      "sourceSupportsTrigger": false,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1781491973584-1-anthropic-1781491973583-n5n077",
+      "sourceTextId": "source-post-alan-1781491973583",
+      "title": "Anthropic",
+      "relatedTickers": [
+        "AMZN",
+        "GOOGL"
+      ],
+      "triggerEvent": "Anthropic filing activity could mark a path toward public AI lab exposure.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 4,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation",
+        "Unsupported Data Source",
+        "Awaiting Future Event"
+      ],
+      "dataAvailabilityReasons": [
+        "SOURCE_UNAVAILABLE",
+        "AWAITING_EVENT"
+      ],
+      "sourceSupportsTrigger": false,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726639246-0-other-1782726639246-diq5yi",
+      "sourceTextId": "source-post-alan-1782726639246",
+      "title": "AI",
+      "relatedTickers": [],
+      "triggerEvent": "Review pasted text for a potential investable signal.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 0,
+        "correctTicker": 0,
+        "direction": 0,
+        "timeHorizon": 0,
+        "availableMetric": 0,
+        "invalidationCondition": 0
+      },
+      "score": 0,
+      "lossCategories": [
+        "Narrative Not Signal",
+        "Missing Trigger",
+        "Incorrect Ticker",
+        "Missing Direction",
+        "Missing Horizon",
+        "Unavailable Metric",
+        "Weak Confirmation",
+        "Weak Invalidation"
+      ],
+      "dataAvailabilityReasons": [
+        "NON_MARKET_METRIC",
+        "MANUAL_VERIFICATION_REQUIRED"
+      ],
+      "sourceSupportsTrigger": true,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726656984-2-openai-1782726656983-rgkyen",
+      "sourceTextId": "source-post-alan-1782726656984",
+      "title": "OpenAI",
+      "relatedTickers": [
+        "MSFT",
+        "ORCL"
+      ],
+      "triggerEvent": "OpenAI IPO timing could become a major signal for public AI application and platform valuations.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 4,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation",
+        "Unsupported Data Source",
+        "Awaiting Future Event"
+      ],
+      "dataAvailabilityReasons": [
+        "SOURCE_UNAVAILABLE",
+        "AWAITING_EVENT"
+      ],
+      "sourceSupportsTrigger": false,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726656984-0-spacex-1782726656983-8tmafj",
+      "sourceTextId": "source-post-alan-1782726656984",
+      "title": "SpaceX",
+      "relatedTickers": [
+        "RKLB",
+        "ASTS"
+      ],
+      "triggerEvent": "SpaceX or Starlink IPO signals could create a frontier-company liquidity event.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 1,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 5,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation"
+      ],
+      "dataAvailabilityReasons": [],
+      "sourceSupportsTrigger": true,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726656984-1-anthropic-1782726656983-5xets9",
+      "sourceTextId": "source-post-alan-1782726656984",
+      "title": "Anthropic",
+      "relatedTickers": [
+        "AMZN",
+        "GOOGL"
+      ],
+      "triggerEvent": "Anthropic filing activity could mark a path toward public AI lab exposure.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 1,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 5,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation",
+        "Awaiting Future Event"
+      ],
+      "dataAvailabilityReasons": [
+        "AWAITING_EVENT"
+      ],
+      "sourceSupportsTrigger": true,
+      "yahooFinanceFailure": false
+    },
+    {
+      "signalId": "signal-alan-1782726611378-1-spacex-1782726611377-5g3f8g",
+      "sourceTextId": "source-post-alan-1782726611378",
+      "title": "SpaceX",
+      "relatedTickers": [
+        "RKLB",
+        "ASTS"
+      ],
+      "triggerEvent": "SpaceX or Starlink IPO signals could create a frontier-company liquidity event.",
+      "direction": "NEUTRAL",
+      "criteria": {
+        "verifiableJudgment": 0,
+        "triggerEvent": 1,
+        "correctTicker": 1,
+        "direction": 0,
+        "timeHorizon": 1,
+        "availableMetric": 1,
+        "invalidationCondition": 0
+      },
+      "score": 4,
+      "lossCategories": [
+        "Missing Direction",
+        "Weak Confirmation",
+        "Weak Invalidation",
+        "Unsupported Data Source"
+      ],
+      "dataAvailabilityReasons": [
+        "SOURCE_UNAVAILABLE"
+      ],
+      "sourceSupportsTrigger": false,
+      "yahooFinanceFailure": false
+    }
+  ]
+}
