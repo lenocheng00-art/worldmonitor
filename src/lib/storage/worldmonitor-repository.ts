@@ -98,12 +98,12 @@ export const worldmonitorRepository = {
       return {
         backend: "supabase",
         data: normalizeDecisionState({
-          signals: mergeById(localFallback.signals.map(normalizeSignal), signalRows.map(fromSignalRow)),
-          logicChains: mergeById(localFallback.logicChains, (payload.logicChains ?? []).map(fromLogicChainRow)),
-          committeeReports: mergeById(localFallback.committeeReports, (payload.committeeReports ?? []).map(fromCommitteeReportRow)),
-          backtestStrategies: mergeById(localFallback.backtestStrategies, (payload.backtestStrategies ?? []).map(fromBacktestStrategyRow)),
-          backtestResults: mergeById(localFallback.backtestResults, (payload.backtestResults ?? []).map(fromBacktestResultRow)),
-          watchlist: mergeWatchlist(localFallback.watchlist, (payload.watchlist ?? []).map(fromWatchlistRow)),
+          signals: signalRows.map(fromSignalRow),
+          logicChains: (payload.logicChains ?? []).map(fromLogicChainRow),
+          committeeReports: (payload.committeeReports ?? []).map(fromCommitteeReportRow),
+          backtestStrategies: (payload.backtestStrategies ?? []).map(fromBacktestStrategyRow),
+          backtestResults: (payload.backtestResults ?? []).map(fromBacktestResultRow),
+          watchlist: (payload.watchlist ?? []).map(fromWatchlistRow),
         }),
       };
     } catch (error) {
@@ -814,18 +814,6 @@ function fromWatchlistRow(row: Record<string, unknown>): WatchlistItem {
     updatedAt,
     changeType: updatedAt === addedAt ? "Added" : "Status changed",
   };
-}
-
-function mergeById<T extends { id: string }>(localItems: T[], remoteItems: T[]) {
-  const map = new Map<string, T>();
-  [...localItems, ...remoteItems].forEach((item) => map.set(item.id, item));
-  return [...map.values()];
-}
-
-function mergeWatchlist(localItems: WatchlistItem[], remoteItems: WatchlistItem[]) {
-  const map = new Map<string, WatchlistItem>();
-  [...localItems, ...remoteItems].forEach((item) => map.set(item.ticker, item));
-  return [...map.values()];
 }
 
 function stringArray(value: unknown): string[] {
