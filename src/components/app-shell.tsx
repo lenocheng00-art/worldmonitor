@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <div className="text-sm font-semibold">WorldMonitor</div>
-            <div className="text-xs text-muted-foreground">V1.7 · Signals Core</div>
+            <div className="text-xs text-muted-foreground">V1.8 · Signal Operations</div>
           </div>
         </div>
 
@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               <div>
                 <div className="text-sm font-semibold">WorldMonitor</div>
-                <div className="text-[11px] text-muted-foreground">V1.7 · Signals Core</div>
+                <div className="text-[11px] text-muted-foreground">V1.8 · Signal Operations</div>
               </div>
             </Link>
             <div className="hidden text-xs text-muted-foreground lg:block">

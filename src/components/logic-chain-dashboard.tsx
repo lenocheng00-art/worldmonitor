@@ -129,6 +129,14 @@ function LogicChainCard({ chain, linkedSignalTitle, onBacktest, onCommittee, onC
         <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
           <Tags label="Affected Assets" values={chain.affectedAssets} />
           <Tags label="Follow-up Indicators" values={chain.followUpIndicators} />
+          <Tags label="Assumptions" values={chain.assumptions ?? []} />
+          <Tags label="Monitoring Signals" values={(chain.monitoringSignals ?? []).map((metric) => metric.label)} />
+          <Tags label="Confirmation Conditions" values={chain.confirmationConditions ?? []} />
+          <Tags label="Invalidation Conditions" values={chain.invalidationConditions ?? []} />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Metric label="Validation Result" value={chain.validationData?.at(-1)?.outcome ?? "Not checked"} />
+          <Metric label="Next Update" value={chain.nextCheckAt ? new Date(chain.nextCheckAt).toLocaleString() : "Needs review"} />
         </div>
         {(chain.related_asset_ids ?? []).length ? (
           <details className="rounded-md border bg-muted/30 p-4">
@@ -143,7 +151,7 @@ function LogicChainCard({ chain, linkedSignalTitle, onBacktest, onCommittee, onC
         </div>
         <div className="flex flex-wrap gap-2 border-t pt-4">
           <Button size="sm" onClick={onBacktest} disabled={!chain.linkedCommitteeReportId}><FlaskConical className="size-4" /> {chain.linkedCommitteeReportId ? "Run Backtest" : "Backtest after Committee"}</Button>
-          <Button size="sm" variant="outline" onClick={onCommittee}><Users className="size-4" /> Committee Review</Button>
+          <Button size="sm" variant="outline" onClick={onCommittee} disabled={!chain.monitoringSignals?.length || !chain.invalidationConditions?.length}><Users className="size-4" /> Committee Review</Button>
           <Button size="sm" variant="outline" onClick={onConfirm} disabled={chain.validationStatus === "Confirmed"}><CheckCircle2 className="size-4" /> Mark Confirmed</Button>
           <Button size="sm" variant="outline" onClick={onBreak} disabled={chain.validationStatus === "Broken"}><ShieldX className="size-4" /> Mark Broken</Button>
         </div>

@@ -20,9 +20,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { extractAlanSignals } from "@/lib/alan-chan-parser";
 import { type Signal, type SignalStatus } from "@/lib/decision-loop-data";
 import { useDecisionLoop } from "@/lib/decision-loop-store";
+import { alanSignalOperations, canEnterCommittee } from "@/lib/signal-operations";
 import { cn } from "@/lib/utils";
 
-const statuses: SignalStatus[] = ["NEW", "TRACKING", "PROMOTED", "DISMISSED", "ARCHIVED"];
+const statuses: SignalStatus[] = ["NEW", "NEEDS_REVIEW", "TRACKING", "PROMOTED", "CONFIRMED", "INVALIDATED", "DISMISSED", "ARCHIVED"];
 
 export function SignalInbox() {
   const router = useRouter();
@@ -39,12 +40,13 @@ export function SignalInbox() {
   const requestedTicker = searchParams.get("ticker");
   const visibleSignals = useMemo(
     () => requestedTicker
-      ? state.signals.filter((signal) => signal.relatedTickers.includes(requestedTicker))
-      : state.signals,
+      ? state.signals.filter((signal) => signal.status !== "ARCHIVED" && signal.relatedTickers.includes(requestedTicker))
+      : state.signals.filter((signal) => signal.status !== "ARCHIVED"),
     [requestedTicker, state.signals],
   );
   const [activeStatus, setActiveStatus] = useState<SignalStatus | "All">("All");
-  const filtered = visibleSignals.filter((signal) => activeStatus === "All" || signal.status === activeStatus);
+  const filterSource = activeStatus === "ARCHIVED" ? state.signals : visibleSignals;
+  const filtered = filterSource.filter((signal) => activeStatus === "All" || signal.status === activeStatus);
   const [selectedId, setSelectedId] = useState(filtered[0]?.id ?? "");
   const [pasteText, setPasteText] = useState("");
   const [showImport, setShowImport] = useState(false);
@@ -60,24 +62,28 @@ export function SignalInbox() {
   function importText() {
     const parsed = extractAlanSignals(pasteText);
     if (parsed.length) {
-      parsed.forEach((item) => createSignal({
-        title: item.entity,
-        source: "Alan Chan",
-        originalText: item.sourceExcerpt,
-        summary: item.thesis,
-        original_source: "Alan Chan",
-        original_text: item.sourceExcerpt,
-        source_url: null,
-        source_type: "MEMBERSHIP_POST",
-        created_at: new Date().toISOString(),
-        confidence: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
-        tags: [item.category],
-        related_companies: [item.entity],
-        extractedSignal: item.thesis,
-        relatedTickers: inferTickers(item.entity),
-        relatedIndustryChains: [],
-        priorityScore: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
-      }));
+      parsed.forEach((item) => {
+        const operations = alanSignalOperations(item, pasteText);
+        createSignal({
+          title: item.entity,
+          source: "Alan Chan",
+          originalText: pasteText,
+          summary: item.thesis,
+          original_source: "Alan Chan",
+          original_text: pasteText,
+          source_url: null,
+          source_type: "MEMBERSHIP_POST",
+          created_at: new Date().toISOString(),
+          confidence: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
+          tags: [item.category],
+          related_companies: [item.entity],
+          extractedSignal: item.thesis,
+          relatedIndustryChains: [],
+          priorityScore: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
+          tracking_frequency: "every_2_days",
+          ...operations,
+        });
+      });
     } else if (pasteText.trim()) {
       createSignal({
         title: pasteText.trim().slice(0, 64),
@@ -210,7 +216,11 @@ export function SignalInbox() {
                   icon={BookmarkPlus}
                   label="Track"
                   busy={busyAction === "track"}
-                  onClick={() => perform("track", () => updateSignalStatus(selected.id, "TRACKING"))}
+                  disabled={selected.qualityStatus !== "READY"}
+                  onClick={() => perform("track", () => {
+                    const chain = createLogicChainFromSignal(selected.id);
+                    if (chain) updateSignalStatus(selected.id, "TRACKING");
+                  })}
                 />
                 <ActionButton
                   icon={Archive}
@@ -222,7 +232,7 @@ export function SignalInbox() {
                   icon={Users}
                   label={selected.linkedCommitteeReportId ? "Open Committee Review" : selected.linkedLogicChainId ? "Send Logic Chain to Committee" : "Create Logic Chain first"}
                   busy={busyAction === "committee"}
-                  disabled={!selected.linkedLogicChainId && !selected.linkedCommitteeReportId}
+                  disabled={!selected.linkedCommitteeReportId && !canEnterCommittee(selected)}
                   onClick={() => perform("committee", () => {
                     const report = sendSignalToCommittee(selected.id);
                     if (report) router.push(`/committee?report=${report.id}`);
@@ -279,9 +289,16 @@ function SignalDetail({ signal }: { signal: Signal }) {
       <CardContent className="space-y-6 pt-5">
         <Detail label="Original Text" value={signal.originalText} />
         <Detail label="Extracted Signal" value={signal.extractedSignal} />
+        <Detail label="Trigger Event" value={signal.triggerEvent ?? "Needs review"} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Tags label="Related Tickers" values={signal.relatedTickers} empty="No ticker mapped" />
           <Detail label="Priority Score" value={`${signal.priorityScore}/100`} />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Tags label="Monitoring Metrics" values={(signal.monitoringMetrics ?? []).map((metric) => metric.label)} empty="Missing — Needs Review" />
+          <Tags label="Quality Gate" values={signal.qualityIssues?.length ? signal.qualityIssues : ["Ready"]} empty="Needs review" />
+          <Tags label="Confirmation Conditions" values={signal.confirmationConditions ?? []} empty="Missing — Needs Review" />
+          <Tags label="Invalidation Conditions" values={signal.invalidationConditions ?? []} empty="Missing — Needs Review" />
         </div>
         <div className="border-t pt-5">
           <div className="mb-3 text-xs font-semibold uppercase text-muted-foreground">Status Timeline</div>
@@ -355,13 +372,4 @@ function WorkbenchState({ icon: Icon, title, description, action, spin }: {
       {action}
     </CardContent></Card>
   );
-}
-
-function inferTickers(entity: string) {
-  const mapping: Record<string, string[]> = {
-    Google: ["GOOGL", "AVGO"], Broadcom: ["AVGO"], Vertiv: ["VRT"],
-    "Constellation Energy": ["CEG"], SpaceX: ["RKLB", "ASTS"],
-    Anthropic: ["AMZN", "GOOGL"], OpenAI: ["MSFT", "ORCL"],
-  };
-  return mapping[entity] ?? [];
 }

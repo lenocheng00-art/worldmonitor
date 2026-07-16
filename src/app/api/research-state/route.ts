@@ -99,7 +99,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (request.headers.get("x-worldmonitor-client") !== "signals-core-v1.7") {
+  if (request.headers.get("x-worldmonitor-client") !== "signal-operations-v1.8") {
     return NextResponse.json({ error: "Invalid WorldMonitor client." }, { status: 403 });
   }
   const origin = request.headers.get("origin");

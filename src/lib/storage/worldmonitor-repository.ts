@@ -10,6 +10,14 @@ import type {
   SignalStatus,
   WatchlistItem,
 } from "@/lib/decision-loop-data";
+import { applySignalQualityGate } from "@/lib/signal-operations";
+import {
+  decodeMetadata,
+  decodeTextMetadata,
+  encodeMetadata,
+  encodeTextMetadata,
+  isEncoded,
+} from "@/lib/storage/research-metadata";
 
 export const decisionLoopStorageKey = "worldmonitor:decision-loop-v1";
 
@@ -21,20 +29,22 @@ export type StorageResult<T> = {
   error?: string;
 };
 
-const metadataPrefix = "wm:v17:";
 export const storageErrorEvent = "worldmonitor:storage-error";
 
 const signalStatusMap: Record<string, SignalStatus> = {
   New: "NEW",
+  "Needs Review": "NEEDS_REVIEW",
   Tracking: "TRACKING",
   Linked: "PROMOTED",
   Reviewed: "PROMOTED",
   Backtested: "TRACKING",
   Actioned: "TRACKING",
-  Invalidated: "DISMISSED",
+  Invalidated: "INVALIDATED",
   NEW: "NEW",
+  NEEDS_REVIEW: "NEEDS_REVIEW",
   TRACKING: "TRACKING",
   CONFIRMED: "CONFIRMED",
+  INVALIDATED: "INVALIDATED",
   PROMOTED: "PROMOTED",
   DISMISSED: "DISMISSED",
   ARCHIVED: "ARCHIVED",
@@ -42,8 +52,10 @@ const signalStatusMap: Record<string, SignalStatus> = {
 
 const databaseStatusMap: Record<SignalStatus, string> = {
   NEW: "New",
+  NEEDS_REVIEW: "New",
   TRACKING: "Tracking",
   CONFIRMED: "Reviewed",
+  INVALIDATED: "Invalidated",
   PROMOTED: "Linked",
   DISMISSED: "Invalidated",
   ARCHIVED: "Reviewed",
@@ -204,7 +216,7 @@ async function writeCloud(input: {
   try {
     const response = await fetch("/api/research-state", {
       method: "POST",
-      headers: { "content-type": "application/json", "x-worldmonitor-client": "signals-core-v1.7" },
+      headers: { "content-type": "application/json", "x-worldmonitor-client": "signal-operations-v1.8" },
       body: JSON.stringify(input),
     });
     if (!response.ok) throw new Error(await responseError(response));
@@ -238,7 +250,7 @@ export function normalizeSignal(signal: Signal): Signal {
   const relatedTickers = signal.relatedTickers ?? [];
   const logicChainId = signal.logic_chain_id ?? signal.linkedLogicChainId;
   const tags = signal.tags?.length ? signal.tags : [...(signal.relatedIndustryChains ?? []), ...relatedTickers].filter(Boolean);
-  return {
+  return applySignalQualityGate({
     ...signal,
     summary,
     original_source: signal.original_source || source,
@@ -259,14 +271,64 @@ export function normalizeSignal(signal: Signal): Signal {
     logic_chain_id: logicChainId,
     linkedLogicChainId: logicChainId,
     status,
-  };
+    sourceTextId: signal.sourceTextId ?? signal.source_post_id,
+    normalizedSourceHash: signal.normalizedSourceHash,
+    sourceEvidence: Array.isArray(signal.sourceEvidence) ? signal.sourceEvidence : [],
+    triggerEvent: signal.triggerEvent ?? signal.extractedSignal ?? summary,
+    expectedDirection: signal.expectedDirection ?? "NEUTRAL",
+    transmissionPath: Array.isArray(signal.transmissionPath) ? signal.transmissionPath : [],
+    monitoringMetrics: Array.isArray(signal.monitoringMetrics) ? signal.monitoringMetrics : [],
+    confirmationConditions: Array.isArray(signal.confirmationConditions) ? signal.confirmationConditions : [],
+    invalidationConditions: Array.isArray(signal.invalidationConditions) ? signal.invalidationConditions : [],
+    qualityStatus: signal.qualityStatus,
+    qualityIssues: Array.isArray(signal.qualityIssues) ? signal.qualityIssues : [],
+    validationData: Array.isArray(signal.validationData) ? signal.validationData : [],
+    validationOutcome: signal.validationOutcome,
+    lastCheckedAt: signal.lastCheckedAt ?? signal.last_tracked_at,
+    nextCheckAt: signal.nextCheckAt ?? signal.next_track_at,
+    automationErrors: Array.isArray(signal.automationErrors) ? signal.automationErrors : [],
+    duplicateOfSignalId: signal.duplicateOfSignalId,
+    archiveReason: signal.archiveReason,
+  });
 }
 
 export function normalizeDecisionState(state: DecisionLoopState): DecisionLoopState {
+  const logicChains = state.logicChains.map(normalizeLogicChain);
+  const chainById = new Map(logicChains.map((chain) => [chain.id, chain]));
+  const chainsBySignal = new Map<string, LogicChain[]>();
+  logicChains.forEach((chain) => {
+    if (!chain.triggerSignalId) return;
+    chainsBySignal.set(chain.triggerSignalId, [...(chainsBySignal.get(chain.triggerSignalId) ?? []), chain]);
+  });
+  const signals = state.signals.map(normalizeSignal).map((signal) => {
+    const linkedChain = signal.linkedLogicChainId ? chainById.get(signal.linkedLogicChainId) : undefined;
+    const reverseMatches = chainsBySignal.get(signal.id) ?? [];
+    const repairableChain = linkedChain ?? (reverseMatches.length === 1 ? reverseMatches[0] : undefined);
+    if (repairableChain) {
+      repairableChain.triggerSignalId = signal.id;
+      repairableChain.signal_id = signal.id;
+      repairableChain.originatingSignalId = signal.id;
+      return normalizeSignal({
+        ...signal,
+        linkedLogicChainId: repairableChain.id,
+        logic_chain_id: repairableChain.id,
+      });
+    }
+    if (["TRACKING", "PROMOTED"].includes(signal.status)) {
+      return normalizeSignal({
+        ...signal,
+        status: "NEEDS_REVIEW",
+        qualityStatus: "NEEDS_REVIEW",
+        qualityIssues: [...new Set([...(signal.qualityIssues ?? []), "Missing bidirectional Logic Chain link"])],
+        automationErrors: [...new Set([...(signal.automationErrors ?? []), "Logic Chain link could not be repaired automatically."])],
+      });
+    }
+    return signal;
+  });
   return {
     ...state,
-    signals: state.signals.map(normalizeSignal),
-    logicChains: state.logicChains.map(normalizeLogicChain),
+    signals,
+    logicChains,
     committeeReports: state.committeeReports.map(normalizeCommitteeReport),
     backtestStrategies: state.backtestStrategies.map(normalizeBacktestStrategy),
     backtestResults: state.backtestResults.map(normalizeBacktestResult),
@@ -353,6 +415,24 @@ function toSignalRow(signal: Signal) {
     related_asset_ids: signal.related_asset_ids ?? [],
     status: signal.status,
     legacy_source_post_id: signal.source_post_id,
+    sourceTextId: signal.sourceTextId,
+    normalizedSourceHash: signal.normalizedSourceHash,
+    sourceEvidence: signal.sourceEvidence ?? [],
+    triggerEvent: signal.triggerEvent,
+    expectedDirection: signal.expectedDirection,
+    transmissionPath: signal.transmissionPath ?? [],
+    monitoringMetrics: signal.monitoringMetrics ?? [],
+    confirmationConditions: signal.confirmationConditions ?? [],
+    invalidationConditions: signal.invalidationConditions ?? [],
+    qualityStatus: signal.qualityStatus,
+    qualityIssues: signal.qualityIssues ?? [],
+    validationData: signal.validationData ?? [],
+    validationOutcome: signal.validationOutcome,
+    lastCheckedAt: signal.lastCheckedAt,
+    nextCheckAt: signal.nextCheckAt,
+    automationErrors: signal.automationErrors ?? [],
+    duplicateOfSignalId: signal.duplicateOfSignalId,
+    archiveReason: signal.archiveReason,
   };
   return {
     id: signal.id,
@@ -411,6 +491,24 @@ function fromSignalRow(row: Record<string, unknown>): Signal {
     linkedCommitteeReportId: optionalString(row.linked_committee_report_id),
     linkedBacktestId: optionalString(row.linked_backtest_id),
     related_asset_ids: stringArray(metadata.related_asset_ids),
+    sourceTextId: optionalString(metadata.sourceTextId) ?? optionalString(metadata.legacy_source_post_id) ?? (isEncoded(row.source_post_id) ? undefined : optionalString(row.source_post_id)),
+    normalizedSourceHash: optionalString(metadata.normalizedSourceHash),
+    sourceEvidence: Array.isArray(metadata.sourceEvidence) ? metadata.sourceEvidence as Signal["sourceEvidence"] : [],
+    triggerEvent: optionalString(metadata.triggerEvent),
+    expectedDirection: optionalString(metadata.expectedDirection) as Signal["expectedDirection"],
+    transmissionPath: stringArray(metadata.transmissionPath),
+    monitoringMetrics: Array.isArray(metadata.monitoringMetrics) ? metadata.monitoringMetrics as Signal["monitoringMetrics"] : [],
+    confirmationConditions: stringArray(metadata.confirmationConditions),
+    invalidationConditions: stringArray(metadata.invalidationConditions),
+    qualityStatus: optionalString(metadata.qualityStatus) as Signal["qualityStatus"],
+    qualityIssues: stringArray(metadata.qualityIssues),
+    validationData: Array.isArray(metadata.validationData) ? metadata.validationData as Signal["validationData"] : [],
+    validationOutcome: optionalString(metadata.validationOutcome) as Signal["validationOutcome"],
+    lastCheckedAt: optionalString(metadata.lastCheckedAt),
+    nextCheckAt: optionalString(metadata.nextCheckAt),
+    automationErrors: stringArray(metadata.automationErrors),
+    duplicateOfSignalId: optionalString(metadata.duplicateOfSignalId),
+    archiveReason: optionalString(metadata.archiveReason),
   });
 }
 
@@ -431,6 +529,12 @@ function toLogicChainRow(chain: LogicChain) {
     sourceConfidence: chain.sourceConfidence,
     timeline: chain.timeline,
     related_asset_ids: chain.related_asset_ids ?? [],
+    assumptions: chain.assumptions ?? [],
+    monitoringSignals: chain.monitoringSignals ?? [],
+    validationData: chain.validationData ?? [],
+    confirmationConditions: chain.confirmationConditions ?? [],
+    invalidationConditions: chain.invalidationConditions ?? [],
+    nextCheckAt: chain.nextCheckAt,
   };
   return {
     id: chain.id,
@@ -492,6 +596,12 @@ function fromLogicChainRow(row: Record<string, unknown>): LogicChain {
     linkedCommitteeReportId: optionalString(row.linked_committee_report_id),
     linkedBacktestId: optionalString(row.linked_backtest_id),
     related_asset_ids: stringArray(metadata.related_asset_ids),
+    assumptions: stringArray(metadata.assumptions),
+    monitoringSignals: Array.isArray(metadata.monitoringSignals) ? metadata.monitoringSignals as LogicChain["monitoringSignals"] : [],
+    validationData: Array.isArray(metadata.validationData) ? metadata.validationData as LogicChain["validationData"] : [],
+    confirmationConditions: stringArray(metadata.confirmationConditions),
+    invalidationConditions: stringArray(metadata.invalidationConditions),
+    nextCheckAt: optionalString(metadata.nextCheckAt),
   };
 }
 
@@ -704,38 +814,6 @@ function fromWatchlistRow(row: Record<string, unknown>): WatchlistItem {
     updatedAt,
     changeType: updatedAt === addedAt ? "Added" : "Status changed",
   };
-}
-
-function encodeMetadata(value: object) {
-  return `${metadataPrefix}${JSON.stringify(value)}`;
-}
-
-function encodeTextMetadata(text: string, metadata: object) {
-  return `${text}\n\n${encodeMetadata(metadata)}`;
-}
-
-function decodeTextMetadata(value: unknown) {
-  const text = String(value ?? "");
-  const marker = `\n\n${metadataPrefix}`;
-  const markerIndex = text.lastIndexOf(marker);
-  if (markerIndex < 0) return { text, metadata: {} as Record<string, unknown> };
-  const metadata = decodeMetadata(text.slice(markerIndex + 2));
-  if (!metadata) return { text, metadata: {} as Record<string, unknown> };
-  return { text: text.slice(0, markerIndex), metadata };
-}
-
-function decodeMetadata(value: unknown): Record<string, unknown> | undefined {
-  if (!isEncoded(value)) return undefined;
-  try {
-    const parsed = JSON.parse(value.slice(metadataPrefix.length));
-    return isRecord(parsed) ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function isEncoded(value: unknown): value is string {
-  return typeof value === "string" && value.startsWith(metadataPrefix);
 }
 
 function mergeById<T extends { id: string }>(localItems: T[], remoteItems: T[]) {

@@ -1,13 +1,54 @@
 export type SignalStatus =
   | "NEW"
+  | "NEEDS_REVIEW"
   | "TRACKING"
   | "CONFIRMED"
+  | "INVALIDATED"
   | "PROMOTED"
   | "DISMISSED"
   | "ARCHIVED";
 
 export type SignalSourceType = "TEXT" | "URL" | "MEMBERSHIP_POST" | "NEWS" | "MANUAL";
 export type TrackingFrequency = "daily" | "every_2_days" | "weekly" | "manual";
+
+export type SignalDirection = "BULLISH" | "BEARISH" | "NEUTRAL";
+export type SignalQualityStatus = "READY" | "NEEDS_REVIEW";
+export type ValidationOutcome =
+  | "Strengthened"
+  | "Unchanged"
+  | "Weakened"
+  | "Confirmed"
+  | "Invalidated"
+  | "Data Unavailable";
+
+export type SourceEvidence = {
+  sourceTextId?: string;
+  sourceUrl?: string | null;
+  textHash: string;
+  excerpt: string;
+  observedAt: string;
+};
+
+export type MonitoringMetric = {
+  key: string;
+  label: string;
+  ticker?: string;
+  source: string;
+  threshold?: string;
+  critical?: boolean;
+};
+
+export type ValidationDatum = {
+  metricKey: string;
+  ticker?: string;
+  value?: number;
+  previousValue?: number;
+  unit?: string;
+  observedAt: string;
+  source: string;
+  outcome: ValidationOutcome;
+  error?: string;
+};
 
 export type LogicChainTimelineEvent = {
   id: string;
@@ -53,6 +94,24 @@ export type Signal = {
   linkedCommitteeReportId?: string;
   linkedBacktestId?: string;
   related_asset_ids?: string[];
+  sourceTextId?: string;
+  normalizedSourceHash?: string;
+  sourceEvidence?: SourceEvidence[];
+  triggerEvent?: string;
+  expectedDirection?: SignalDirection;
+  transmissionPath?: string[];
+  monitoringMetrics?: MonitoringMetric[];
+  confirmationConditions?: string[];
+  invalidationConditions?: string[];
+  qualityStatus?: SignalQualityStatus;
+  qualityIssues?: string[];
+  validationData?: ValidationDatum[];
+  validationOutcome?: ValidationOutcome;
+  lastCheckedAt?: string;
+  nextCheckAt?: string;
+  automationErrors?: string[];
+  duplicateOfSignalId?: string;
+  archiveReason?: string;
 };
 
 export type LogicChainValidationStatus = "Active" | "Validating" | "Confirmed" | "Broken";
@@ -90,6 +149,12 @@ export type LogicChain = {
   linkedCommitteeReportId?: string;
   linkedBacktestId?: string;
   related_asset_ids?: string[];
+  assumptions?: string[];
+  monitoringSignals?: MonitoringMetric[];
+  validationData?: ValidationDatum[];
+  confirmationConditions?: string[];
+  invalidationConditions?: string[];
+  nextCheckAt?: string;
 };
 
 export type CommitteeView = "Bullish" | "Neutral" | "Bearish";

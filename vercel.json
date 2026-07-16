@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/automation/signals",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

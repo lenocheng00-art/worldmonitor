@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { DecisionLoopProvider } from "@/lib/decision-loop-store";
 
 export const metadata: Metadata = {
-  title: "WorldMonitor V1.7 — Signals Core",
+  title: "WorldMonitor V1.8 — Signal Operations",
   description: "Signal-to-decision research workflow for signals, logic chains, committee review, backtests, and watchlists.",
 };
 
