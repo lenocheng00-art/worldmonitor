@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import type { AutomationRunSummary } from "@/lib/automation-types";
-import { getLatestAutomationRun, runSignalAutomation } from "@/lib/server/signal-automation";
+import { summarizeAutomationRuns } from "@/lib/automation-burn-in";
+import type { AutomationBurnInStats, AutomationRunSummary } from "@/lib/automation-types";
+import { getAutomationRuns, runSignalAutomation } from "@/lib/server/signal-automation";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +16,9 @@ export async function GET(request: Request) {
       if (!cronSecret) return NextResponse.json({ error: "CRON_SECRET is not configured." }, { status: 503 });
       if (authorization !== `Bearer ${cronSecret}`) return NextResponse.json({ error: "Invalid cron authorization." }, { status: 401 });
       const run = await runSignalAutomation(supabase, "scheduled");
-      return noStore({ run });
+      return noStore(await statusPayload(supabase, run));
     }
-    const run = await getLatestAutomationRun(supabase);
-    return noStore({ run: run ?? null });
+    return noStore(await statusPayload(supabase));
   } catch (error) {
     return NextResponse.json({ error: describeError(error) }, { status: 502 });
   }
@@ -50,13 +50,19 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const run = await runSignalAutomation(supabase, mode);
-    return noStore({ run });
+    return noStore(await statusPayload(supabase, run));
   } catch (error) {
     return NextResponse.json({ error: describeError(error) }, { status: 502 });
   }
 }
 
-function noStore(payload: { run: AutomationRunSummary | null }) {
+async function statusPayload(supabase: Awaited<ReturnType<typeof createClient>>, preferredRun?: AutomationRunSummary) {
+  const runs = await getAutomationRuns(supabase, 7);
+  const run = preferredRun ?? runs[0] ?? null;
+  return { run, runs, stats: summarizeAutomationRuns(runs) };
+}
+
+function noStore(payload: { run: AutomationRunSummary | null; runs: AutomationRunSummary[]; stats: AutomationBurnInStats }) {
   return NextResponse.json(payload, { headers: { "cache-control": "private, no-store, max-age=0" } });
 }
 

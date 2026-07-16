@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { extractAlanSignals } from "@/lib/alan-chan-parser";
-import type { AutomationRunSummary } from "@/lib/automation-types";
+import type { AutomationBurnInStats, AutomationRunSummary } from "@/lib/automation-types";
 import { useDecisionLoop } from "@/lib/decision-loop-store";
 import { alanSignalOperations } from "@/lib/signal-operations";
 
@@ -16,6 +16,8 @@ export function SignalMonitor() {
   const [sourceText, setSourceText] = useState("");
   const [createdCount, setCreatedCount] = useState<number | null>(null);
   const [automationRun, setAutomationRun] = useState<AutomationRunSummary>();
+  const [automationRuns, setAutomationRuns] = useState<AutomationRunSummary[]>([]);
+  const [automationStats, setAutomationStats] = useState<AutomationBurnInStats>();
   const [automationBusy, setAutomationBusy] = useState(false);
   const [automationError, setAutomationError] = useState<string>();
   const alanSignals = state.signals.filter((signal) => signal.original_source === "Alan Chan").slice(0, 8);
@@ -23,9 +25,11 @@ export function SignalMonitor() {
   const loadAutomationStatus = useCallback(async () => {
     try {
       const response = await fetch("/api/automation/signals", { cache: "no-store" });
-      const payload = await response.json() as { run?: AutomationRunSummary; error?: string };
+      const payload = await response.json() as { run?: AutomationRunSummary; runs?: AutomationRunSummary[]; stats?: AutomationBurnInStats; error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Automation status is unavailable.");
       setAutomationRun(payload.run);
+      setAutomationRuns(payload.runs ?? []);
+      setAutomationStats(payload.stats);
       setAutomationError(undefined);
     } catch (requestError) {
       setAutomationError(requestError instanceof Error ? requestError.message : "Automation status is unavailable.");
@@ -46,9 +50,11 @@ export function SignalMonitor() {
         headers: { "content-type": "application/json", "x-worldmonitor-client": "signal-operations-v1.8" },
         body: JSON.stringify({ mode: "manual" }),
       });
-      const payload = await response.json() as { run?: AutomationRunSummary; error?: string };
+      const payload = await response.json() as { run?: AutomationRunSummary; runs?: AutomationRunSummary[]; stats?: AutomationBurnInStats; error?: string };
       if (!response.ok || !payload.run) throw new Error(payload.error ?? "Automation run failed.");
       setAutomationRun(payload.run);
+      setAutomationRuns(payload.runs ?? []);
+      setAutomationStats(payload.stats);
     } catch (requestError) {
       setAutomationError(requestError instanceof Error ? requestError.message : "Automation run failed.");
     } finally {
@@ -145,6 +151,29 @@ export function SignalMonitor() {
             <AutomationMetric label="Errors" value={automationRun?.errors.length ?? 0} />
             <AutomationMetric label="Run Status" value={automationRun?.status ?? "Not run"} />
           </div>
+          <div className="mt-5 border-t pt-4">
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Last 7 Runs</div>
+            <div className="grid gap-x-5 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <BurnInMetric label="Cron Success Rate" value={formatPercent(automationStats?.cronSuccessRate)} />
+              <BurnInMetric label="Signals Created" value={automationStats?.signalsCreated ?? 0} />
+              <BurnInMetric label="Signals Updated" value={automationStats?.signalsUpdated ?? 0} />
+              <BurnInMetric label="Duplicates Prevented" value={automationStats?.duplicatesPrevented ?? 0} />
+              <BurnInMetric label="Needs Review Rate" value={formatPercent(automationStats?.needsReviewRate)} />
+              <BurnInMetric label="Notifications Created" value={automationStats?.notificationsCreated ?? 0} />
+              <BurnInMetric label="Data Fetch Failure Rate" value={formatPercent(automationStats?.dataFetchFailureRate)} />
+              <BurnInMetric label="Average Run Duration" value={formatDuration(automationStats?.averageRunDurationMs)} />
+            </div>
+            <div className="mt-4 divide-y border-y text-xs">
+              {automationRuns.length ? automationRuns.map((run) => (
+                <div key={run.id} className="grid gap-1 py-2 sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr]">
+                  <span>{formatTimestamp(run.startedAt)}</span>
+                  <span className="font-medium">{run.status}{run.result ? ` · ${run.result}` : ""}</span>
+                  <span>{formatDuration(run.processingDurationMs)}</span>
+                  <span className={run.errors.length ? "text-red-700" : "text-muted-foreground"}>{run.errors.length} errors</span>
+                </div>
+              )) : <div className="py-3 text-muted-foreground">No burn-in runs recorded yet.</div>}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -177,8 +206,21 @@ function AutomationMetric({ label, value }: { label: string; value: string | num
   return <div className="min-w-0 rounded-md border bg-muted/20 p-3"><div className="text-[11px] uppercase text-muted-foreground">{label}</div><div className="mt-1 truncate text-sm font-semibold">{value}</div></div>;
 }
 
+function BurnInMetric({ label, value }: { label: string; value: string | number }) {
+  return <div><div className="text-[11px] text-muted-foreground">{label}</div><div className="mt-0.5 font-semibold">{value}</div></div>;
+}
+
 function formatTimestamp(value?: string) {
   if (!value) return "—";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+}
+
+function formatPercent(value?: number) {
+  return `${value ?? 0}%`;
+}
+
+function formatDuration(value?: number) {
+  if (value === undefined) return "—";
+  return value < 1_000 ? `${value} ms` : `${(value / 1_000).toFixed(1)} s`;
 }

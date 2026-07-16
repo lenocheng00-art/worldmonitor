@@ -3,6 +3,7 @@ import type {
   AcceptanceRecord,
   AutomationRunSummary,
 } from "@/lib/automation-types";
+import { preserveValidationData } from "@/lib/automation-burn-in";
 import type {
   MonitoringMetric,
   SignalDirection,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/storage/research-metadata";
 
 const automationSource = "WorldMonitor Automation";
+const automationLockSource = "WorldMonitor Automation Lock";
 const twoDaysMs = 48 * 60 * 60 * 1_000;
 const eligibleDatabaseStatuses = ["New", "Tracking", "Linked", "Reviewed"];
 
@@ -33,16 +35,21 @@ type RawRow = Record<string, unknown>;
 type PricePoint = { date: string; close: number; volume: number };
 
 export async function getLatestAutomationRun(supabase: SupabaseClient): Promise<AutomationRunSummary | undefined> {
+  return (await getAutomationRuns(supabase, 1))[0];
+}
+
+export async function getAutomationRuns(supabase: SupabaseClient, limit = 7): Promise<AutomationRunSummary[]> {
   const { data, error } = await supabase
     .from("source_posts")
     .select("metadata")
     .eq("source", automationSource)
     .order("updated_at", { ascending: false })
-    .limit(20);
+    .limit(Math.max(20, limit * 4));
   if (error) throw error;
   return (data ?? [])
     .map((row) => parseRunSummary(row.metadata))
-    .find((run) => run?.mode !== "acceptance");
+    .filter((run): run is AutomationRunSummary => Boolean(run && run.mode !== "acceptance"))
+    .slice(0, limit);
 }
 
 export async function runSignalAutomation(
@@ -52,49 +59,85 @@ export async function runSignalAutomation(
   const now = new Date();
   const startedAt = now.toISOString();
   const bucket = Math.floor(now.getTime() / twoDaysMs);
-  const runId = mode === "acceptance" ? "automation-acceptance-v1-8-final" : `automation-run-${bucket}`;
+  const runId = mode === "acceptance"
+    ? "automation-acceptance-v1-8-final"
+    : mode === "scheduled"
+      ? `automation-cron-${startedAt.slice(0, 10)}`
+      : `automation-run-${bucket}`;
   const existing = await getRunById(supabase, runId);
-  if (existing?.status === "Succeeded" || existing?.status === "Running") return existing;
-  const previousRun = mode === "acceptance" ? undefined : await getLatestAutomationRun(supabase);
+  if (existing?.status === "Running") return { ...existing, result: "Already Running" };
+  if (existing?.status === "Succeeded" || existing?.status === "Skipped") {
+    return { ...existing, result: existing.result ?? "Already Completed" };
+  }
+  const previousRuns = mode === "acceptance" ? [] : await getAutomationRuns(supabase, 30);
+  const previousRun = previousRuns[0];
+  const previousExecutedRun = previousRuns.find((run) => run.status === "Succeeded" && run.executed !== false);
 
-  if (mode === "scheduled") {
-    if (previousRun?.finishedAt && now.getTime() - Date.parse(previousRun.finishedAt) < twoDaysMs) {
-      return {
+  if (mode !== "acceptance" && previousExecutedRun?.finishedAt && now.getTime() - Date.parse(previousExecutedRun.finishedAt) < twoDaysMs) {
+    const summary = {
         ...emptySummary(runId, mode, startedAt),
         status: "Skipped",
+        result: "Not Due",
+        executed: false,
         finishedAt: startedAt,
-        nextRunAt: new Date(Date.parse(previousRun.finishedAt) + twoDaysMs).toISOString(),
-      };
-    }
+        nextRunAt: new Date(Date.parse(previousExecutedRun.finishedAt) + twoDaysMs).toISOString(),
+        processingDurationMs: 0,
+      } satisfies AutomationRunSummary;
+    await saveRun(supabase, summary);
+    return summary;
   }
 
-  let summary = emptySummary(runId, mode, startedAt);
+  const lockId = `automation-lock-${startedAt.slice(0, 10)}`;
+  const lock = await acquireRunLock(supabase, lockId, runId, startedAt);
+  if (!lock.acquired) {
+    const summary = {
+      ...emptySummary(runId, mode, startedAt),
+      status: "Skipped",
+      result: lock.result,
+      executed: false,
+      finishedAt: startedAt,
+      processingDurationMs: 0,
+    } satisfies AutomationRunSummary;
+    if (lock.ownerRunId !== runId) await saveRun(supabase, summary);
+    return summary;
+  }
+
+  let summary: AutomationRunSummary = { ...emptySummary(runId, mode, startedAt), executed: true, result: "Executed" };
   await saveRun(supabase, summary);
 
   try {
     const result = await executeRun(supabase, summary);
+    const finishedAt = new Date().toISOString();
     summary = {
       ...result,
       status: "Succeeded",
-      finishedAt: new Date().toISOString(),
+      finishedAt,
       nextRunAt: new Date(Date.now() + twoDaysMs).toISOString(),
       consecutiveFailures: 0,
     };
+    summary.processingDurationMs = elapsedMs(startedAt, finishedAt);
     await saveRun(supabase, summary);
+    await finishRunLock(supabase, lockId, runId, "Succeeded", finishedAt);
     return summary;
   } catch (error) {
     const consecutiveFailures = (previousRun?.status === "Failed" ? previousRun.consecutiveFailures ?? 1 : 0) + 1;
+    const finishedAt = new Date().toISOString();
     summary = {
       ...summary,
       status: "Failed",
-      finishedAt: new Date().toISOString(),
+      result: "Failed",
+      finishedAt,
       errors: [describeError(error)],
+      supabaseFailures: isSupabaseFailure(error) ? 1 : 0,
       consecutiveFailures,
       notifications: consecutiveFailures >= 2
         ? ["Signal automation failed in consecutive runs and will retry in the next window."]
         : [],
+      notificationsCreated: consecutiveFailures >= 2 ? 1 : 0,
     };
+    summary.processingDurationMs = elapsedMs(startedAt, finishedAt);
     await saveRun(supabase, summary);
+    await finishRunLock(supabase, lockId, runId, "Failed", finishedAt);
     return summary;
   }
 }
@@ -126,6 +169,13 @@ async function executeRun(supabase: SupabaseClient, initial: AutomationRunSummar
     ? [...extractionAudit.values()].filter((item) => item.matched).length
     : 0;
   let logicChainsUpdated = 0;
+  let needsReviewCount = 0;
+  let signalsConfirmed = 0;
+  let signalsInvalidated = 0;
+  let signalsArchived = 0;
+  let dataUnavailableCount = 0;
+  let dataFetchAttempts = 0;
+  let yahooFinanceFailures = 0;
   const errors: string[] = [];
   const notifications: string[] = [];
 
@@ -135,6 +185,7 @@ async function executeRun(supabase: SupabaseClient, initial: AutomationRunSummar
     if (duplicateSignal) {
       duplicatesPrevented += 1;
       await archiveDuplicate(supabase, signal, canonicalId);
+      signalsArchived += 1;
       acceptance.push(acceptanceRow(signal, canonicalId, undefined, undefined, undefined, "Duplicate archived", true, extractionAudit.get(signal.id)));
       continue;
     }
@@ -142,6 +193,13 @@ async function executeRun(supabase: SupabaseClient, initial: AutomationRunSummar
     const processed = await processSignal(supabase, signal, initial.mode, priceCache);
     signalsUpdated += 1;
     logicChainsUpdated += processed.logicChainId ? 1 : 0;
+    needsReviewCount += processed.needsReview ? 1 : 0;
+    signalsConfirmed += processed.confirmed ? 1 : 0;
+    signalsInvalidated += processed.invalidated ? 1 : 0;
+    signalsArchived += processed.archived ? 1 : 0;
+    dataUnavailableCount += processed.dataUnavailable ? 1 : 0;
+    dataFetchAttempts += processed.dataFetchAttempts;
+    yahooFinanceFailures += processed.yahooFinanceFailures;
     errors.push(...processed.errors);
     notifications.push(...processed.notifications);
     if (initial.mode === "acceptance") {
@@ -158,14 +216,24 @@ async function executeRun(supabase: SupabaseClient, initial: AutomationRunSummar
     }
   }
 
+  const distinctNotifications = unique(notifications);
   return {
     ...initial,
     sourcesProcessed: new Set(candidates.map((signal) => signal.sourceTextId)).size,
     signalsUpdated,
     duplicatesPrevented,
     logicChainsUpdated,
+    needsReviewCount,
+    signalsConfirmed,
+    signalsInvalidated,
+    signalsArchived,
+    notificationsCreated: distinctNotifications.length,
+    dataUnavailableCount,
+    dataFetchAttempts,
+    yahooFinanceFailures,
+    supabaseFailures: 0,
     errors: unique(errors),
-    notifications: unique(notifications),
+    notifications: distinctNotifications,
     acceptance: initial.mode === "acceptance" ? acceptance : undefined,
   };
 }
@@ -203,15 +271,18 @@ async function processSignal(
   let validationData = signal.validationData;
   let validationOutcome: ValidationOutcome = signal.validationOutcome ?? "Unchanged";
   const processingErrors: string[] = [];
+  let dataFetchAttempts = 0;
   if (qualityReady) {
+    dataFetchAttempts = unique(metrics.map((metric) => metric.ticker).filter(Boolean) as string[]).length;
     const validation = await validateMetrics(signal, metrics, priceCache);
     validationOutcome = validation.outcome;
     processingErrors.push(...validation.errors);
-    if (validation.data.length) validationData = [...validationData, ...validation.data].slice(-80);
+    validationData = preserveValidationData(validationData, validation.data);
   }
 
   const chainId = qualityReady ? signal.linkedLogicChainId ?? deterministicId("logic-v18", signal.id) : undefined;
-  const committeeReportId = qualityReady && (mode === "acceptance" || signal.priorityScore >= 80)
+  const marketDataReady = validationOutcome !== "Data Unavailable";
+  const committeeReportId = qualityReady && marketDataReady && (mode === "acceptance" || signal.priorityScore >= 80)
     ? signal.linkedCommitteeReportId ?? deterministicId("committee-v18", signal.id)
     : signal.linkedCommitteeReportId;
   let backtestId = signal.linkedBacktestId;
@@ -304,7 +375,7 @@ async function processSignal(
   if (shouldArchive) await archiveSnapshot(supabase, signalRow, signal.sourcePostId, String(metadata.archiveReason));
 
   const runNotifications: string[] = [];
-  if (signal.priorityScore >= 80 && signal.internalStatus === "NEW") runNotifications.push(`New high-priority Signal: ${signal.title}`);
+  if (qualityReady && marketDataReady && signal.priorityScore >= 80 && signal.internalStatus === "NEW") runNotifications.push(`New high-priority Signal: ${signal.title}`);
   if (signal.validationOutcome === "Unchanged" && validationOutcome === "Strengthened") runNotifications.push(`Logic Chain strengthened: ${signal.title}`);
   if (signal.validationOutcome !== validationOutcome && validationOutcome === "Confirmed") runNotifications.push(`Signal confirmed: ${signal.title}`);
   if (signal.validationOutcome !== validationOutcome && validationOutcome === "Invalidated") runNotifications.push(`Signal invalidated: ${signal.title}`);
@@ -316,7 +387,21 @@ async function processSignal(
   if (committeeReportId && !signal.linkedCommitteeReportId) runNotifications.push(`New Committee Queue target: ${signal.relatedTickers.join(", ")}`);
   if (mode === "acceptance" && watchlistStatus === "Added") runNotifications.push(`Watchlist changed: ${signal.relatedTickers.join(", ")}`);
 
-  return { logicChainId: chainId, committeeReportId, backtestId, watchlistStatus, errors: processingErrors, notifications: runNotifications };
+  return {
+    logicChainId: chainId,
+    committeeReportId,
+    backtestId,
+    watchlistStatus,
+    errors: processingErrors,
+    notifications: runNotifications,
+    needsReview: !qualityReady,
+    confirmed: signal.validationOutcome !== "Confirmed" && validationOutcome === "Confirmed",
+    invalidated: signal.validationOutcome !== "Invalidated" && validationOutcome === "Invalidated",
+    archived: shouldArchive && signal.internalStatus !== "ARCHIVED",
+    dataUnavailable: validationOutcome === "Data Unavailable",
+    dataFetchAttempts,
+    yahooFinanceFailures: processingErrors.length,
+  };
 }
 
 type DecodedSignal = ReturnType<typeof decodeSignalRow>;
@@ -738,8 +823,61 @@ function emptySummary(id: string, mode: AutomationMode, startedAt: string): Auto
     id, mode, status: "Running", startedAt,
     nextRunAt: new Date(Date.parse(startedAt) + twoDaysMs).toISOString(),
     sourcesProcessed: 0, signalsCreated: 0, signalsUpdated: 0,
-    duplicatesPrevented: 0, logicChainsUpdated: 0, errors: [], notifications: [],
+    duplicatesPrevented: 0, logicChainsUpdated: 0,
+    needsReviewCount: 0, signalsConfirmed: 0, signalsInvalidated: 0,
+    signalsArchived: 0, notificationsCreated: 0, dataUnavailableCount: 0,
+    dataFetchAttempts: 0, yahooFinanceFailures: 0, supabaseFailures: 0,
+    processingDurationMs: 0, errors: [], notifications: [],
   };
+}
+
+async function acquireRunLock(
+  supabase: SupabaseClient,
+  lockId: string,
+  runId: string,
+  startedAt: string,
+): Promise<{ acquired: boolean; result: "Already Running" | "Already Completed"; ownerRunId: string }> {
+  const metadata = { id: lockId, runId, status: "Running", startedAt };
+  const { error } = await supabase.from("source_posts").insert({
+    id: lockId,
+    source: automationLockSource,
+    title: "Signal Operations execution lock",
+    original_text: `Running ${runId}`,
+    metadata,
+    created_at: startedAt,
+    updated_at: startedAt,
+  });
+  if (!error) return { acquired: true, result: "Already Running", ownerRunId: runId };
+  if (error.code !== "23505") throw error;
+
+  const { data, error: readError } = await supabase
+    .from("source_posts")
+    .select("metadata")
+    .eq("id", lockId)
+    .maybeSingle();
+  if (readError) throw readError;
+  const status = data?.metadata && typeof data.metadata === "object" && "status" in data.metadata
+    ? String(data.metadata.status)
+    : "Running";
+  const ownerRunId = data?.metadata && typeof data.metadata === "object" && "runId" in data.metadata
+    ? String(data.metadata.runId)
+    : runId;
+  return { acquired: false, result: status === "Running" ? "Already Running" : "Already Completed", ownerRunId };
+}
+
+async function finishRunLock(
+  supabase: SupabaseClient,
+  lockId: string,
+  runId: string,
+  status: "Succeeded" | "Failed",
+  finishedAt: string,
+) {
+  const { error } = await supabase.from("source_posts").update({
+    original_text: `${status} ${runId}`,
+    metadata: { id: lockId, runId, status, finishedAt },
+    updated_at: finishedAt,
+  }).eq("id", lockId);
+  if (error) throw error;
 }
 
 async function getRunById(supabase: SupabaseClient, id: string) {
@@ -783,4 +921,14 @@ function describeError(error: unknown) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object" && "message" in error) return String(error.message);
   return "Unknown Signal automation error.";
+}
+
+function elapsedMs(startedAt: string, finishedAt: string) {
+  return Math.max(0, Date.parse(finishedAt) - Date.parse(startedAt));
+}
+
+function isSupabaseFailure(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  if ("code" in error || "details" in error || "hint" in error) return true;
+  return /supabase|postgrest|database/i.test(describeError(error));
 }

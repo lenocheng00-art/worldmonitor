@@ -1,0 +1,401 @@
+{
+  "summary": {
+    "generatedAt": "2026-07-16T18:10:02.079Z",
+    "productionSignalCount": 13,
+    "requestedSampleSize": 20,
+    "auditedCount": 13,
+    "sampleRequirementMet": false,
+    "averageSignalQualityScore": 2.54,
+    "needsReviewRate": 23.08,
+    "duplicateCount": 0,
+    "missingLogicChainLinks": 0,
+    "incorrectAutomaticCommitteeEntries": 0,
+    "marketDataAvailableCount": 10
+  },
+  "signals": [
+    {
+      "signalId": "signal-alan-1781222941327-0-polymarket-1781222941326-7fu2he",
+      "sourceTextId": "source-post-alan-1781222941327",
+      "title": "Polymarket",
+      "tickers": [],
+      "triggerEvent": "Prediction-market odds may provide a tradable consensus signal.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [],
+      "confirmationConditions": [],
+      "invalidationConditions": [],
+      "priorityScore": 69,
+      "status": "NEEDS_REVIEW",
+      "committeeStatus": "Not queued",
+      "needsReview": true,
+      "duplicate": false,
+      "marketDataAvailable": false,
+      "signalQualityScore": 1
+    },
+    {
+      "signalId": "signal-alan-1781491973583-0-spacex-1781491973582-wqdqev",
+      "sourceTextId": "source-post-alan-1781491973583",
+      "title": "SpaceX",
+      "tickers": [
+        "RKLB",
+        "ASTS"
+      ],
+      "triggerEvent": "SpaceX or Starlink IPO signals could create a frontier-company liquidity event.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "RKLB adjusted close",
+        "RKLB daily volume",
+        "ASTS adjusted close",
+        "ASTS daily volume"
+      ],
+      "confirmationConditions": [
+        "RKLB 20-day return exceeds +10% with supporting volume.",
+        "ASTS 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "RKLB 20-day return falls below -10% or the source thesis reverses.",
+        "ASTS 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 50,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-f14e3280",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1782726594854-0-other-1782726594854-7nmfei",
+      "sourceTextId": "source-post-alan-1782726594854",
+      "title": "FQ3",
+      "tickers": [],
+      "triggerEvent": "Review pasted text for a potential investable signal.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [],
+      "confirmationConditions": [],
+      "invalidationConditions": [],
+      "priorityScore": 50,
+      "status": "NEEDS_REVIEW",
+      "committeeStatus": "Not queued",
+      "needsReview": true,
+      "duplicate": false,
+      "marketDataAvailable": false,
+      "signalQualityScore": 1
+    },
+    {
+      "signalId": "signal-alan-1782726611378-2-anthropic-1782726611377-q8h8ta",
+      "sourceTextId": "source-post-alan-1782726611378",
+      "title": "Anthropic",
+      "tickers": [
+        "AMZN",
+        "GOOGL"
+      ],
+      "triggerEvent": "Anthropic filing activity could mark a path toward public AI lab exposure.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "AMZN adjusted close",
+        "AMZN daily volume",
+        "GOOGL adjusted close",
+        "GOOGL daily volume"
+      ],
+      "confirmationConditions": [
+        "AMZN 20-day return exceeds +10% with supporting volume.",
+        "GOOGL 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "AMZN 20-day return falls below -10% or the source thesis reverses.",
+        "GOOGL 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 50,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-128fbf96",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1782726611378-3-openai-1782726611378-l3mhys",
+      "sourceTextId": "source-post-alan-1782726611378",
+      "title": "OpenAI",
+      "tickers": [
+        "MSFT",
+        "ORCL"
+      ],
+      "triggerEvent": "OpenAI IPO timing could become a major signal for public AI application and platform valuations.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "MSFT adjusted close",
+        "MSFT daily volume",
+        "ORCL adjusted close",
+        "ORCL daily volume"
+      ],
+      "confirmationConditions": [
+        "MSFT 20-day return exceeds +10% with supporting volume.",
+        "ORCL 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "MSFT 20-day return falls below -10% or the source thesis reverses.",
+        "ORCL 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 50,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-9b09093e",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1782726611378-0-google-1782726611377-9auiqm",
+      "sourceTextId": "source-post-alan-1782726611378",
+      "title": "Google",
+      "tickers": [
+        "GOOGL",
+        "AVGO"
+      ],
+      "triggerEvent": "Google's TPU and capex cycle may signal an internal AI infrastructure advantage.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "GOOGL adjusted close",
+        "GOOGL daily volume",
+        "AVGO adjusted close",
+        "AVGO daily volume"
+      ],
+      "confirmationConditions": [
+        "GOOGL 20-day return exceeds +10% with supporting volume.",
+        "AVGO 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "GOOGL 20-day return falls below -10% or the source thesis reverses.",
+        "AVGO 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 50,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-e93b3f29",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1781491973584-2-openai-1781491973583-zxwebq",
+      "sourceTextId": "source-post-alan-1781491973583",
+      "title": "OpenAI",
+      "tickers": [
+        "MSFT",
+        "ORCL"
+      ],
+      "triggerEvent": "OpenAI IPO timing could become a major signal for public AI application and platform valuations.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "MSFT adjusted close",
+        "MSFT daily volume",
+        "ORCL adjusted close",
+        "ORCL daily volume"
+      ],
+      "confirmationConditions": [
+        "MSFT 20-day return exceeds +10% with supporting volume.",
+        "ORCL 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "MSFT 20-day return falls below -10% or the source thesis reverses.",
+        "ORCL 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 50,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-ab850e79",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1781491973584-1-anthropic-1781491973583-n5n077",
+      "sourceTextId": "source-post-alan-1781491973583",
+      "title": "Anthropic",
+      "tickers": [
+        "AMZN",
+        "GOOGL"
+      ],
+      "triggerEvent": "Anthropic filing activity could mark a path toward public AI lab exposure.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "AMZN adjusted close",
+        "AMZN daily volume",
+        "GOOGL adjusted close",
+        "GOOGL daily volume"
+      ],
+      "confirmationConditions": [
+        "AMZN 20-day return exceeds +10% with supporting volume.",
+        "GOOGL 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "AMZN 20-day return falls below -10% or the source thesis reverses.",
+        "GOOGL 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 50,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-12655212",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1782726639246-0-other-1782726639246-diq5yi",
+      "sourceTextId": "source-post-alan-1782726639246",
+      "title": "AI",
+      "tickers": [],
+      "triggerEvent": "Review pasted text for a potential investable signal.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [],
+      "confirmationConditions": [],
+      "invalidationConditions": [],
+      "priorityScore": 50,
+      "status": "NEEDS_REVIEW",
+      "committeeStatus": "Not queued",
+      "needsReview": true,
+      "duplicate": false,
+      "marketDataAvailable": false,
+      "signalQualityScore": 1
+    },
+    {
+      "signalId": "signal-alan-1782726656984-2-openai-1782726656983-rgkyen",
+      "sourceTextId": "source-post-alan-1782726656984",
+      "title": "OpenAI",
+      "tickers": [
+        "MSFT",
+        "ORCL"
+      ],
+      "triggerEvent": "OpenAI IPO timing could become a major signal for public AI application and platform valuations.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "MSFT adjusted close",
+        "MSFT daily volume",
+        "ORCL adjusted close",
+        "ORCL daily volume"
+      ],
+      "confirmationConditions": [
+        "MSFT 20-day return exceeds +10% with supporting volume.",
+        "ORCL 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "MSFT 20-day return falls below -10% or the source thesis reverses.",
+        "ORCL 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 70,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-149cac8a",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1782726656984-0-spacex-1782726656983-8tmafj",
+      "sourceTextId": "source-post-alan-1782726656984",
+      "title": "SpaceX",
+      "tickers": [
+        "RKLB",
+        "ASTS"
+      ],
+      "triggerEvent": "SpaceX or Starlink IPO signals could create a frontier-company liquidity event.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "RKLB adjusted close",
+        "RKLB daily volume",
+        "ASTS adjusted close",
+        "ASTS daily volume"
+      ],
+      "confirmationConditions": [
+        "RKLB 20-day return exceeds +10% with supporting volume.",
+        "ASTS 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "RKLB 20-day return falls below -10% or the source thesis reverses.",
+        "ASTS 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 70,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-cfc9bb96",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1782726656984-1-anthropic-1782726656983-5xets9",
+      "sourceTextId": "source-post-alan-1782726656984",
+      "title": "Anthropic",
+      "tickers": [
+        "AMZN",
+        "GOOGL"
+      ],
+      "triggerEvent": "Anthropic filing activity could mark a path toward public AI lab exposure.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "AMZN adjusted close",
+        "AMZN daily volume",
+        "GOOGL adjusted close",
+        "GOOGL daily volume"
+      ],
+      "confirmationConditions": [
+        "AMZN 20-day return exceeds +10% with supporting volume.",
+        "GOOGL 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "AMZN 20-day return falls below -10% or the source thesis reverses.",
+        "GOOGL 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 70,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-f7a39dd7",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    },
+    {
+      "signalId": "signal-alan-1782726611378-1-spacex-1782726611377-5g3f8g",
+      "sourceTextId": "source-post-alan-1782726611378",
+      "title": "SpaceX",
+      "tickers": [
+        "RKLB",
+        "ASTS"
+      ],
+      "triggerEvent": "SpaceX or Starlink IPO signals could create a frontier-company liquidity event.",
+      "direction": "NEUTRAL",
+      "monitoringMetrics": [
+        "RKLB adjusted close",
+        "RKLB daily volume",
+        "ASTS adjusted close",
+        "ASTS daily volume"
+      ],
+      "confirmationConditions": [
+        "RKLB 20-day return exceeds +10% with supporting volume.",
+        "ASTS 20-day return exceeds +10% with supporting volume."
+      ],
+      "invalidationConditions": [
+        "RKLB 20-day return falls below -10% or the source thesis reverses.",
+        "ASTS 20-day return falls below -10% or the source thesis reverses."
+      ],
+      "priorityScore": 50,
+      "status": "ARCHIVED",
+      "logicChainId": "logic-v18-13d0c607",
+      "committeeStatus": "Watch",
+      "needsReview": false,
+      "duplicate": false,
+      "marketDataAvailable": true,
+      "signalQualityScore": 3
+    }
+  ]
+}
