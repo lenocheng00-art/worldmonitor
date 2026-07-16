@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +71,7 @@ const watchlistColumns = new Set([
 
 export async function GET() {
   try {
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     const [signals, logicChains, committeeReports, backtestStrategies, backtestResults, watchlist] = await Promise.all([
       supabase.from("signals").select("*").order("created_at", { ascending: false }),
       supabase.from("logic_chains").select("*").order("created_at", { ascending: false }),
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No cloud rows were provided." }, { status: 400 });
     }
 
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     if (signalRows.length) {
       const detachedSignalRows = signalRows.map((row) => ({
         ...row,
