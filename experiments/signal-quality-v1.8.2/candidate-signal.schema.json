@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://worldmonitor.local/schemas/v1.8.2/candidate-signal.schema.json",
+  "title": "WorldMonitor V1.8.2 Offline Candidate Extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["shouldCreateSignal", "rejectionReason", "signals"],
+  "properties": {
+    "shouldCreateSignal": { "type": "boolean" },
+    "rejectionReason": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "NARRATIVE_NOT_SIGNAL",
+        "SOURCE_UNAVAILABLE",
+        "AWAITING_EVENT",
+        "MANUAL_VERIFICATION_REQUIRED",
+        "INVALID_TICKER",
+        "UNSUPPORTED_INSTRUMENT"
+      ]
+    },
+    "signals": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/signal" },
+      "maxItems": 5
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "shouldCreateSignal": { "const": false } } },
+      "then": {
+        "properties": {
+          "rejectionReason": { "type": "string" },
+          "signals": { "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "shouldCreateSignal": { "const": true } } },
+      "then": {
+        "properties": {
+          "rejectionReason": { "const": null },
+          "signals": { "minItems": 1 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "tickers",
+        "direction",
+        "triggerEvent",
+        "timeHorizon",
+        "monitoringMetrics",
+        "confirmationConditions",
+        "invalidationConditions",
+        "dataSourceType",
+        "committeeEligible",
+        "dataUnavailableReason"
+      ],
+      "properties": {
+        "title": { "type": "string", "minLength": 3 },
+        "tickers": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9.-]{0,14}$" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "direction": {
+          "enum": ["BULLISH", "BEARISH", "MIXED", "CONDITIONAL", "UNKNOWN"]
+        },
+        "triggerEvent": { "type": "string", "minLength": 12 },
+        "timeHorizon": { "type": "string", "minLength": 3 },
+        "monitoringMetrics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/metric" },
+          "minItems": 1
+        },
+        "confirmationConditions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/condition" },
+          "minItems": 1
+        },
+        "invalidationConditions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/condition" },
+          "minItems": 1
+        },
+        "dataSourceType": {
+          "enum": ["MARKET_PRICE", "FINANCIAL", "OPERATIONAL", "EVENT", "MACRO", "PREDICTION_MARKET", "MANUAL"]
+        },
+        "committeeEligible": { "type": "boolean" },
+        "dataUnavailableReason": {
+          "type": ["string", "null"],
+          "enum": [null, "SOURCE_UNAVAILABLE", "AWAITING_EVENT", "MANUAL_VERIFICATION_REQUIRED", "INVALID_TICKER", "UNSUPPORTED_INSTRUMENT"]
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "unit", "timeWindow", "sourceType"],
+      "properties": {
+        "metric": { "type": "string", "minLength": 3 },
+        "unit": { "type": "string", "minLength": 1 },
+        "timeWindow": { "type": "string", "minLength": 1 },
+        "sourceType": { "type": "string", "minLength": 1 }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "operator", "threshold", "event", "unit", "timeWindow", "deadline", "sourceType"],
+      "properties": {
+        "metric": { "type": "string", "minLength": 3 },
+        "operator": {
+          "enum": ["GREATER_THAN", "GREATER_THAN_OR_EQUAL", "LESS_THAN", "LESS_THAN_OR_EQUAL", "EQUALS", "INCREASES", "DECREASES", "EVENT_OCCURS", "EVENT_DOES_NOT_OCCUR"]
+        },
+        "threshold": { "type": ["number", "string", "null"] },
+        "event": { "type": ["string", "null"] },
+        "unit": { "type": "string", "minLength": 1 },
+        "timeWindow": { "type": "string", "minLength": 1 },
+        "deadline": { "type": "string", "minLength": 1 },
+        "sourceType": { "type": "string", "minLength": 1 }
+      },
+      "oneOf": [
+        { "properties": { "threshold": { "not": { "type": "null" } }, "event": { "type": "null" } } },
+        { "properties": { "threshold": { "type": "null" }, "event": { "type": "string", "minLength": 3 } } }
+      ]
+    }
+  }
+}

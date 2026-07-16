@@ -1,0 +1,176 @@
+# WorldMonitor V1.8.2 — Candidate Failure Samples
+
+Failure samples: **13**
+
+## gold-005-fomc-growth-repricing
+
+- Source Post: `source-post-alan-1781222941327`
+- Issues: TICKER_MISMATCH
+- Expected ticker: QQQ
+- Actual ticker: SPCX
+- Expected direction: CONDITIONAL
+- Actual direction: CONDITIONAL
+- Data reason: —
+
+② 6月16-17日：沃什首次FOMC。重点不是加不加息（99%不动），而是看三件事：点阵图有没有上移、声明里有没有出现"加息"字样、新闻发布会语气是鸽是鹰。如果沃什说"如果通胀持续上行我们不排除采取行动" → 科技股会先跌为敬，甲骨文/SpaceX的借钱成本叙事会被重新定价。如果他说"我们有耐心等通胀自然回落" → 市场松一口气，成长股反弹。
+
+## gold-009-panw-ai-kyc
+
+- Source Post: `source-post-alan-1781491973583`
+- Issues: WEAK_INVALIDATION
+- Expected ticker: PANW
+- Actual ticker: PANW
+- Expected direction: CONDITIONAL
+- Actual direction: CONDITIONAL
+- Data reason: AWAITING_EVENT
+
+第二个，Palo Alto Networks （PANW）。视频里提到一个问题：如果"外国国民”是管制对象，迟早需要一套身份验证系统。“KYC for AI"（AI身份验证）如果成为行业标准，提供这类安全基础设施的公司就是这条赛道的卖铲子的。
+PANW已经在做AI驱动的网络安全，如果 AI访问控制变成合规需求，它的产品线直接对接。
+观察条件：如果美国政府在接下来3个月出台AI访问控制的具体执行标准 关注PANW/CRWD是否推出"AI合规验证“产品线。如果管制被撤回或淡化 -这条需求减弱。
+
+## gold-010-net-ai-security
+
+- Source Post: `source-post-alan-1781491973583`
+- Issues: WEAK_INVALIDATION
+- Expected ticker: NET
+- Actual ticker: NET
+- Expected direction: CONDITIONAL
+- Actual direction: CONDITIONAL
+- Data reason: AWAITING_EVENT
+
+第三个，Cloudflare （NET）。Cloudflare 是 Anthropic"玻璃翼计划”的参与方之一，一家就报告了2000个漏洞、其中
+400个高危级别。如果AI安全检测变成常态化需求—每次发布新模型都要过安全验证—Cloudflare 的安全CDN角色变得更重要。它既是AI服务的分发入口，又是安全检查的节点。
+观察条件：如果Cloudflare 在下季度财报提到 Glasswing/AI 安全检测相关收入增长 -验证"AI安全基础设施"赛道成立。如果出口管制只是一次性事件 ＞影响有限。
+
+## gold-011-anthropic-roadshow
+
+- Source Post: `source-post-alan-1781491973583`
+- Issues: WEAK_CONFIRMATION, WEAK_INVALIDATION
+- Expected ticker: AMZN, GOOGL
+- Actual ticker: AMZN, GOOGL
+- Expected direction: CONDITIONAL
+- Actual direction: CONDITIONAL
+- Data reason: AWAITING_EVENT
+
+② Anthropic IPO路演期（预计9月）：S-1已递交，目标10月上市。路演时投资人会直接问管理层两个问题：“出口管制会持续多久？"“你的国际收入怎么办？"管理层的回答会定义IPO的估值折扣。如果路演前管制解除-估值回到$9650亿基线。如果路演时管制仍在 -估值折扣是确定性事件。
+
+## gold-012-q3-export-control-disclosures
+
+- Source Post: `source-post-alan-1781491973583`
+- Issues: MISSED_SIGNAL
+- Expected ticker: NVDA, AMD, MSFT, GOOGL, META
+- Actual ticker: —
+- Expected direction: MIXED
+- Actual direction: —
+- Data reason: MANUAL_VERIFICATION_REQUIRED
+
+③ Q3科技财报李（7-8月）：如果出口管制持续超过一个月，它的影响会最早出现在科技公司的Q3财报里。特别关注这些关键词：各AI公司是否提到”出口管制影响"国际客户迁移"合规成本"区域化部署"。如果多家公司同时提到
+-出口管制正在重塑AI行业的收入结构。
+
+## gold-013-mu-contract-cycle
+
+- Source Post: `source-post-alan-1782726594854`
+- Issues: MISSED_SIGNAL
+- Expected ticker: MU
+- Actual ticker: —
+- Expected direction: CONDITIONAL
+- Actual direction: —
+- Data reason: MANUAL_VERIFICATION_REQUIRED
+
+⚡ 核心结论：
+美光一个季度的净利，追平了一年前的英伟达，下季指引还要全面盖过它，可它的市值只有当年英伟达的四分之一。市场嘴上喊它便宜，手上仍按“周期股”给它打折。真正的问题不是它贵不贵，而是它签下的16份长约，到底能不能废掉内存四十年的周期律——而这笔赌注，悄悄押在了“七姐妹的资本开支永远不停”这件事上。
+
+## gold-018-mu-rpo-monitor
+
+- Source Post: `source-post-alan-1782726594854`
+- Issues: MISSED_SIGNAL
+- Expected ticker: MU
+- Actual ticker: —
+- Expected direction: CONDITIONAL
+- Actual direction: —
+- Data reason: MANUAL_VERIFICATION_REQUIRED
+
+📡 持续追踪的信号：
+① RPO环比方向：接着涨=故事还在；第一次环比掉头=周期从资本开支链条传导回美光的第一声警报。
+② 七姐妹的capex与自由现金流：capex会不会第一次踩刹车、亚马逊FCF会不会转负——这决定了美光需求的源头还稳不稳。
+③ 第一次现货价格回落时，美光的实际毛利守不守得住那块“地板”——守住，这次可能真不一样；守不住，它还是那只老周期股。
+
+## gold-021-googl-talent-trend
+
+- Source Post: `source-post-alan-1782726611378`
+- Issues: MISSED_SIGNAL
+- Expected ticker: GOOGL
+- Actual ticker: —
+- Expected direction: CONDITIONAL
+- Actual direction: —
+- Data reason: MANUAL_VERIFICATION_REQUIRED
+
+权重最低的是GOOG的人才流失。两个人走了对短期股价有冲击，但Alphabet Q1利润增长82%，零个分析师给卖出，$350支撑位没破。这更像情绪打折，不是基本面转折。真正需要关注的是后续是否还有更多核心研究者离开——如果变成趋势性流失，那是另一个故事。
+
+## gold-022-mu-scenario-tree
+
+- Source Post: `source-post-alan-1782726611378`
+- Issues: TICKER_MISMATCH
+- Expected ticker: MU
+- Actual ticker: NVDA, MU
+- Expected direction: MIXED
+- Actual direction: MIXED
+- Data reason: AWAITING_EVENT
+
+情景A：毛利率>80% + guidance说供需紧张延续到2027年
+→ MU盘后涨10-15%（implied move上沿）→ 次日亚洲开盘SK Hynix/三星跟涨、KOSPI反弹 → 半导体板块信心稳住、NVDA/AVGO/MRVL跟着回弹 → "HBM是结构性定价"叙事确认、Goldman的$400目标价被市场忽略 → 这轮回调大概率一周内消化。
+
+情景B：毛利率接近但未破80%，guidance措辞中性
+→ MU盘后波动±5%，方向不明 → 市场进入观望，等下一个数据点（7月中NVDA财报/7月底Fed FOMC）→ 韩国继续高波动但不至于再崩 → 最无聊但最可能的情景。
+
+情景C：毛利率低于预期 或 guidance转保守（提到客户推迟/竞争加剧）
+→ MU盘后跌15-20%（implied move下沿甚至突破）→ 次日亚洲SK Hynix/三星再崩、KOSPI可能第四次熔断 → Goldman的"peak margin周期股"叙事全面占上风 → 整个AI半导体板块进入估值重估 → 尾部风险情景，概率低但冲击力最大。
+
+## gold-024-korea-margin-deleveraging
+
+- Source Post: `source-post-alan-1782726611378`
+- Issues: WEAK_INVALIDATION
+- Expected ticker: EWY
+- Actual ticker: EWY
+- Expected direction: CONDITIONAL
+- Actual direction: MIXED
+- Data reason: —
+
+① 韩国保证金贷款余额变化——如果从₩60万亿开始下降 → 去杠杆开始，短期利空但长期利好市场健康度
+
+## gold-029-fed-inflation-anchor
+
+- Source Post: `source-post-alan-1782726639246`
+- Issues: TICKER_MISMATCH, WEAK_CONFIRMATION, WEAK_INVALIDATION
+- Expected ticker: TLT, KRE
+- Actual ticker: USO
+- Expected direction: CONDITIONAL
+- Actual direction: CONDITIONAL
+- Data reason: —
+
+① 8月中旬·7月CPI和PCE数据：这是沃什的整套判断锁定的锚。如果通胀继续走高，10月加息从60%概率变成板上钉钉。如果伊朗停火落地、油价缓一缓，通胀可能回头，那今天的鹰派定价就过头了。变量在中东，不在美国。
+
+## gold-034-rklb-space-ai-multiple
+
+- Source Post: `source-post-alan-1782726656984`
+- Issues: TICKER_MISMATCH
+- Expected ticker: RKLB
+- Actual ticker: RKLB, SPCX
+- Expected direction: CONDITIONAL
+- Actual direction: CONDITIONAL
+- Data reason: AWAITING_EVENT
+
+第二个，Rocket Lab（RKLB）。RKLB是目前除SpaceX之外唯一在商业化运营轨道级火箭发射的上市公司，同时也做卫星组件（太阳能板、反应轮、星敏感器）。SpaceX的太空AI叙事如果成立，整个"太空基础设施"板块的估值逻辑都会被重写。RKLB不是SpaceX的供应商，但它是这个板块里市值最小、弹性最大的纯正标的。
+观察条件：如果SpaceX的太空AI叙事持续推高SPCX估值 → 观察RKLB的估值倍数是否跟着扩张（"板块水涨船高"效应）。反面：如果市场把太空AI视为SpaceX独家故事，不外溢到板块 → RKLB走自己的基本面。关注RKLB下季度财报中Neutron火箭进度和卫星组件订单数据。
+
+## gold-036-spcx-q2-earnings
+
+- Source Post: `source-post-alan-1782726656984`
+- Issues: WEAK_CONFIRMATION, WEAK_INVALIDATION
+- Expected ticker: SPCX
+- Actual ticker: SPCX
+- Expected direction: CONDITIONAL
+- Actual direction: BULLISH
+- Data reason: AWAITING_EVENT
+
+② 7月底（Q2财报）：SpaceX作为上市公司的第一份季度财报。所有人会盯三个数字。第一，Starlink用户增长和ARPU变化（5月涨价$10有没有效果）。第二，xAI云租赁收入规模（260亿年合同实际执行了多少）。第三，Cursor并表后的收入贡献。这份财报决定了市场对"飞轮"的信仰能不能撑到年底。
