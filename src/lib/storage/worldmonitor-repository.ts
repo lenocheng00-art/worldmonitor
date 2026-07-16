@@ -85,14 +85,14 @@ export const worldmonitorRepository = {
 
       return {
         backend: "supabase",
-        data: {
+        data: normalizeDecisionState({
           signals: mergeById(localFallback.signals.map(normalizeSignal), signalRows.map(fromSignalRow)),
           logicChains: mergeById(localFallback.logicChains, (payload.logicChains ?? []).map(fromLogicChainRow)),
           committeeReports: mergeById(localFallback.committeeReports, (payload.committeeReports ?? []).map(fromCommitteeReportRow)),
           backtestStrategies: mergeById(localFallback.backtestStrategies, (payload.backtestStrategies ?? []).map(fromBacktestStrategyRow)),
           backtestResults: mergeById(localFallback.backtestResults, (payload.backtestResults ?? []).map(fromBacktestResultRow)),
           watchlist: mergeWatchlist(localFallback.watchlist, (payload.watchlist ?? []).map(fromWatchlistRow)),
-        },
+        }),
       };
     } catch (error) {
       return {
@@ -263,7 +263,74 @@ export function normalizeSignal(signal: Signal): Signal {
 }
 
 export function normalizeDecisionState(state: DecisionLoopState): DecisionLoopState {
-  return { ...state, signals: state.signals.map(normalizeSignal) };
+  return {
+    ...state,
+    signals: state.signals.map(normalizeSignal),
+    logicChains: state.logicChains.map(normalizeLogicChain),
+    committeeReports: state.committeeReports.map(normalizeCommitteeReport),
+    backtestStrategies: state.backtestStrategies.map(normalizeBacktestStrategy),
+    backtestResults: state.backtestResults.map(normalizeBacktestResult),
+    watchlist: state.watchlist.map(normalizeWatchlistItem),
+  };
+}
+
+function normalizeLogicChain(chain: LogicChain): LogicChain {
+  const triggerSignalId = chain.triggerSignalId ?? chain.originatingSignalId ?? chain.signal_id;
+  return {
+    ...chain,
+    signal_id: chain.signal_id ?? triggerSignalId,
+    triggerSignalId,
+    originatingSignalId: chain.originatingSignalId ?? triggerSignalId,
+    companies: Array.isArray(chain.companies) ? chain.companies : [],
+    tags: Array.isArray(chain.tags) ? chain.tags : [],
+    transmissionPath: Array.isArray(chain.transmissionPath) ? chain.transmissionPath : [],
+    affectedAssets: Array.isArray(chain.affectedAssets) ? chain.affectedAssets : [],
+    followUpIndicators: Array.isArray(chain.followUpIndicators) ? chain.followUpIndicators : [],
+    evidenceFor: Array.isArray(chain.evidenceFor) ? chain.evidenceFor : [],
+    evidenceAgainst: Array.isArray(chain.evidenceAgainst) ? chain.evidenceAgainst : [],
+    timeline: Array.isArray(chain.timeline) ? chain.timeline : [],
+    related_asset_ids: Array.isArray(chain.related_asset_ids) ? chain.related_asset_ids : [],
+  };
+}
+
+function normalizeCommitteeReport(report: CommitteeReport): CommitteeReport {
+  return {
+    ...report,
+    relatedTickers: Array.isArray(report.relatedTickers) ? report.relatedTickers : [],
+    relatedIndustryChains: Array.isArray(report.relatedIndustryChains) ? report.relatedIndustryChains : [],
+    agentVotes: Array.isArray(report.agentVotes) ? report.agentVotes : [],
+    key_risks: Array.isArray(report.key_risks) ? report.key_risks : [],
+    next_steps: Array.isArray(report.next_steps) ? report.next_steps : [],
+    followUpIndicators: Array.isArray(report.followUpIndicators) ? report.followUpIndicators : [],
+    related_asset_ids: Array.isArray(report.related_asset_ids) ? report.related_asset_ids : [],
+  };
+}
+
+function normalizeBacktestStrategy(strategy: BacktestStrategy): BacktestStrategy {
+  return {
+    ...strategy,
+    tickers: Array.isArray(strategy.tickers) ? strategy.tickers : [],
+    entryRules: Array.isArray(strategy.entryRules) ? strategy.entryRules : [],
+    exitRules: Array.isArray(strategy.exitRules) ? strategy.exitRules : [],
+    related_asset_ids: Array.isArray(strategy.related_asset_ids) ? strategy.related_asset_ids : [],
+  };
+}
+
+function normalizeBacktestResult(result: BacktestResult): BacktestResult {
+  return {
+    ...result,
+    equityCurve: Array.isArray(result.equityCurve) ? result.equityCurve : [],
+    drawdownCurve: Array.isArray(result.drawdownCurve) ? result.drawdownCurve : [],
+    tradeLog: Array.isArray(result.tradeLog) ? result.tradeLog : [],
+    related_asset_ids: Array.isArray(result.related_asset_ids) ? result.related_asset_ids : [],
+  };
+}
+
+function normalizeWatchlistItem(item: WatchlistItem): WatchlistItem {
+  return {
+    ...item,
+    linkedSignalIds: Array.isArray(item.linkedSignalIds) ? item.linkedSignalIds : [],
+  };
 }
 
 function toSignalRow(signal: Signal) {
