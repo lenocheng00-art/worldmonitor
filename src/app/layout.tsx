@@ -4,8 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import { DecisionLoopProvider } from "@/lib/decision-loop-store";
 
 export const metadata: Metadata = {
-  title: "WorldMonitor Research OS",
-  description: "An investment research operating system for macro, equities, industry chains, and signals.",
+  title: "WorldMonitor V1.7 — Signals Core",
+  description: "Signal-to-decision research workflow for signals, logic chains, committee review, backtests, and watchlists.",
 };
 
 export default function RootLayout({

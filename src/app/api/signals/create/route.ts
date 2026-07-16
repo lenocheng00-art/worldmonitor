@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ...input,
     id: input.id ?? `signal-${Date.now()}`,
-    status: input.status ?? "New",
+    status: input.status ?? "NEW",
     createdAt: input.createdAt ?? timestamp,
     updatedAt: timestamp,
   });

@@ -22,16 +22,50 @@ import {
   type Signal,
   type SignalStatus,
 } from "@/lib/decision-loop-data";
+import {
+  decisionLoopStorageKey,
+  normalizeDecisionState,
+  normalizeSignal,
+  storageErrorEvent,
+  worldmonitorRepository,
+} from "@/lib/storage/worldmonitor-repository";
 
-const storageKey = "worldmonitor:decision-loop-v1";
+const storageKey = decisionLoopStorageKey;
 const alanStorageKey = "worldmonitor:alan-chan-signals";
 const oldCommitteeKey = "worldmonitor:committee-reports";
 const oldBacktestKey = "worldmonitor:backtest-results";
 
 type CreateSignalInput = Omit<
   Signal,
-  "id" | "createdAt" | "updatedAt" | "status"
-> & { id?: string; status?: SignalStatus };
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "status"
+  | "summary"
+  | "original_source"
+  | "original_text"
+  | "source_url"
+  | "source_type"
+  | "created_at"
+  | "confidence"
+  | "tags"
+  | "related_companies"
+  | "relatedIndustryChains"
+  | "tracking_frequency"
+> & Partial<Pick<
+  Signal,
+  | "summary"
+  | "original_source"
+  | "original_text"
+  | "source_url"
+  | "source_type"
+  | "created_at"
+  | "confidence"
+  | "tags"
+  | "related_companies"
+  | "relatedIndustryChains"
+  | "tracking_frequency"
+>> & { id?: string; status?: SignalStatus };
 
 type DecisionLoopContextValue = {
   state: DecisionLoopState;
@@ -69,25 +103,56 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(storageKey);
-      if (stored) {
-        setState(normalizeState(JSON.parse(stored) as Partial<DecisionLoopState>));
-      } else {
-        setState(migrateLegacyState(initialDecisionLoopState));
+    const handleStorageError = (event: Event) => {
+      setError((event as CustomEvent<string | undefined>).detail);
+    };
+    window.addEventListener(storageErrorEvent, handleStorageError);
+    return () => window.removeEventListener(storageErrorEvent, handleStorageError);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadState() {
+      try {
+        const stored = window.localStorage.getItem(storageKey);
+        const localState = stored
+          ? normalizeState(JSON.parse(stored) as Partial<DecisionLoopState>)
+          : migrateLegacyState(initialDecisionLoopState);
+        const result = await worldmonitorRepository.loadState(localState);
+        if (!cancelled) {
+          setState(result.data);
+          setError(result.error);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Saved research state could not be loaded. Built-in data is active.");
+          setState(normalizeDecisionState(initialDecisionLoopState));
+        }
+      } finally {
+        if (!cancelled) setReady(true);
       }
-    } catch {
-      setError("Saved research state could not be loaded. Built-in data is active.");
-      setState(initialDecisionLoopState);
-    } finally {
-      setReady(true);
     }
+
+    void loadState();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!ready) return;
+    return worldmonitorRepository.subscribe(async () => {
+      const result = await worldmonitorRepository.loadState(state);
+      setState(result.data);
+      setError(result.error);
+    });
+  }, [ready, state]);
+
+  useEffect(() => {
+    if (!ready) return;
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(state));
+      worldmonitorRepository.saveLocalState(state);
     } catch {
       setError("Research state could not be saved in this browser.");
     }
@@ -95,24 +160,32 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
 
   const createSignal = useCallback((input: CreateSignalInput) => {
     const timestamp = new Date().toISOString();
-    const signal: Signal = {
+    const signal = normalizeSignal({
       ...input,
       id: input.id ?? `signal-${Date.now()}`,
-      status: input.status ?? "New",
+      status: input.status ?? "NEW",
       createdAt: timestamp,
       updatedAt: timestamp,
-    };
+    } as Signal);
     setState((current) => ({ ...current, signals: [signal, ...current.signals] }));
+    void worldmonitorRepository.saveSignal(signal);
     return signal;
   }, []);
 
   const updateSignalStatus = useCallback((signalId: string, status: SignalStatus) => {
-    setState((current) => ({
-      ...current,
-      signals: current.signals.map((signal) =>
-        signal.id === signalId ? { ...signal, status, updatedAt: new Date().toISOString() } : signal,
-      ),
-    }));
+    setState((current) => {
+      let updatedSignal: Signal | undefined;
+      const next = {
+        ...current,
+        signals: current.signals.map((signal) => {
+          if (signal.id !== signalId) return signal;
+          updatedSignal = normalizeSignal({ ...signal, status, updatedAt: new Date().toISOString() });
+          return updatedSignal;
+        }),
+      };
+      if (updatedSignal) void worldmonitorRepository.saveSignal(updatedSignal);
+      return next;
+    });
   }, []);
 
   const createLogicChainFromSignal = useCallback((signalId: string) => {
@@ -123,8 +196,15 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
 
     const chain: LogicChain = {
       id: `chain-${Date.now()}`,
+      signal_id: signal.id,
       title: `${signal.title}: transmission path`,
       triggerSignalId: signal.id,
+      originatingSignalId: signal.id,
+      originalSource: signal.original_source,
+      originalText: signal.original_text,
+      companies: signal.related_companies,
+      tags: signal.tags,
+      sourceConfidence: signal.confidence,
       triggerEvent: signal.extractedSignal,
       transmissionPath: [
         "Signal becomes observable",
@@ -140,20 +220,25 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       validationStatus: "Active",
       evidenceFor: [],
       evidenceAgainst: [],
+      timeline: [],
       historicalHitRate: 55,
       nextDataPoint: "Next company or macro update",
       lastCheckedAt: new Date().toISOString(),
       related_asset_ids: signal.related_asset_ids ?? [],
     };
+    const updatedSignal = normalizeSignal({
+      ...signal,
+      status: "PROMOTED",
+      logic_chain_id: chain.id,
+      linkedLogicChainId: chain.id,
+      updatedAt: new Date().toISOString(),
+    });
     setState((current) => ({
       ...current,
       logicChains: [chain, ...current.logicChains],
-      signals: current.signals.map((item) =>
-        item.id === signalId
-          ? { ...item, status: "Linked", linkedLogicChainId: chain.id, updatedAt: new Date().toISOString() }
-          : item,
-      ),
+      signals: current.signals.map((item) => item.id === signalId ? updatedSignal : item),
     }));
+    void worldmonitorRepository.saveLogicChain(chain, updatedSignal);
     return chain;
   }, [state.logicChains, state.signals]);
 
@@ -168,10 +253,11 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       logicChains: [chain, ...current.logicChains],
       signals: current.signals.map((signal) =>
         signal.id === chain.triggerSignalId
-          ? { ...signal, status: "Linked", linkedLogicChainId: chain.id, updatedAt: new Date().toISOString() }
+          ? normalizeSignal({ ...signal, status: "PROMOTED", logic_chain_id: chain.id, linkedLogicChainId: chain.id, updatedAt: new Date().toISOString() })
           : signal,
       ),
     }));
+    void worldmonitorRepository.saveLogicChain(chain);
     return chain;
   }, []);
 
@@ -185,14 +271,17 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
             : chain,
         ),
       }));
+      const chain = state.logicChains.find((item) => item.id === logicChainId);
+      if (chain) void worldmonitorRepository.saveLogicChain({ ...chain, validationStatus, lastCheckedAt: new Date().toISOString() });
     },
-    [],
+    [state.logicChains],
   );
 
   const createCommitteeReport = useCallback(
     (input: Parameters<typeof createCommitteeReportFromInput>[0]) => {
       const report = createCommitteeReportFromInput(input);
       setState((current) => ({ ...current, committeeReports: [report, ...current.committeeReports] }));
+      void worldmonitorRepository.saveCommitteeReport(report);
       return report;
     },
     [],
@@ -211,18 +300,21 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       relatedIndustryChains: signal.relatedIndustryChains,
       related_asset_ids: signal.related_asset_ids ?? [],
     });
+    const updatedSignal = normalizeSignal({
+      ...signal,
+      status: "PROMOTED",
+      linkedCommitteeReportId: report.id,
+      updatedAt: new Date().toISOString(),
+    });
     setState((current) => ({
       ...current,
       committeeReports: [report, ...current.committeeReports],
-      signals: current.signals.map((item) =>
-        item.id === signalId
-          ? { ...item, status: "Reviewed", linkedCommitteeReportId: report.id, updatedAt: new Date().toISOString() }
-          : item,
-      ),
+      signals: current.signals.map((item) => item.id === signalId ? updatedSignal : item),
       logicChains: current.logicChains.map((chain) =>
         chain.id === signal.linkedLogicChainId ? { ...chain, linkedCommitteeReportId: report.id } : chain,
       ),
     }));
+    void worldmonitorRepository.saveCommitteeReport(report, updatedSignal);
     return report;
   }, [state.committeeReports, state.signals]);
 
@@ -240,28 +332,50 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       relatedIndustryChains: signal?.relatedIndustryChains ?? [],
       related_asset_ids: chain.related_asset_ids ?? signal?.related_asset_ids ?? [],
     });
+    const updatedSignal = signal ? normalizeSignal({
+      ...signal,
+      status: "PROMOTED",
+      linkedCommitteeReportId: report.id,
+      updatedAt: new Date().toISOString(),
+    }) : undefined;
+    const updatedChain = { ...chain, linkedCommitteeReportId: report.id };
     setState((current) => ({
       ...current,
       committeeReports: [report, ...current.committeeReports],
       logicChains: current.logicChains.map((item) =>
-        item.id === logicChainId ? { ...item, linkedCommitteeReportId: report.id } : item,
+        item.id === logicChainId ? updatedChain : item,
       ),
       signals: current.signals.map((item) =>
-        item.id === chain.triggerSignalId
-          ? { ...item, status: "Reviewed", linkedCommitteeReportId: report.id, updatedAt: new Date().toISOString() }
-          : item,
+        item.id === chain.triggerSignalId && updatedSignal ? updatedSignal : item,
       ),
     }));
+    void worldmonitorRepository.saveCommitteeReport(report, updatedSignal, updatedChain);
     return report;
   }, [state.committeeReports, state.logicChains, state.signals]);
 
   const updateCommitteeReport = useCallback((reportId: string, patch: Partial<CommitteeReport>) => {
-    setState((current) => ({
-      ...current,
-      committeeReports: current.committeeReports.map((report) =>
-        report.id === reportId ? { ...report, ...patch } : report,
-      ),
-    }));
+    setState((current) => {
+      const existing = current.committeeReports.find((report) => report.id === reportId);
+      if (!existing) return current;
+      const timestamp = new Date().toISOString();
+      const nextReport = { ...existing, ...patch, decision: patch.finalDecision ?? patch.decision ?? existing.finalDecision };
+      const changedWatchlist = current.watchlist
+        .filter((item) => item.sourceObjectId === reportId)
+        .map((item) => ({
+          ...item,
+          committeeView: nextReport.finalDecision,
+          updatedAt: timestamp,
+          changeType: "Status changed" as const,
+        }));
+      const next = {
+        ...current,
+        committeeReports: current.committeeReports.map((report) => report.id === reportId ? nextReport : report),
+        watchlist: current.watchlist.map((item) => changedWatchlist.find((changed) => changed.ticker === item.ticker) ?? item),
+      };
+      void worldmonitorRepository.saveCommitteeReport(nextReport);
+      if (changedWatchlist.length) void worldmonitorRepository.saveWatchlist(changedWatchlist);
+      return next;
+    });
   }, []);
 
   const runBacktest = useCallback((
@@ -269,7 +383,11 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
     links: { signalId?: string; logicChainId?: string; committeeReportId?: string } = {},
   ) => {
     const result = createBacktestResult(strategy, links);
-    setState((current) => linkResultIntoState(current, strategy, result));
+    setState((current) => {
+      const next = linkResultIntoState(current, strategy, result);
+      persistBacktestState(next, strategy, result);
+      return next;
+    });
     return result;
   }, []);
 
@@ -291,7 +409,11 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       logicChainId: signal.linkedLogicChainId,
       committeeReportId: signal.linkedCommitteeReportId,
     });
-    setState((current) => linkResultIntoState(current, strategy, result));
+    setState((current) => {
+      const next = linkResultIntoState(current, strategy, result);
+      persistBacktestState(next, strategy, result);
+      return next;
+    });
     return result;
   }, [state.signals]);
 
@@ -312,7 +434,11 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       logicChainId,
       committeeReportId: chain.linkedCommitteeReportId,
     });
-    setState((current) => linkResultIntoState(current, strategy, result));
+    setState((current) => {
+      const next = linkResultIntoState(current, strategy, result);
+      persistBacktestState(next, strategy, result);
+      return next;
+    });
     return result;
   }, [state.logicChains]);
 
@@ -326,64 +452,65 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       const result = current.backtestResults.find((item) => item.id === resultId);
       const strategy = result && current.backtestStrategies.find((item) => item.id === result.strategyId);
       if (!result || !strategy) return current;
-      return linkResultIntoState(
+      const linkedResult = { ...result, linkedSignalId: signalId, linkedLogicChainId: logicChainId, linkedCommitteeReportId: committeeReportId, related_asset_ids: strategy.related_asset_ids ?? result.related_asset_ids ?? [] };
+      const next = linkResultIntoState(
         { ...current, backtestResults: current.backtestResults.filter((item) => item.id !== resultId) },
         strategy,
-        { ...result, linkedSignalId: signalId, linkedLogicChainId: logicChainId, linkedCommitteeReportId: committeeReportId, related_asset_ids: strategy.related_asset_ids ?? result.related_asset_ids ?? [] },
+        linkedResult,
       );
+      persistBacktestState(next, strategy, linkedResult);
+      return next;
     });
   }, []);
 
   const addToWatchlist = useCallback((ticker: string, sourceObjectId: string, signalId?: string) => {
     setState((current) => {
+      const timestamp = new Date().toISOString();
       const existing = current.watchlist.find((item) => item.ticker === ticker);
-      if (existing) {
-        return {
-          ...current,
-          watchlist: current.watchlist.map((item) =>
-            item.ticker === ticker
-              ? {
-                  ...item,
-                  sourceObjectId,
-                  linkedSignalIds: signalId
-                    ? Array.from(new Set([...item.linkedSignalIds, signalId]))
-                    : item.linkedSignalIds,
-                }
-              : item,
-          ),
-          signals: signalId
-            ? current.signals.map((signal) =>
-                signal.id === signalId
-                  ? { ...signal, status: "Actioned", updatedAt: new Date().toISOString() }
-                  : signal,
-              )
-            : current.signals,
-        };
-      }
-      return {
-        ...current,
-        watchlist: [
-          {
+      const committeeReport = current.committeeReports.find((report) => report.id === sourceObjectId);
+      const watchlistItem = existing
+        ? {
+            ...existing,
+            sourceObjectId,
+            linkedSignalIds: signalId
+              ? Array.from(new Set([...existing.linkedSignalIds, signalId]))
+              : existing.linkedSignalIds,
+            committeeView: committeeReport?.finalDecision ?? existing.committeeView,
+            updatedAt: timestamp,
+            changeType: "Status changed" as const,
+          }
+        : {
             ticker,
             sourceObjectId,
             entryTrigger: "Wait for price and fundamental confirmation",
             invalidationLevel: "Trigger thesis reverses",
             linkedSignalIds: signalId ? [signalId] : [],
-            committeeView: "Pending",
+            committeeView: committeeReport?.finalDecision ?? "Pending" as const,
             backtestEdge: "Not tested",
             suggestedAction: "Research",
-            addedAt: new Date().toISOString(),
-          },
-          ...current.watchlist,
-        ],
+            addedAt: timestamp,
+            updatedAt: timestamp,
+            changeType: "Added" as const,
+          };
+      const updatedSignal = signalId
+        ? current.signals.find((signal) => signal.id === signalId)
+        : undefined;
+      const nextSignal = updatedSignal
+        ? normalizeSignal({ ...updatedSignal, status: "TRACKING", updatedAt: timestamp })
+        : undefined;
+      const next = {
+        ...current,
+        watchlist: existing
+          ? current.watchlist.map((item) => item.ticker === ticker ? watchlistItem : item)
+          : [watchlistItem, ...current.watchlist],
         signals: signalId
           ? current.signals.map((signal) =>
-              signal.id === signalId
-                ? { ...signal, status: "Actioned", updatedAt: new Date().toISOString() }
-                : signal,
+              signal.id === signalId && nextSignal ? nextSignal : signal,
             )
           : current.signals,
       };
+      void worldmonitorRepository.saveWatchlistItem(watchlistItem, nextSignal);
+      return next;
     });
   }, []);
 
@@ -434,7 +561,7 @@ function linkResultIntoState(
     backtestResults: [result, ...current.backtestResults],
     signals: current.signals.map((signal) =>
       signal.id === signalId
-        ? { ...signal, status: "Backtested", linkedBacktestId: result.id, related_asset_ids: mergeIds(signal.related_asset_ids, result.related_asset_ids), updatedAt: new Date().toISOString() }
+        ? normalizeSignal({ ...signal, status: "TRACKING", linkedBacktestId: result.id, related_asset_ids: mergeIds(signal.related_asset_ids, result.related_asset_ids), updatedAt: new Date().toISOString() })
         : signal,
     ),
     logicChains: current.logicChains.map((chain) =>
@@ -456,15 +583,28 @@ function linkResultIntoState(
         ? {
             ...item,
             backtestEdge: `${(result.totalReturn - result.benchmarkReturn).toFixed(1)}% excess return`,
+            updatedAt: new Date().toISOString(),
+            changeType: "Status changed",
           }
         : item,
     ),
   };
 }
 
+function persistBacktestState(state: DecisionLoopState, strategy: BacktestStrategy, result: BacktestResult) {
+  void worldmonitorRepository.saveBacktestBundle(strategy, result, {
+    signal: state.signals.find((item) => item.id === result.linkedSignalId),
+    chain: state.logicChains.find((item) => item.id === result.linkedLogicChainId),
+    report: state.committeeReports.find((item) => item.id === result.linkedCommitteeReportId),
+    watchlist: result.linkedSignalId
+      ? state.watchlist.filter((item) => item.linkedSignalIds.includes(result.linkedSignalId as string))
+      : [],
+  });
+}
+
 function normalizeState(input: Partial<DecisionLoopState>): DecisionLoopState {
   return {
-    signals: Array.isArray(input.signals) ? input.signals : initialDecisionLoopState.signals,
+    signals: Array.isArray(input.signals) ? input.signals.map((signal) => normalizeSignal(signal as Signal)) : initialDecisionLoopState.signals.map(normalizeSignal),
     logicChains: Array.isArray(input.logicChains) ? input.logicChains : initialDecisionLoopState.logicChains,
     committeeReports: Array.isArray(input.committeeReports)
       ? input.committeeReports
@@ -497,7 +637,17 @@ function migrateLegacyState(base: DecisionLoopState): DecisionLoopState {
         relatedTickers: inferTickers(entity),
         relatedIndustryChains: [category],
         priorityScore: priority === "High" ? 90 : priority === "Low" ? 50 : 70,
-        status: legacyStatus === "Invalidated" ? "Invalidated" : legacyStatus === "Confirmed" ? "Tracking" : "New",
+        status: legacyStatus === "Invalidated" ? "DISMISSED" : legacyStatus === "Confirmed" ? "TRACKING" : "NEW",
+        summary: String(item.thesis ?? ""),
+        original_source: "Alan Chan",
+        original_text: String(item.sourceExcerpt ?? item.thesis ?? ""),
+        source_url: null,
+        source_type: "MEMBERSHIP_POST",
+        created_at: String(item.createdDate ?? new Date().toISOString()),
+        confidence: priority === "High" ? 90 : priority === "Low" ? 50 : 70,
+        tags: [category],
+        related_companies: [entity],
+        tracking_frequency: "weekly",
         createdAt: String(item.createdDate ?? new Date().toISOString()),
         updatedAt: String(item.lastChecked ?? new Date().toISOString()),
       };

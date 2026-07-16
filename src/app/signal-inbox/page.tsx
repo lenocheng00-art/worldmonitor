@@ -8,7 +8,7 @@ export default function SignalInboxPage() {
       <PageHeader
         eyebrow="Research ingestion layer"
         title="Signal Inbox"
-        description="Normalize member research into tracked companies, industry chains, catalysts, validation data, and monitoring schedules."
+        description="Prioritize incoming research, attach monitoring rules, and promote validated signals into ID-linked Logic Chains."
       />
       <Suspense fallback={<div className="h-96 animate-pulse rounded-lg border bg-muted/30" />}>
         <SignalInbox />

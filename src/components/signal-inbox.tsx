@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Ban,
   BookmarkPlus,
+  Archive,
   FlaskConical,
   GitBranch,
   Inbox,
@@ -21,7 +22,7 @@ import { type Signal, type SignalStatus } from "@/lib/decision-loop-data";
 import { useDecisionLoop } from "@/lib/decision-loop-store";
 import { cn } from "@/lib/utils";
 
-const statuses: SignalStatus[] = ["New", "Tracking", "Linked", "Reviewed", "Backtested", "Invalidated"];
+const statuses: SignalStatus[] = ["NEW", "TRACKING", "PROMOTED", "DISMISSED", "ARCHIVED"];
 
 export function SignalInbox() {
   const router = useRouter();
@@ -33,8 +34,6 @@ export function SignalInbox() {
     createSignal,
     createLogicChainFromSignal,
     sendSignalToCommittee,
-    runBacktestFromSignal,
-    addToWatchlist,
     updateSignalStatus,
   } = useDecisionLoop();
   const requestedTicker = searchParams.get("ticker");
@@ -65,9 +64,18 @@ export function SignalInbox() {
         title: item.entity,
         source: "Alan Chan",
         originalText: item.sourceExcerpt,
+        summary: item.thesis,
+        original_source: "Alan Chan",
+        original_text: item.sourceExcerpt,
+        source_url: null,
+        source_type: "MEMBERSHIP_POST",
+        created_at: new Date().toISOString(),
+        confidence: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
+        tags: [item.category],
+        related_companies: [item.entity],
         extractedSignal: item.thesis,
         relatedTickers: inferTickers(item.entity),
-        relatedIndustryChains: [item.category],
+        relatedIndustryChains: [],
         priorityScore: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
       }));
     } else if (pasteText.trim()) {
@@ -75,9 +83,18 @@ export function SignalInbox() {
         title: pasteText.trim().slice(0, 64),
         source: "Manual",
         originalText: pasteText.trim(),
+        summary: pasteText.trim(),
+        original_source: "Manual",
+        original_text: pasteText.trim(),
+        source_url: null,
+        source_type: "MANUAL",
+        created_at: new Date().toISOString(),
+        confidence: 60,
+        tags: ["Manual"],
+        related_companies: [],
         extractedSignal: pasteText.trim(),
         relatedTickers: [],
-        relatedIndustryChains: ["Other"],
+        relatedIndustryChains: [],
         priorityScore: 60,
       });
     }
@@ -190,9 +207,22 @@ export function SignalInbox() {
                   })}
                 />
                 <ActionButton
+                  icon={BookmarkPlus}
+                  label="Track"
+                  busy={busyAction === "track"}
+                  onClick={() => perform("track", () => updateSignalStatus(selected.id, "TRACKING"))}
+                />
+                <ActionButton
+                  icon={Archive}
+                  label="Archive"
+                  busy={busyAction === "archive"}
+                  onClick={() => perform("archive", () => updateSignalStatus(selected.id, "ARCHIVED"))}
+                />
+                <ActionButton
                   icon={Users}
-                  label={selected.linkedCommitteeReportId ? "Open Committee Review" : "Send to Committee"}
+                  label={selected.linkedCommitteeReportId ? "Open Committee Review" : selected.linkedLogicChainId ? "Send Logic Chain to Committee" : "Create Logic Chain first"}
                   busy={busyAction === "committee"}
+                  disabled={!selected.linkedLogicChainId && !selected.linkedCommitteeReportId}
                   onClick={() => perform("committee", () => {
                     const report = sendSignalToCommittee(selected.id);
                     if (report) router.push(`/committee?report=${report.id}`);
@@ -200,28 +230,20 @@ export function SignalInbox() {
                 />
                 <ActionButton
                   icon={FlaskConical}
-                  label={selected.linkedBacktestId ? "Open Backtest" : "Run Backtest"}
+                  label={selected.linkedBacktestId ? "Open Backtest" : "Backtest after Committee"}
                   busy={busyAction === "backtest"}
+                  disabled={!selected.linkedBacktestId}
                   onClick={() => perform("backtest", () => {
-                    const result = runBacktestFromSignal(selected.id);
-                    if (result) router.push(`/backtest-lab?result=${result.id}`);
-                  })}
-                />
-                <ActionButton
-                  icon={BookmarkPlus}
-                  label="Add to Watchlist"
-                  busy={busyAction === "watchlist"}
-                  onClick={() => perform("watchlist", () => {
-                    selected.relatedTickers.forEach((ticker) => addToWatchlist(ticker, selected.id, selected.id));
+                    if (selected.linkedBacktestId) router.push(`/backtest-lab?result=${selected.linkedBacktestId}`);
                   })}
                 />
                 <Button
                   variant="outline"
                   className="w-full justify-start text-red-700"
-                  onClick={() => updateSignalStatus(selected.id, "Invalidated")}
-                  disabled={selected.status === "Invalidated"}
+                  onClick={() => updateSignalStatus(selected.id, "DISMISSED")}
+                  disabled={selected.status === "DISMISSED"}
                 >
-                  <Ban className="size-4" /> Mark Invalidated
+                  <Ban className="size-4" /> Dismiss
                 </Button>
                 <div className="border-t pt-4 text-xs leading-5 text-muted-foreground">
                   Every action writes status and linked IDs into the unified research state.
@@ -238,10 +260,10 @@ export function SignalInbox() {
 function SignalDetail({ signal }: { signal: Signal }) {
   const timeline = [
     { label: "Created", active: true },
-    { label: "Logic linked", active: Boolean(signal.linkedLogicChainId) },
-    { label: "Committee reviewed", active: Boolean(signal.linkedCommitteeReportId) },
-    { label: "Backtested", active: Boolean(signal.linkedBacktestId) },
-    { label: "Actioned", active: signal.status === "Actioned" },
+    { label: "Tracking", active: signal.status === "TRACKING" || Boolean(signal.linkedLogicChainId) },
+    { label: "Promoted", active: signal.status === "PROMOTED" || Boolean(signal.linkedLogicChainId) },
+    { label: "Committee queued", active: Boolean(signal.linkedCommitteeReportId) },
+    { label: "Archived", active: signal.status === "ARCHIVED" },
   ];
   return (
     <Card className="h-fit">
@@ -251,15 +273,14 @@ function SignalDetail({ signal }: { signal: Signal }) {
             <Badge variant="outline">{signal.source}</Badge>
             <CardTitle className="mt-3 text-xl">{signal.title}</CardTitle>
           </div>
-          <Badge variant={signal.status === "Invalidated" ? "destructive" : "secondary"}>{signal.status}</Badge>
+          <Badge variant={signal.status === "DISMISSED" ? "destructive" : "secondary"}>{signal.status}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-6 pt-5">
         <Detail label="Original Text" value={signal.originalText} />
         <Detail label="Extracted Signal" value={signal.extractedSignal} />
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Tags label="Related Tickers" values={signal.relatedTickers} empty="No ticker mapped" />
-          <Tags label="Industry Chain" values={signal.relatedIndustryChains} empty="No chain mapped" />
           <Detail label="Priority Score" value={`${signal.priorityScore}/100`} />
         </div>
         <div className="border-t pt-5">
@@ -280,17 +301,25 @@ function SignalDetail({ signal }: { signal: Signal }) {
           <LinkedId label="Committee" value={signal.linkedCommitteeReportId} />
           <LinkedId label="Backtest" value={signal.linkedBacktestId} />
         </div>
-        <Tags label="Linked Portfolio Assets" values={signal.related_asset_ids ?? []} empty="No asset linked" />
+        {(signal.relatedIndustryChains.length || (signal.related_asset_ids ?? []).length) ? (
+          <details className="rounded-md border bg-muted/30 p-4">
+            <summary className="cursor-pointer text-xs font-semibold uppercase text-muted-foreground">Legacy Metadata</summary>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Tags label="Industry Chain (legacy)" values={signal.relatedIndustryChains} empty="None" />
+              <Tags label="Portfolio Asset IDs (legacy)" values={signal.related_asset_ids ?? []} empty="None" />
+            </div>
+          </details>
+        ) : null}
       </CardContent>
     </Card>
   );
 }
 
-function ActionButton({ icon: Icon, label, busy, onClick }: {
-  icon: typeof GitBranch; label: string; busy: boolean; onClick: () => void;
+function ActionButton({ icon: Icon, label, busy, disabled, onClick }: {
+  icon: typeof GitBranch; label: string; busy: boolean; disabled?: boolean; onClick: () => void;
 }) {
   return (
-    <Button className="w-full justify-start" variant="outline" onClick={onClick} disabled={busy}>
+    <Button className="w-full justify-start" variant="outline" onClick={onClick} disabled={busy || disabled}>
       {busy ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
       {label}
     </Button>

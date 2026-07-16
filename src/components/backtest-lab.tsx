@@ -51,6 +51,7 @@ export function BacktestLab() {
     [results, selectedResultId],
   );
   const selectedStrategy = state.backtestStrategies.find((item) => item.id === selectedResult?.strategyId);
+  const linkedCommittee = state.committeeReports.find((report) => report.id === selectedResult?.linkedCommitteeReportId);
 
   useEffect(() => {
     if (requestedResult) setSelectedResultId(requestedResult);
@@ -94,7 +95,8 @@ export function BacktestLab() {
         <DecisionSummary
           result={selectedResult}
           onCommittee={() => window.location.assign(`/committee?report=${selectedResult.linkedCommitteeReportId ?? ""}`)}
-          onWatchlist={() => strategy.tickers.forEach((ticker) => addToWatchlist(ticker, selectedResult.id, selectedResult.linkedSignalId))}
+          onWatchlist={() => strategy.tickers.forEach((ticker) => addToWatchlist(ticker, linkedCommittee?.id ?? selectedResult.id, selectedResult.linkedSignalId))}
+          canPromote={linkedCommittee?.finalDecision === "APPROVE"}
         />
       </section>
 
@@ -292,10 +294,11 @@ function ResultSummary({ result, name }: { result: BacktestResult; name: string 
   );
 }
 
-function DecisionSummary({ result, onCommittee, onWatchlist }: {
+function DecisionSummary({ result, onCommittee, onWatchlist, canPromote }: {
   result: BacktestResult;
   onCommittee: () => void;
   onWatchlist: () => void;
+  canPromote: boolean;
 }) {
   const validates = result.sharpeRatio >= 1 && result.totalReturn > result.benchmarkReturn;
   return (
@@ -310,12 +313,11 @@ function DecisionSummary({ result, onCommittee, onWatchlist }: {
         <div><div className="text-xs font-semibold uppercase text-muted-foreground">Main Risk</div><p className="mt-1 text-sm leading-6">{result.mainRisk}</p></div>
         <div className="border-y py-4"><div className="text-xs font-semibold uppercase text-muted-foreground">Decision Implication</div><p className="mt-1 text-sm leading-6">{result.decisionImplication}</p></div>
         <Button className="w-full" variant="outline" onClick={onCommittee}>Send result back to Committee</Button>
-        <Button className="w-full" variant="outline" onClick={onWatchlist}><BookmarkPlus className="size-4" /> Add to Watchlist</Button>
+        <Button className="w-full" variant="outline" onClick={onWatchlist} disabled={!canPromote}><BookmarkPlus className="size-4" /> {canPromote ? "Add to Watchlist" : "Committee approval required"}</Button>
         <div className="space-y-1 text-xs text-muted-foreground">
           <div>Signal: {result.linkedSignalId ?? "Not linked"}</div>
           <div>Logic: {result.linkedLogicChainId ?? "Not linked"}</div>
           <div>Committee: {result.linkedCommitteeReportId ?? "Not linked"}</div>
-          <div>Portfolio Assets: {(result.related_asset_ids ?? []).join(", ") || "Not linked"}</div>
         </div>
       </CardContent>
     </Card>

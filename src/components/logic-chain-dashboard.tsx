@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
@@ -8,10 +8,8 @@ import {
   FlaskConical,
   GitBranch,
   Link2,
-  Plus,
   ShieldX,
   Users,
-  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,64 +32,27 @@ export function LogicChainDashboard() {
   const focus = searchParams.get("focus");
   const {
     state,
-    createLogicChain,
     sendLogicChainToCommittee,
     runBacktestFromLogicChain,
     updateLogicChainValidation,
   } = useDecisionLoop();
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState("");
-  const [trigger, setTrigger] = useState("");
-  const [assets, setAssets] = useState("");
 
   useEffect(() => {
     if (!focus) return;
     window.setTimeout(() => document.getElementById(focus)?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
   }, [focus]);
 
-  function addChain() {
-    if (!title.trim() || !trigger.trim()) return;
-    createLogicChain({
-      title: title.trim(),
-      triggerEvent: trigger.trim(),
-      transmissionPath: ["Observe trigger", "Validate transmission", "Measure asset response"],
-      affectedAssets: assets.split(",").map((item) => item.trim()).filter(Boolean),
-      bullCase: "The expected transmission strengthens with confirming operating data.",
-      bearCase: "The relationship breaks or was already priced in.",
-      confidenceScore: 55,
-      followUpIndicators: ["Price action", "Volume", "Next data release"],
-      validationStatus: "Active",
-      evidenceFor: [],
-      evidenceAgainst: [],
-      historicalHitRate: 50,
-      nextDataPoint: "Next relevant disclosure",
-    });
-    setTitle("");
-    setTrigger("");
-    setAssets("");
-    setShowForm(false);
-  }
-
   return (
     <div className="space-y-6">
       <SectionHeader
         icon={GitBranch}
         title="Active Logic Chains"
-        description="Causal paths with live validation status, evidence, object links, and historical tests."
-        action={<Button size="sm" onClick={() => setShowForm((value) => !value)}>{showForm ? <X className="size-4" /> : <Plus className="size-4" />}{showForm ? "Close" : "New chain"}</Button>}
+        description="Causal paths promoted from Signals. Each chain preserves source text, companies, tags, confidence, and backlink."
+        action={<Button asChild size="sm" variant="outline"><a href="/signal-inbox">Create from Signal</a></Button>}
       />
 
-      {showForm ? (
-        <div className="grid gap-3 border-b pb-6 md:grid-cols-[1fr_1.4fr_1fr_auto]">
-          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Chain title" className="h-10 rounded-md border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-          <input value={trigger} onChange={(event) => setTrigger(event.target.value)} placeholder="Trigger event" className="h-10 rounded-md border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-          <input value={assets} onChange={(event) => setAssets(event.target.value)} placeholder="Assets, comma separated" className="h-10 rounded-md border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-          <Button onClick={addChain}>Add chain</Button>
-        </div>
-      ) : null}
-
       {!state.logicChains.length ? (
-        <Card><CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 text-center"><GitBranch className="size-7 text-muted-foreground" /><div><div className="font-semibold">No logic chains yet</div><p className="text-sm text-muted-foreground">Create one manually or from a Signal.</p></div></CardContent></Card>
+        <Card><CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 text-center"><GitBranch className="size-7 text-muted-foreground" /><div><div className="font-semibold">No logic chains yet</div><p className="text-sm text-muted-foreground">Create one from a Signal in the Signal Inbox.</p></div></CardContent></Card>
       ) : (
         <div className="grid gap-5 xl:grid-cols-2">
           {state.logicChains.map((chain) => (
@@ -168,15 +129,20 @@ function LogicChainCard({ chain, linkedSignalTitle, onBacktest, onCommittee, onC
         <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
           <Tags label="Affected Assets" values={chain.affectedAssets} />
           <Tags label="Follow-up Indicators" values={chain.followUpIndicators} />
-          <Tags label="Linked Portfolio Assets" values={chain.related_asset_ids ?? []} />
         </div>
+        {(chain.related_asset_ids ?? []).length ? (
+          <details className="rounded-md border bg-muted/30 p-4">
+            <summary className="cursor-pointer text-xs font-semibold uppercase text-muted-foreground">Legacy Metadata</summary>
+            <div className="mt-4"><Tags label="Portfolio Asset IDs (legacy)" values={chain.related_asset_ids ?? []} /></div>
+          </details>
+        ) : null}
         <div className="grid gap-2 border-t pt-4 text-xs sm:grid-cols-3">
           <Linked label="Signal" value={linkedSignalTitle ?? chain.triggerSignalId} />
           <Linked label="Committee" value={chain.linkedCommitteeReportId} />
           <Linked label="Backtest" value={chain.linkedBacktestId} />
         </div>
         <div className="flex flex-wrap gap-2 border-t pt-4">
-          <Button size="sm" onClick={onBacktest}><FlaskConical className="size-4" /> Test This Logic</Button>
+          <Button size="sm" onClick={onBacktest} disabled={!chain.linkedCommitteeReportId}><FlaskConical className="size-4" /> {chain.linkedCommitteeReportId ? "Run Backtest" : "Backtest after Committee"}</Button>
           <Button size="sm" variant="outline" onClick={onCommittee}><Users className="size-4" /> Committee Review</Button>
           <Button size="sm" variant="outline" onClick={onConfirm} disabled={chain.validationStatus === "Confirmed"}><CheckCircle2 className="size-4" /> Mark Confirmed</Button>
           <Button size="sm" variant="outline" onClick={onBreak} disabled={chain.validationStatus === "Broken"}><ShieldX className="size-4" /> Mark Broken</Button>

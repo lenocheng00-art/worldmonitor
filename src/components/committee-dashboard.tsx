@@ -25,7 +25,7 @@ import {
 import { useDecisionLoop } from "@/lib/decision-loop-store";
 import { cn } from "@/lib/utils";
 
-const decisions: CommitteeDecision[] = ["Long", "Watch", "Avoid", "Short", "Backtest First"];
+const decisions: CommitteeDecision[] = ["WATCH", "RESEARCH_MORE", "REJECT", "APPROVE"];
 
 export function CommitteeDashboard() {
   const router = useRouter();
@@ -49,16 +49,10 @@ export function CommitteeDashboard() {
   }, [requestedReport]);
 
   const pending = useMemo(() => [
-    ...state.signals
-      .filter((signal) => !signal.linkedCommitteeReportId)
-      .map((signal) => ({ id: signal.id, type: "Signal", title: signal.title, score: signal.priorityScore })),
     ...state.logicChains
       .filter((chain) => !chain.linkedCommitteeReportId)
       .map((chain) => ({ id: chain.id, type: "Logic Chain", title: chain.title, score: chain.confidenceScore })),
-    ...state.watchlist
-      .filter((item) => item.committeeView === "Pending")
-      .map((item) => ({ id: item.sourceObjectId, type: "Watchlist", title: `${item.ticker} position review`, score: 60 })),
-  ], [state.logicChains, state.signals, state.watchlist]);
+  ], [state.logicChains]);
 
   function reviewOpportunity(id: string, type: string) {
     setRunning(true);
@@ -97,7 +91,7 @@ export function CommitteeDashboard() {
       <section className="grid gap-4 xl:grid-cols-[0.72fr_1.25fr_0.85fr]">
         <Card className="h-fit overflow-hidden">
           <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2 text-base"><BrainCircuit className="size-4 text-primary" /> Pending Opportunities</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base"><BrainCircuit className="size-4 text-primary" /> Committee Queue</CardTitle>
           </CardHeader>
           <CardContent className="divide-y p-0">
             {pending.length ? pending.map((item) => (
@@ -193,7 +187,7 @@ function DecisionTicket({ report, onChange, onBacktest, onWatchlist }: {
   return (
     <Card className="h-fit xl:sticky xl:top-24">
       <CardHeader className="border-b bg-primary text-primary-foreground">
-        <div className="text-xs font-semibold uppercase text-primary-foreground/70">Final Decision Ticket</div>
+        <div className="text-xs font-semibold uppercase text-primary-foreground/70">Investment Decision Ticket</div>
         <CardTitle className="mt-2 text-lg text-primary-foreground">{report.topic}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 pt-5">
@@ -204,12 +198,21 @@ function DecisionTicket({ report, onChange, onBacktest, onWatchlist }: {
         <TicketInput label="Stop Loss Logic" value={report.stopLossLogic} onChange={(value) => onChange({ stopLossLogic: value })} />
         <TicketInput label="Invalidation Condition" value={report.invalidationCondition} onChange={(value) => onChange({ invalidationCondition: value })} />
         <div><Label>Follow-up Indicators</Label><div className="mt-2 flex flex-wrap gap-1.5">{report.followUpIndicators.map((item) => <Badge key={item} variant="outline">{item}</Badge>)}</div></div>
-        <div><Label>Linked Portfolio Assets</Label><div className="mt-2 flex flex-wrap gap-1.5">{(report.related_asset_ids ?? []).length ? report.related_asset_ids?.map((item) => <Badge key={item} variant="outline">{item}</Badge>) : <span className="text-sm text-muted-foreground">No asset linked</span>}</div></div>
+        {(report.related_asset_ids ?? []).length ? (
+          <details className="rounded-md border bg-muted/30 p-3">
+            <summary className="cursor-pointer text-xs font-semibold uppercase text-muted-foreground">Legacy Metadata</summary>
+            <div className="mt-3 flex flex-wrap gap-1.5">{report.related_asset_ids?.map((item) => <Badge key={item} variant="outline">{item}</Badge>)}</div>
+          </details>
+        ) : null}
         <div className="grid gap-2 border-t pt-4">
           <Button onClick={onBacktest}><FlaskConical className="size-4" /> Run Backtest</Button>
-          <Button variant="outline" onClick={onWatchlist}><BookmarkPlus className="size-4" /> Add to Watchlist</Button>
+          <Button variant="outline" onClick={onWatchlist} disabled={report.finalDecision !== "APPROVE"}>
+            <BookmarkPlus className="size-4" /> Add Approved Tickers to Watchlist
+          </Button>
         </div>
-        <div className="text-xs text-muted-foreground">Backtest: {report.linkedBacktestId ?? "Waiting to run"}</div>
+        <div className="text-xs text-muted-foreground">
+          Watchlist promotion is enabled after APPROVE. Backtest: {report.linkedBacktestId ?? "Waiting to run"}
+        </div>
       </CardContent>
     </Card>
   );

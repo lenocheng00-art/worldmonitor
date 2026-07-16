@@ -1,15 +1,45 @@
 export type SignalStatus =
-  | "New"
-  | "Tracking"
-  | "Linked"
-  | "Reviewed"
-  | "Backtested"
-  | "Actioned"
-  | "Invalidated";
+  | "NEW"
+  | "TRACKING"
+  | "CONFIRMED"
+  | "PROMOTED"
+  | "DISMISSED"
+  | "ARCHIVED";
+
+export type SignalSourceType = "TEXT" | "URL" | "MEMBERSHIP_POST" | "NEWS" | "MANUAL";
+export type TrackingFrequency = "daily" | "every_2_days" | "weekly" | "manual";
+
+export type LogicChainTimelineEvent = {
+  id: string;
+  timestamp: string;
+  analysis_summary: string;
+  confidence_change: number;
+  new_evidence: string[];
+  new_risks: string[];
+  company_updates: string[];
+};
 
 export type Signal = {
   id: string;
   title: string;
+  summary: string;
+  original_source: string;
+  original_text: string;
+  source_url: string | null;
+  source_post_id?: string;
+  source_type: SignalSourceType;
+  created_at: string;
+  confidence: number;
+  tags: string[];
+  related_companies: string[];
+  logic_chain_id?: string;
+  tracking_frequency: TrackingFrequency;
+  last_tracked_at?: string;
+  next_track_at?: string;
+  confirmed_at?: string;
+  archived_at?: string;
+  archive_after_days?: number;
+  committee_completed_at?: string;
   source: string;
   originalText: string;
   extractedSignal: string;
@@ -30,7 +60,19 @@ export type LogicChainValidationStatus = "Active" | "Validating" | "Confirmed" |
 export type LogicChain = {
   id: string;
   title: string;
+  signal_id?: string;
+  summary?: string;
+  source?: string;
+  source_url?: string | null;
+  confidence?: number;
+  created_at?: string;
   triggerSignalId?: string;
+  originatingSignalId?: string;
+  originalSource?: string;
+  originalText?: string;
+  companies?: string[];
+  tags?: string[];
+  sourceConfidence?: number;
   triggerEvent: string;
   transmissionPath: string[];
   affectedAssets: string[];
@@ -41,6 +83,7 @@ export type LogicChain = {
   validationStatus: LogicChainValidationStatus;
   evidenceFor: string[];
   evidenceAgainst: string[];
+  timeline: LogicChainTimelineEvent[];
   historicalHitRate: number;
   nextDataPoint: string;
   lastCheckedAt: string;
@@ -50,7 +93,7 @@ export type LogicChain = {
 };
 
 export type CommitteeView = "Bullish" | "Neutral" | "Bearish";
-export type CommitteeDecision = "Long" | "Watch" | "Avoid" | "Short" | "Backtest First";
+export type CommitteeDecision = "WATCH" | "RESEARCH_MORE" | "REJECT" | "APPROVE";
 
 export type AgentVote = {
   agentName: string;
@@ -71,6 +114,13 @@ export type CommitteeReport = {
   relatedIndustryChains: string[];
   agentVotes: AgentVote[];
   finalDecision: CommitteeDecision;
+  decision: CommitteeDecision;
+  company: string;
+  logic_chain?: string;
+  bull_case: string;
+  bear_case: string;
+  key_risks: string[];
+  next_steps: string[];
   finalConfidenceScore: number;
   positionSizing: string;
   timeHorizon: string;
@@ -155,6 +205,8 @@ export type WatchlistItem = {
   backtestEdge: string;
   suggestedAction: string;
   addedAt: string;
+  updatedAt?: string;
+  changeType?: "Added" | "Removed" | "Status changed";
 };
 
 export type DecisionLoopState = {
@@ -172,13 +224,24 @@ export const seedSignals: Signal[] = [
   {
     id: "signal-google-capex",
     title: "Google AI capex broadens infrastructure demand",
+    summary: "Rising Google AI capex may support custom silicon, power, cooling, and grid suppliers.",
+    original_source: "Alan Chan",
+    original_text: "Google cloud backlog and AI capex remain elevated, supporting custom silicon, power and cooling suppliers.",
+    source_url: null,
+    source_type: "MEMBERSHIP_POST",
+    created_at: now,
+    confidence: 92,
+    tags: ["AI Infra", "Capex", "Custom Silicon"],
+    related_companies: ["Google", "Broadcom", "Vertiv", "GE Vernova"],
+    logic_chain_id: "chain-google-capex",
+    tracking_frequency: "every_2_days",
     source: "Alan Chan",
     originalText: "Google cloud backlog and AI capex remain elevated, supporting custom silicon, power and cooling suppliers.",
     extractedSignal: "Rising hyperscaler capex should transmit into AVGO custom ASIC orders and VRT cooling backlog.",
     relatedTickers: ["GOOGL", "AVGO", "VRT", "GEV"],
     relatedIndustryChains: ["Cloud / Platform", "Compute / Chip", "Memory / Infrastructure"],
     priorityScore: 92,
-    status: "Backtested",
+    status: "TRACKING",
     createdAt: now,
     updatedAt: now,
     linkedLogicChainId: "chain-google-capex",
@@ -188,13 +251,24 @@ export const seedSignals: Signal[] = [
   {
     id: "signal-nfp-duration",
     title: "Strong payrolls pressure high-duration AI equities",
+    summary: "Upside labor surprises can reduce rate-cut odds and pressure high-duration technology multiples.",
+    original_source: "Macro Dashboard",
+    original_text: "Nonfarm payrolls exceeded consensus while the 10-year Treasury yield moved higher.",
+    source_url: null,
+    source_type: "MANUAL",
+    created_at: now,
+    confidence: 84,
+    tags: ["Macro", "Rates", "AI Duration"],
+    related_companies: ["Nasdaq", "Nvidia", "Broadcom", "Vertiv"],
+    logic_chain_id: "chain-nfp-duration",
+    tracking_frequency: "weekly",
     source: "Macro Dashboard",
     originalText: "Nonfarm payrolls exceeded consensus while the 10-year Treasury yield moved higher.",
     extractedSignal: "A positive labor surprise can reduce rate-cut odds and compress high-valuation AI multiples.",
     relatedTickers: ["QQQ", "NVDA", "AVGO", "VRT"],
     relatedIndustryChains: ["Macro", "AI Infra"],
     priorityScore: 84,
-    status: "Linked",
+    status: "TRACKING",
     createdAt: now,
     updatedAt: now,
     linkedLogicChainId: "chain-nfp-duration",
@@ -203,13 +277,23 @@ export const seedSignals: Signal[] = [
   {
     id: "signal-vertiv-cooling",
     title: "Liquid cooling backlog confirmation",
+    summary: "Vertiv order acceleration would support the cooling bottleneck thesis in AI infrastructure.",
+    original_source: "Alan Chan",
+    original_text: "Track whether Vertiv organic orders confirm that cooling is becoming a binding AI deployment constraint.",
+    source_url: null,
+    source_type: "MEMBERSHIP_POST",
+    created_at: now,
+    confidence: 78,
+    tags: ["AI Infra", "Cooling", "Data Centers"],
+    related_companies: ["Vertiv", "Nvidia", "GE Vernova"],
+    tracking_frequency: "every_2_days",
     source: "Alan Chan",
     originalText: "Track whether Vertiv organic orders confirm that cooling is becoming a binding AI deployment constraint.",
     extractedSignal: "VRT order acceleration would validate cooling as an AI infrastructure bottleneck.",
     relatedTickers: ["VRT", "NVDA", "GEV"],
     relatedIndustryChains: ["Memory / Infrastructure"],
     priorityScore: 78,
-    status: "New",
+    status: "NEW",
     createdAt: now,
     updatedAt: now,
   },
@@ -219,7 +303,19 @@ export const seedLogicChains: LogicChain[] = [
   {
     id: "chain-google-capex",
     title: "Google capex flows through the AI supply chain",
+    signal_id: "signal-google-capex",
+    summary: "Rising Google AI capex may support custom silicon, power, cooling, and grid suppliers.",
+    source: "Alan Chan",
+    source_url: null,
+    confidence: 92,
+    created_at: now,
     triggerSignalId: "signal-google-capex",
+    originatingSignalId: "signal-google-capex",
+    originalSource: "Alan Chan",
+    originalText: "Google cloud backlog and AI capex remain elevated, supporting custom silicon, power and cooling suppliers.",
+    companies: ["Google", "Broadcom", "Vertiv", "GE Vernova"],
+    tags: ["AI Infra", "Capex", "Custom Silicon"],
+    sourceConfidence: 92,
     triggerEvent: "Google raises capex guidance and cloud backlog",
     transmissionPath: ["More TPU and network orders", "Custom ASIC demand rises", "Power and cooling backlog grows", "Grid investment expands"],
     affectedAssets: ["GOOGL", "AVGO", "VRT", "GEV"],
@@ -230,6 +326,17 @@ export const seedLogicChains: LogicChain[] = [
     validationStatus: "Validating",
     evidenceFor: ["Google cloud backlog reached a new high", "VRT organic orders remain positive"],
     evidenceAgainst: ["Long-end yields remain a valuation headwind"],
+    timeline: [
+      {
+        id: "timeline-google-capex-seed",
+        timestamp: now,
+        analysis_summary: "Seed validation links Google capex to supplier backlog monitoring.",
+        confidence_change: 0,
+        new_evidence: ["Google cloud backlog reached a new high"],
+        new_risks: ["Long-end yields remain a valuation headwind"],
+        company_updates: ["GOOGL", "AVGO", "VRT"],
+      },
+    ],
     historicalHitRate: 68,
     nextDataPoint: "Google quarterly capex guidance",
     lastCheckedAt: now,
@@ -240,7 +347,19 @@ export const seedLogicChains: LogicChain[] = [
   {
     id: "chain-nfp-duration",
     title: "Strong payrolls pressure AI duration",
+    signal_id: "signal-nfp-duration",
+    summary: "Upside labor surprises can reduce rate-cut odds and pressure high-duration technology multiples.",
+    source: "Macro Dashboard",
+    source_url: null,
+    confidence: 84,
+    created_at: now,
     triggerSignalId: "signal-nfp-duration",
+    originatingSignalId: "signal-nfp-duration",
+    originalSource: "Macro Dashboard",
+    originalText: "Nonfarm payrolls exceeded consensus while the 10-year Treasury yield moved higher.",
+    companies: ["Nasdaq", "Nvidia", "Broadcom", "Vertiv"],
+    tags: ["Macro", "Rates", "AI Duration"],
+    sourceConfidence: 84,
     triggerEvent: "Nonfarm payrolls exceed consensus",
     transmissionPath: ["Rate-cut probability falls", "Treasury yields rise", "Discount rates rise", "NASDAQ multiples compress", "High-valuation AI underperforms"],
     affectedAssets: ["QQQ", "US10Y", "NVDA", "VRT", "AVGO"],
@@ -251,6 +370,17 @@ export const seedLogicChains: LogicChain[] = [
     validationStatus: "Active",
     evidenceFor: ["Recent upside labor surprises lifted Treasury yields"],
     evidenceAgainst: ["AI earnings revisions remain positive"],
+    timeline: [
+      {
+        id: "timeline-nfp-duration-seed",
+        timestamp: now,
+        analysis_summary: "Seed validation tracks rate-cut repricing after payroll surprises.",
+        confidence_change: 0,
+        new_evidence: ["Recent upside labor surprises lifted Treasury yields"],
+        new_risks: ["AI earnings revisions may offset duration pressure"],
+        company_updates: ["QQQ", "NVDA", "AVGO"],
+      },
+    ],
     historicalHitRate: 71,
     nextDataPoint: "Next payrolls and average hourly earnings release",
     lastCheckedAt: now,
@@ -260,7 +390,7 @@ export const seedLogicChains: LogicChain[] = [
 export const committeeAgentNames = [
   "Macro Agent",
   "Equity Market Agent",
-  "Industry Chain Agent",
+  "Supply Chain Agent",
   "Logic Chain Agent",
   "Alan Chan Signal Agent",
   "Risk Agent",
@@ -316,7 +446,14 @@ export const seedCommitteeReports: CommitteeReport[] = [
     relatedTickers: ["GOOGL", "AVGO", "VRT", "GEV"],
     relatedIndustryChains: ["Cloud / Platform", "Compute / Chip", "Memory / Infrastructure"],
     agentVotes: buildAgentVotes("AI infrastructure capex acceleration"),
-    finalDecision: "Backtest First",
+    finalDecision: "RESEARCH_MORE",
+    decision: "RESEARCH_MORE",
+    company: "Broadcom",
+    logic_chain: "chain-google-capex",
+    bull_case: "Backlog converts into revenue while cluster utilization remains high.",
+    bear_case: "Capex continues but utilization and supplier order growth decelerate.",
+    key_risks: ["Crowded AI positioning", "Long-duration rate sensitivity", "Capex-to-revenue timing mismatch"],
+    next_steps: ["Validate Google capex guidance", "Track AVGO AI revenue", "Check VRT organic orders"],
     finalConfidenceScore: 82,
     positionSizing: "Start at 3%; scale toward 6% after backlog confirmation.",
     timeHorizon: "3-9 months",
@@ -439,10 +576,11 @@ export const seedWatchlist: WatchlistItem[] = [
     entryTrigger: "AI revenue guidance and backlog re-accelerate",
     invalidationLevel: "Two quarters of decelerating AI revenue",
     linkedSignalIds: ["signal-google-capex"],
-    committeeView: "Backtest First",
+    committeeView: "RESEARCH_MORE",
     backtestEdge: "+76.1% excess return",
     suggestedAction: "Accumulate on confirmed earnings breadth",
     addedAt: now,
+    changeType: "Added",
   },
   {
     ticker: "VRT",
@@ -450,10 +588,11 @@ export const seedWatchlist: WatchlistItem[] = [
     entryTrigger: "Organic orders and liquid-cooling backlog accelerate",
     invalidationLevel: "Order growth turns negative",
     linkedSignalIds: ["signal-google-capex", "signal-vertiv-cooling"],
-    committeeView: "Watch",
+    committeeView: "WATCH",
     backtestEdge: "Best historical trade +41.8%",
     suggestedAction: "Watch for order confirmation",
     addedAt: now,
+    changeType: "Added",
   },
 ];
 
@@ -482,7 +621,14 @@ export function createCommitteeReportFromInput(input: {
     relatedTickers: input.relatedTickers ?? [],
     relatedIndustryChains: input.relatedIndustryChains ?? [],
     agentVotes: buildAgentVotes(input.topic),
-    finalDecision: "Backtest First",
+    finalDecision: "RESEARCH_MORE",
+    decision: "RESEARCH_MORE",
+    company: input.relatedTickers?.[0] ?? "Research target",
+    logic_chain: input.linkedLogicChainId,
+    bull_case: "The expected transmission strengthens with confirming operating data.",
+    bear_case: "The relationship breaks or was already priced in.",
+    key_risks: ["Crowding", "Valuation", "Macro regime reversal"],
+    next_steps: ["Validate trigger data", "Check price confirmation", "Update committee decision"],
     finalConfidenceScore: 81,
     positionSizing: "Start at 2-3%; increase only after follow-up confirmation.",
     timeHorizon: "1-6 months",
