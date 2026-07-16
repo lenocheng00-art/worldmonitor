@@ -1,0 +1,48 @@
+{
+  "name": "satellite-quant-hkd-300k-v1",
+  "mode": "SIMULATE",
+  "initial_capital_hkd": 300000.0,
+  "base_currency": "HKD",
+  "fx_rates": {
+    "USDHKD": 7.8
+  },
+  "universe": [
+    "US.RAM"
+  ],
+  "risk": {
+    "risk_per_trade_pct": 0.005,
+    "max_position_pct": 0.1,
+    "max_gross_exposure_pct": 0.6,
+    "max_daily_loss_pct": 0.015,
+    "max_drawdown_pct": 0.08,
+    "max_open_positions": 1,
+    "allow_margin": false,
+    "allow_average_down": false
+  },
+  "strategy": {
+    "name": "trend-breakout-v1",
+    "execution_symbol": "US.RAM",
+    "timeframe": "K_5M",
+    "fast_ema": 12,
+    "slow_ema": 48,
+    "breakout_lookback": 20,
+    "atr_period": 14,
+    "stop_atr_multiple": 2.0,
+    "take_profit_atr_multiple": 3.0,
+    "flat_before_close": true,
+    "flat_hour": 15,
+    "flat_minute": 50
+  },
+  "execution": {
+    "slippage_bps": 5.0,
+    "commission_hkd": 15.0,
+    "simulated_order_submission_enabled": false,
+    "live_trading_enabled": false
+  },
+  "futu": {
+    "host": "127.0.0.1",
+    "port": 11111,
+    "market": "US",
+    "history_bars": 300
+  }
+}

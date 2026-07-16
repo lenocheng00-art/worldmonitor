@@ -1,0 +1,2 @@
+# Optional runtime dependency. Core backtests and tests use only the Python standard library.
+futu-api>=9.4

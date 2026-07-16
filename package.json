@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0",
+    "quant:validate": "PYTHONPATH=quant python3 -m quant_trader validate",
+    "quant:test": "PYTHONPATH=quant python3 -m unittest discover -s quant/tests -v",
+    "quant:demo": "PYTHONPATH=quant python3 -m quant_trader demo-backtest --bars 600"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.2",
