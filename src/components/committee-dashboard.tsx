@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfidenceBar } from "@/components/research-ui";
+import { CommitteeResearchPanel } from "@/components/research/research-tracking-panels";
 import {
   initialDecisionLoopState,
   type AgentVote,
@@ -213,6 +214,7 @@ function DecisionTicket({ report, onChange, onBacktest, onWatchlist }: {
         <div className="text-xs text-muted-foreground">
           Watchlist promotion is enabled after APPROVE. Backtest: {report.linkedBacktestId ?? "Waiting to run"}
         </div>
+        <CommitteeResearchPanel logicChainId={report.linkedLogicChainId} />
       </CardContent>
     </Card>
   );

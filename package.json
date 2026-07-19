@@ -1,6 +1,6 @@
 {
   "name": "worldmonitor",
-  "version": "1.8.1",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs && npm run test:research",
+    "test:research": "npm run test:research:unit && npm run test:research:integration",
+    "test:research:unit": "node --import tsx --test tests/research-tracking-v2/unit/*.test.ts",
+    "test:research:integration": "node --import tsx --test tests/research-tracking-v2/integration/*.test.ts",
+    "evaluate:research:v2": "node --import tsx scripts/evaluate-research-tracking-v2.ts",
     "replay:signals:v1.8.2": "node experiments/signal-quality-v1.8.2/build-expanded-gold-dataset.mjs && node experiments/signal-quality-v1.8.2/grouped-cross-validation.mjs"
   },
   "dependencies": {
@@ -22,7 +26,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -34,6 +39,7 @@
     "eslint-config-next": "^15.0.0",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2"
   },
   "overrides": {

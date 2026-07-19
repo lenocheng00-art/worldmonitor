@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LogicChainResearchPanel } from "@/components/research/research-tracking-panels";
 import { ConfidenceBar, SectionHeader } from "@/components/research-ui";
 import { type LogicChain } from "@/lib/decision-loop-data";
 import { useDecisionLoop } from "@/lib/decision-loop-store";
@@ -155,6 +156,7 @@ function LogicChainCard({ chain, linkedSignalTitle, onBacktest, onCommittee, onC
           <Button size="sm" variant="outline" onClick={onConfirm} disabled={chain.validationStatus === "Confirmed"}><CheckCircle2 className="size-4" /> Mark Confirmed</Button>
           <Button size="sm" variant="outline" onClick={onBreak} disabled={chain.validationStatus === "Broken"}><ShieldX className="size-4" /> Mark Broken</Button>
         </div>
+        {chain.canonicalKey || chain.researchStatus ? <LogicChainResearchPanel chainId={chain.id} /> : null}
       </CardContent>
     </Card>
   );

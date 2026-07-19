@@ -112,6 +112,15 @@ export type Signal = {
   automationErrors?: string[];
   duplicateOfSignalId?: string;
   archiveReason?: string;
+  atomicClaim?: string;
+  originalQuote?: string;
+  researchSignalType?: "observation" | "prediction" | "trigger" | "validation" | "invalidation" | "monitoring_condition";
+  researchDirection?: "bullish" | "bearish" | "neutral" | "mixed";
+  normalizedEntities?: Array<{ type: string; canonicalName: string; aliases: string[] }>;
+  entityKeys?: string[];
+  qualityScoreV2?: number;
+  reviewRequired?: boolean;
+  explicitConditions?: Array<{ subject: string; metric: string; operator: string; threshold: string | number | null; duration: string | null; validationMeaning: string; invalidationMeaning: string | null }>;
 };
 
 export type LogicChainValidationStatus = "Active" | "Validating" | "Confirmed" | "Broken";
@@ -155,6 +164,13 @@ export type LogicChain = {
   confirmationConditions?: string[];
   invalidationConditions?: string[];
   nextCheckAt?: string;
+  canonicalKey?: string;
+  thesis?: string;
+  researchStatus?: "emerging" | "tracking" | "validated" | "confirmed" | "broken" | "archived";
+  confidenceUpdatedAt?: string;
+  lastEvidenceAt?: string;
+  nextReviewAt?: string;
+  entityKeys?: string[];
 };
 
 export type CommitteeView = "Bullish" | "Neutral" | "Bearish";

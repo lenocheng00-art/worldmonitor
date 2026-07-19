@@ -55,11 +55,12 @@ test("Overview contains only the five Signals workflow modules", async () => {
   }
 });
 
-test("Signal Monitor saves extracted Signals through the shared decision store", async () => {
+test("Signal Monitor routes source extraction through the V2 structured cloud pipeline", async () => {
   const monitor = await source("src/components/signal-monitor.tsx");
   assert.match(monitor, /useDecisionLoop\(\)/);
-  assert.match(monitor, /createSignal\(/);
-  assert.match(monitor, /relatedIndustryChains: \[\]/);
+  assert.match(monitor, /fetch\("\/api\/research\/process-source"/);
+  assert.match(monitor, /x-worldmonitor-client": "research-tracking-v2"/);
+  assert.doesNotMatch(monitor, /createSignal\(/);
   assert.doesNotMatch(monitor, /useAlanSignals/);
 });
 

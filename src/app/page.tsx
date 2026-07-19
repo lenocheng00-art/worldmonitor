@@ -9,7 +9,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
-          eyebrow="WorldMonitor V1.8.1 — Production Burn-in"
+          eyebrow="WorldMonitor V2.0 — Research Tracking Engine"
           title="Signals Overview"
           description="See what arrived today, what needs attention, and which ideas have advanced from signal to decision."
         />

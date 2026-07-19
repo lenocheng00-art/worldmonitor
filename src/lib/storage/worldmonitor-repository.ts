@@ -48,6 +48,13 @@ const signalStatusMap: Record<string, SignalStatus> = {
   PROMOTED: "PROMOTED",
   DISMISSED: "DISMISSED",
   ARCHIVED: "ARCHIVED",
+  new: "NEW",
+  tracking: "TRACKING",
+  linked: "PROMOTED",
+  validated: "CONFIRMED",
+  invalidated: "INVALIDATED",
+  actioned: "TRACKING",
+  archived: "ARCHIVED",
 };
 
 const databaseStatusMap: Record<SignalStatus, string> = {
@@ -509,6 +516,15 @@ function fromSignalRow(row: Record<string, unknown>): Signal {
     automationErrors: stringArray(metadata.automationErrors),
     duplicateOfSignalId: optionalString(metadata.duplicateOfSignalId),
     archiveReason: optionalString(metadata.archiveReason),
+    atomicClaim: optionalString(row.atomic_claim) ?? optionalString(row.extracted_signal),
+    originalQuote: optionalString(row.original_quote),
+    researchSignalType: optionalString(row.signal_type) as Signal["researchSignalType"],
+    researchDirection: optionalString(row.direction) as Signal["researchDirection"],
+    normalizedEntities: Array.isArray(row.entities) ? row.entities as Signal["normalizedEntities"] : [],
+    entityKeys: stringArray(row.entity_keys),
+    qualityScoreV2: optionalNumber(row.quality_score),
+    reviewRequired: Boolean(row.review_required),
+    explicitConditions: Array.isArray(row.explicit_conditions) ? row.explicit_conditions as Signal["explicitConditions"] : [],
   });
 }
 
@@ -602,6 +618,13 @@ function fromLogicChainRow(row: Record<string, unknown>): LogicChain {
     confirmationConditions: stringArray(metadata.confirmationConditions),
     invalidationConditions: stringArray(metadata.invalidationConditions),
     nextCheckAt: optionalString(metadata.nextCheckAt),
+    canonicalKey: optionalString(row.canonical_key),
+    thesis: optionalString(row.thesis),
+    researchStatus: optionalString(row.research_status) as LogicChain["researchStatus"],
+    confidenceUpdatedAt: optionalString(row.confidence_updated_at),
+    lastEvidenceAt: optionalString(row.last_evidence_at),
+    nextReviewAt: optionalString(row.next_review_at),
+    entityKeys: stringArray(row.entity_keys),
   };
 }
 

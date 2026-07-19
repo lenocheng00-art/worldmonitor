@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-07-19T11:26:47.246Z",
+  "mode": "OFFLINE_NO_PRODUCTION_CONNECTION",
+  "productionWrites": 0,
+  "candidateBRegressionSource": "Frozen Leave-One-SourcePost-Out report; Candidate B files were preserved unchanged.",
+  "dataset": {
+    "version": "v1.8.2-candidate-b-1",
+    "sourcePostIdCount": 6,
+    "atomicUnitCount": 60,
+    "positiveCount": 35,
+    "rejectionCount": 25
+  },
+  "acceptance": {
+    "atomicSignals": 4,
+    "logicChains": 1,
+    "initialMetrics": 4,
+    "expectedTransmissionPath": [
+      "Forced Liquidation",
+      "ETF / Leverage Unwind",
+      "Good News Failure",
+      "Selling Exhaustion",
+      "Fundamental Differentiation",
+      "Bottom Formation"
+    ],
+    "actualTransmissionPath": [
+      "Forced Liquidation",
+      "ETF / Leverage Unwind",
+      "Good News Failure",
+      "Selling Exhaustion",
+      "Fundamental Differentiation",
+      "Bottom Formation"
+    ],
+    "followUpAttached": 1,
+    "followUpNewChains": 0
+  },
+  "metrics": {
+    "atomicSignalPrecision": 100,
+    "atomicSignalRecall": 94.29,
+    "logicChainAttachmentPrecision": 100,
+    "duplicateLogicChainRate": 0,
+    "metricCompilationPrecision": 100,
+    "executableMetricRate": 100,
+    "invalidMetricRejectionRate": 100,
+    "confidenceUpdateCorrectness": 100,
+    "idempotencyPassRate": 100,
+    "committeeDuplicateRate": 0,
+    "narrativeFalsePositive": 0
+  },
+  "gates": {
+    "atomicSignalPrecision": true,
+    "atomicSignalRecall": true,
+    "logicChainAttachmentPrecision": true,
+    "duplicateLogicChainRate": true,
+    "metricCompilationPrecision": true,
+    "invalidMetricRejectionRate": true,
+    "idempotencyPassRate": true,
+    "committeeDuplicateRate": true,
+    "narrativeFalsePositive": true
+  },
+  "passed": true,
+  "limitations": [
+    "Gold Dataset contains 6 unique sourcePostIds, below the prior 12-source deployment target; no samples were fabricated or duplicated.",
+    "Candidate B atomic metrics are regression-tested separately from the deterministic semiconductor end-to-end fixture.",
+    "Real Yahoo Finance and derived ADR/FX behavior is not exercised in this offline evaluation."
+  ]
+}

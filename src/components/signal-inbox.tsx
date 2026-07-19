@@ -17,10 +17,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { extractAlanSignals } from "@/lib/alan-chan-parser";
+import { SignalResearchPanel } from "@/components/research/research-tracking-panels";
 import { type Signal, type SignalStatus } from "@/lib/decision-loop-data";
 import { useDecisionLoop } from "@/lib/decision-loop-store";
-import { alanSignalOperations, canEnterCommittee } from "@/lib/signal-operations";
+import type { ProcessSourceResponse } from "@/lib/research/research-engine";
+import { canEnterCommittee } from "@/lib/signal-operations";
 import { cn } from "@/lib/utils";
 
 const statuses: SignalStatus[] = ["NEW", "NEEDS_REVIEW", "TRACKING", "PROMOTED", "CONFIRMED", "INVALIDATED", "DISMISSED", "ARCHIVED"];
@@ -32,7 +33,6 @@ export function SignalInbox() {
     state,
     ready,
     error,
-    createSignal,
     createLogicChainFromSignal,
     sendSignalToCommittee,
     updateSignalStatus,
@@ -50,6 +50,7 @@ export function SignalInbox() {
   const [selectedId, setSelectedId] = useState(filtered[0]?.id ?? "");
   const [pasteText, setPasteText] = useState("");
   const [showImport, setShowImport] = useState(false);
+  const [importError, setImportError] = useState<string>();
   const [busyAction, setBusyAction] = useState("");
   const selected = filtered.find((signal) => signal.id === selectedId) ?? filtered[0];
 
@@ -59,53 +60,22 @@ export function SignalInbox() {
     }
   }, [filtered, selectedId]);
 
-  function importText() {
-    const parsed = extractAlanSignals(pasteText);
-    if (parsed.length) {
-      parsed.forEach((item) => {
-        const operations = alanSignalOperations(item, pasteText);
-        createSignal({
-          title: item.entity,
-          source: "Alan Chan",
-          originalText: pasteText,
-          summary: item.thesis,
-          original_source: "Alan Chan",
-          original_text: pasteText,
-          source_url: null,
-          source_type: "MEMBERSHIP_POST",
-          created_at: new Date().toISOString(),
-          confidence: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
-          tags: [item.category],
-          related_companies: [item.entity],
-          extractedSignal: item.thesis,
-          relatedIndustryChains: [],
-          priorityScore: item.priority === "High" ? 90 : item.priority === "Medium" ? 70 : 50,
-          tracking_frequency: "every_2_days",
-          ...operations,
-        });
-      });
-    } else if (pasteText.trim()) {
-      createSignal({
-        title: pasteText.trim().slice(0, 64),
-        source: "Manual",
-        originalText: pasteText.trim(),
-        summary: pasteText.trim(),
-        original_source: "Manual",
-        original_text: pasteText.trim(),
-        source_url: null,
-        source_type: "MANUAL",
-        created_at: new Date().toISOString(),
-        confidence: 60,
-        tags: ["Manual"],
-        related_companies: [],
-        extractedSignal: pasteText.trim(),
-        relatedTickers: [],
-        relatedIndustryChains: [],
-        priorityScore: 60,
-      });
+  async function importText() {
+    if (!pasteText.trim() || busyAction) return;
+    setBusyAction("import");
+    setImportError(undefined);
+    try {
+      const response = await fetch("/api/research/process-source", { method: "POST", headers: { "content-type": "application/json", "x-worldmonitor-client": "research-tracking-v2" }, body: JSON.stringify({ sourceText: pasteText.trim() }) });
+      const payload = await response.json() as ProcessSourceResponse & { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Signal extraction failed.");
+      setPasteText("");
+      setShowImport(false);
+      window.dispatchEvent(new Event("focus"));
+    } catch (requestError) {
+      setImportError(requestError instanceof Error ? requestError.message : "Signal extraction failed.");
+    } finally {
+      setBusyAction("");
     }
-    setPasteText("");
-    setShowImport(false);
   }
 
   function perform(action: string, callback: () => void) {
@@ -150,11 +120,12 @@ export function SignalInbox() {
               className="min-h-28 w-full resize-y rounded-md border bg-background p-3 text-sm leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <div className="flex gap-2 lg:flex-col">
-              <Button onClick={importText} disabled={!pasteText.trim()}>
-                <RadioTower className="size-4" /> Extract and create
+              <Button onClick={() => void importText()} disabled={!pasteText.trim() || busyAction === "import"}>
+                {busyAction === "import" ? <Loader2 className="size-4 animate-spin" /> : <RadioTower className="size-4" />} Extract and create
               </Button>
               <Button variant="outline" onClick={() => setShowImport(false)}>Cancel</Button>
             </div>
+            {importError ? <div className="text-xs text-red-700 lg:col-span-2">{importError}</div> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -289,6 +260,7 @@ function SignalDetail({ signal }: { signal: Signal }) {
       <CardContent className="space-y-6 pt-5">
         <Detail label="Original Text" value={signal.originalText} />
         <Detail label="Extracted Signal" value={signal.extractedSignal} />
+        {signal.atomicClaim ? <Detail label="Atomic Claim" value={signal.atomicClaim} /> : null}
         <Detail label="Trigger Event" value={signal.triggerEvent ?? "Needs review"} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Tags label="Related Tickers" values={signal.relatedTickers} empty="No ticker mapped" />
@@ -318,6 +290,15 @@ function SignalDetail({ signal }: { signal: Signal }) {
           <LinkedId label="Committee" value={signal.linkedCommitteeReportId} />
           <LinkedId label="Backtest" value={signal.linkedBacktestId} />
         </div>
+        {(signal.normalizedEntities?.length || signal.explicitConditions?.length || signal.qualityScoreV2 !== undefined) ? (
+          <SignalResearchPanel
+            signalId={signal.id}
+            logicChainId={signal.linkedLogicChainId}
+            entities={signal.normalizedEntities ?? []}
+            conditions={signal.explicitConditions ?? []}
+            reviewRequired={signal.reviewRequired}
+          />
+        ) : null}
         {(signal.relatedIndustryChains.length || (signal.related_asset_ids ?? []).length) ? (
           <details className="rounded-md border bg-muted/30 p-4">
             <summary className="cursor-pointer text-xs font-semibold uppercase text-muted-foreground">Legacy Metadata</summary>

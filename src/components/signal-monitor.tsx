@@ -6,15 +6,16 @@ import { ArrowRight, Cloud, Inbox, Loader2, RadioTower, RefreshCw } from "lucide
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { extractAlanSignals } from "@/lib/alan-chan-parser";
 import type { AutomationBurnInStats, AutomationRunSummary } from "@/lib/automation-types";
 import { useDecisionLoop } from "@/lib/decision-loop-store";
-import { alanSignalOperations } from "@/lib/signal-operations";
+import type { ProcessSourceResponse } from "@/lib/research/research-engine";
 
 export function SignalMonitor() {
-  const { state, createSignal, error } = useDecisionLoop();
+  const { state, error } = useDecisionLoop();
   const [sourceText, setSourceText] = useState("");
   const [createdCount, setCreatedCount] = useState<number | null>(null);
+  const [extractionBusy, setExtractionBusy] = useState(false);
+  const [extractionMessage, setExtractionMessage] = useState<string>();
   const [automationRun, setAutomationRun] = useState<AutomationRunSummary>();
   const [automationRuns, setAutomationRuns] = useState<AutomationRunSummary[]>([]);
   const [automationStats, setAutomationStats] = useState<AutomationBurnInStats>();
@@ -62,33 +63,27 @@ export function SignalMonitor() {
     }
   }
 
-  function extractAndSave() {
-    const parsed = extractAlanSignals(sourceText);
-    parsed.forEach((signal) => {
-      const operations = alanSignalOperations(signal, sourceText);
-      createSignal({
-        id: `signal-alan-${signal.id}`,
-        title: signal.entity,
-        source: "Alan Chan",
-        originalText: sourceText,
-        summary: signal.thesis,
-        original_source: "Alan Chan",
-        original_text: sourceText,
-        source_url: null,
-        source_type: "MEMBERSHIP_POST",
-        created_at: new Date().toISOString(),
-        confidence: signal.priority === "High" ? 90 : signal.priority === "Medium" ? 70 : 50,
-        tags: [signal.category, signal.priority],
-        related_companies: [signal.entity],
-        extractedSignal: signal.thesis,
-        relatedIndustryChains: [],
-        priorityScore: signal.priority === "High" ? 90 : signal.priority === "Medium" ? 70 : 50,
-        tracking_frequency: "every_2_days",
-        ...operations,
+  async function extractAndSave() {
+    if (!sourceText.trim() || extractionBusy) return;
+    setExtractionBusy(true);
+    setExtractionMessage(undefined);
+    try {
+      const response = await fetch("/api/research/process-source", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-worldmonitor-client": "research-tracking-v2" },
+        body: JSON.stringify({ sourceText: sourceText.trim() }),
       });
-    });
-    setCreatedCount(parsed.length);
-    if (parsed.length) setSourceText("");
+      const payload = await response.json() as ProcessSourceResponse & { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Source processing failed.");
+      setCreatedCount(payload.acceptedSignals);
+      setExtractionMessage(`${payload.extractedSignals} atomic · ${payload.attachedToExistingChains} attached · ${payload.newLogicChains} new chain · ${payload.metricsCreated} metrics${payload.reviewRequired ? ` · ${payload.reviewRequired} review` : ""}`);
+      if (payload.extractedSignals) setSourceText("");
+      window.dispatchEvent(new Event("focus"));
+    } catch (requestError) {
+      setExtractionMessage(requestError instanceof Error ? requestError.message : "Source processing failed.");
+    } finally {
+      setExtractionBusy(false);
+    }
   }
 
   return (
@@ -114,8 +109,9 @@ export function SignalMonitor() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-muted-foreground">
               {createdCount === null ? "Signals enter Signal Inbox immediately; repeated evidence updates the existing Signal." : createdCount ? `${createdCount} extracted Signal${createdCount === 1 ? "" : "s"} processed in the cloud Inbox.` : "No supported signal pattern was found."}
+              {extractionMessage ? <div className="mt-1 text-xs">{extractionMessage}</div> : null}
             </div>
-            <Button onClick={extractAndSave} disabled={!sourceText.trim()}><Inbox className="size-4" /> Extract to Signal Inbox</Button>
+            <Button onClick={() => void extractAndSave()} disabled={!sourceText.trim() || extractionBusy}>{extractionBusy ? <Loader2 className="size-4 animate-spin" /> : <Inbox className="size-4" />} Extract to Signal Inbox</Button>
           </div>
         </CardContent>
       </Card>
