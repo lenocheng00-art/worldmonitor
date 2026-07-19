@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-07-19T10:35:07.653Z",
+  "candidateA": {
+    "autoEntryPrecision": 100,
+    "autoEntryRecall": 20.69,
+    "falsePositiveCount": 0,
+    "falseNegativeCount": 23,
+    "abstentionRate": 82.86,
+    "needsReviewRoutingAccuracy": 83.33
+  },
+  "candidateB": {
+    "autoEntryPrecision": 100,
+    "autoEntryRecall": 75.86,
+    "falsePositiveCount": 0,
+    "falseNegativeCount": 7,
+    "abstentionRate": 37.14,
+    "needsReviewRoutingAccuracy": 83.33
+  },
+  "folds": [
+    {
+      "holdoutSourcePostId": "source-post-alan-1781222941327",
+      "autoEntryPrecision": 100,
+      "autoEntryRecall": 83.33,
+      "falsePositiveCount": 0,
+      "falseNegativeCount": 1,
+      "abstentionRate": 16.67,
+      "needsReviewRoutingAccuracy": 100
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1781491973583",
+      "autoEntryPrecision": 100,
+      "autoEntryRecall": 100,
+      "falsePositiveCount": 0,
+      "falseNegativeCount": 0,
+      "abstentionRate": 50,
+      "needsReviewRoutingAccuracy": 66.67
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1782726594854",
+      "autoEntryPrecision": 100,
+      "autoEntryRecall": 83.33,
+      "falsePositiveCount": 0,
+      "falseNegativeCount": 1,
+      "abstentionRate": 16.67,
+      "needsReviewRoutingAccuracy": 100
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1782726611378",
+      "autoEntryPrecision": 100,
+      "autoEntryRecall": 33.33,
+      "falsePositiveCount": 0,
+      "falseNegativeCount": 4,
+      "abstentionRate": 71.43,
+      "needsReviewRoutingAccuracy": 100
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1782726639246",
+      "autoEntryPrecision": 100,
+      "autoEntryRecall": 100,
+      "falsePositiveCount": 0,
+      "falseNegativeCount": 0,
+      "abstentionRate": 25,
+      "needsReviewRoutingAccuracy": 100
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1782726656984",
+      "autoEntryPrecision": 100,
+      "autoEntryRecall": 80,
+      "falsePositiveCount": 0,
+      "falseNegativeCount": 1,
+      "abstentionRate": 33.33,
+      "needsReviewRoutingAccuracy": 100
+    }
+  ]
+}

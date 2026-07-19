@@ -1,0 +1,761 @@
+{
+  "generatedAt": "2026-07-19T10:35:07.653Z",
+  "mode": "LEAVE_ONE_SOURCE_POST_OUT",
+  "productionConnectionUsed": false,
+  "productionWrites": 0,
+  "candidateFingerprint": "37da5da9f9b50aec194894a9b0ec0bd23c6381107dbfe27b4e8938fa08b76214",
+  "dataset": {
+    "version": "v1.8.2-candidate-b-1",
+    "sourcePostIdCount": 6,
+    "atomicUnitCount": 60,
+    "positiveCount": 35,
+    "rejectionCount": 25
+  },
+  "folds": [
+    {
+      "holdoutSourcePostId": "source-post-alan-1781222941327",
+      "trainingSourcePostIds": [
+        "source-post-alan-1781491973583",
+        "source-post-alan-1782726594854",
+        "source-post-alan-1782726611378",
+        "source-post-alan-1782726639246",
+        "source-post-alan-1782726656984"
+      ],
+      "holdoutRecordCount": 10,
+      "candidateFingerprint": "37da5da9f9b50aec194894a9b0ec0bd23c6381107dbfe27b4e8938fa08b76214",
+      "calibration": "STATIC_SOURCE_AGNOSTIC_RULES; HOLDOUT NOT PASSED TO EXTRACTOR OR PROMPT",
+      "candidateA": {
+        "precision": 100,
+        "recall": 100,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 66.67,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 100,
+        "invalidationExecutableRate": 100,
+        "weakInvalidationRate": 0,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 50,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 3,
+          "abstentionRate": 50,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 6.67,
+        "normalizedFivePointScore": 4.76,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 2,
+          "MANUAL_VERIFICATION_REQUIRED": 1,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 1
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 6,
+          "falsePositive": 0,
+          "falseNegative": 0,
+          "critical": 0,
+          "criticalMissed": 0
+        }
+      },
+      "candidateB": {
+        "precision": 100,
+        "recall": 100,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 100,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 100,
+        "invalidationExecutableRate": 83.33,
+        "weakInvalidationRate": 16.67,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 83.33,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 1,
+          "abstentionRate": 16.67,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 6.67,
+        "normalizedFivePointScore": 4.76,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 2,
+          "MANUAL_VERIFICATION_REQUIRED": 3,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 1
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 6,
+          "falsePositive": 0,
+          "falseNegative": 0,
+          "critical": 0,
+          "criticalMissed": 0
+        }
+      }
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1781491973583",
+      "trainingSourcePostIds": [
+        "source-post-alan-1781222941327",
+        "source-post-alan-1782726594854",
+        "source-post-alan-1782726611378",
+        "source-post-alan-1782726639246",
+        "source-post-alan-1782726656984"
+      ],
+      "holdoutRecordCount": 10,
+      "candidateFingerprint": "37da5da9f9b50aec194894a9b0ec0bd23c6381107dbfe27b4e8938fa08b76214",
+      "calibration": "STATIC_SOURCE_AGNOSTIC_RULES; HOLDOUT NOT PASSED TO EXTRACTOR OR PROMPT",
+      "candidateA": {
+        "precision": 100,
+        "recall": 83.33,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 75,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 60,
+        "invalidationExecutableRate": 20,
+        "weakInvalidationRate": 80,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 0,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 3,
+          "abstentionRate": 100,
+          "needsReviewRoutingAccuracy": 66.67
+        },
+        "averageQualityScore": 4.83,
+        "normalizedFivePointScore": 3.45,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 4,
+          "MANUAL_VERIFICATION_REQUIRED": 2,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 5,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "critical": 0,
+          "criticalMissed": 0
+        }
+      },
+      "candidateB": {
+        "precision": 100,
+        "recall": 83.33,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 100,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 100,
+        "invalidationExecutableRate": 100,
+        "weakInvalidationRate": 0,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 100,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 0,
+          "abstentionRate": 50,
+          "needsReviewRoutingAccuracy": 66.67
+        },
+        "averageQualityScore": 5.83,
+        "normalizedFivePointScore": 4.17,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 4,
+          "MANUAL_VERIFICATION_REQUIRED": 4,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 5,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "critical": 0,
+          "criticalMissed": 0
+        }
+      }
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1782726594854",
+      "trainingSourcePostIds": [
+        "source-post-alan-1781222941327",
+        "source-post-alan-1781491973583",
+        "source-post-alan-1782726611378",
+        "source-post-alan-1782726639246",
+        "source-post-alan-1782726656984"
+      ],
+      "holdoutRecordCount": 10,
+      "candidateFingerprint": "37da5da9f9b50aec194894a9b0ec0bd23c6381107dbfe27b4e8938fa08b76214",
+      "calibration": "STATIC_SOURCE_AGNOSTIC_RULES; HOLDOUT NOT PASSED TO EXTRACTOR OR PROMPT",
+      "candidateA": {
+        "precision": 100,
+        "recall": 50,
+        "criticalRecall": 0,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 100,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 100,
+        "invalidationExecutableRate": 100,
+        "weakInvalidationRate": 0,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 0,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 6,
+          "abstentionRate": 100,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 3.5,
+        "normalizedFivePointScore": 2.5,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 3,
+          "MANUAL_VERIFICATION_REQUIRED": 3,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 3,
+          "falsePositive": 0,
+          "falseNegative": 3,
+          "critical": 3,
+          "criticalMissed": 3
+        }
+      },
+      "candidateB": {
+        "precision": 100,
+        "recall": 100,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 100,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 83.33,
+        "invalidationExecutableRate": 83.33,
+        "weakInvalidationRate": 16.67,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 83.33,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 1,
+          "abstentionRate": 16.67,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 6.83,
+        "normalizedFivePointScore": 4.88,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 5,
+          "MANUAL_VERIFICATION_REQUIRED": 3,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 6,
+          "falsePositive": 0,
+          "falseNegative": 0,
+          "critical": 3,
+          "criticalMissed": 0
+        }
+      }
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1782726611378",
+      "trainingSourcePostIds": [
+        "source-post-alan-1781222941327",
+        "source-post-alan-1781491973583",
+        "source-post-alan-1782726594854",
+        "source-post-alan-1782726639246",
+        "source-post-alan-1782726656984"
+      ],
+      "holdoutRecordCount": 10,
+      "candidateFingerprint": "37da5da9f9b50aec194894a9b0ec0bd23c6381107dbfe27b4e8938fa08b76214",
+      "calibration": "STATIC_SOURCE_AGNOSTIC_RULES; HOLDOUT NOT PASSED TO EXTRACTOR OR PROMPT",
+      "candidateA": {
+        "precision": 100,
+        "recall": 71.43,
+        "criticalRecall": 66.67,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 80,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 100,
+        "invalidationExecutableRate": 80,
+        "weakInvalidationRate": 20,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 50,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 3,
+          "abstentionRate": 57.14,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 4.71,
+        "normalizedFivePointScore": 3.37,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 1,
+          "MANUAL_VERIFICATION_REQUIRED": 1,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 5,
+          "falsePositive": 0,
+          "falseNegative": 2,
+          "critical": 3,
+          "criticalMissed": 1
+        }
+      },
+      "candidateB": {
+        "precision": 100,
+        "recall": 85.71,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 100,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 83.33,
+        "invalidationExecutableRate": 83.33,
+        "weakInvalidationRate": 16.67,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 33.33,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 4,
+          "abstentionRate": 71.43,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 5.43,
+        "normalizedFivePointScore": 3.88,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 1,
+          "MANUAL_VERIFICATION_REQUIRED": 1,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 6,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "critical": 3,
+          "criticalMissed": 0
+        }
+      }
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1782726639246",
+      "trainingSourcePostIds": [
+        "source-post-alan-1781222941327",
+        "source-post-alan-1781491973583",
+        "source-post-alan-1782726594854",
+        "source-post-alan-1782726611378",
+        "source-post-alan-1782726656984"
+      ],
+      "holdoutRecordCount": 9,
+      "candidateFingerprint": "37da5da9f9b50aec194894a9b0ec0bd23c6381107dbfe27b4e8938fa08b76214",
+      "calibration": "STATIC_SOURCE_AGNOSTIC_RULES; HOLDOUT NOT PASSED TO EXTRACTOR OR PROMPT",
+      "candidateA": {
+        "precision": 100,
+        "recall": 100,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 100,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 75,
+        "invalidationExecutableRate": 75,
+        "weakInvalidationRate": 25,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 0,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 3,
+          "abstentionRate": 100,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 6.5,
+        "normalizedFivePointScore": 4.64,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 3,
+          "MANUAL_VERIFICATION_REQUIRED": 3,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 4,
+          "falsePositive": 0,
+          "falseNegative": 0,
+          "critical": 0,
+          "criticalMissed": 0
+        }
+      },
+      "candidateB": {
+        "precision": 100,
+        "recall": 100,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 100,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 100,
+        "invalidationExecutableRate": 100,
+        "weakInvalidationRate": 0,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 100,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 0,
+          "abstentionRate": 25,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 7,
+        "normalizedFivePointScore": 5,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 3,
+          "MANUAL_VERIFICATION_REQUIRED": 4,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 4,
+          "falsePositive": 0,
+          "falseNegative": 0,
+          "critical": 0,
+          "criticalMissed": 0
+        }
+      }
+    },
+    {
+      "holdoutSourcePostId": "source-post-alan-1782726656984",
+      "trainingSourcePostIds": [
+        "source-post-alan-1781222941327",
+        "source-post-alan-1781491973583",
+        "source-post-alan-1782726594854",
+        "source-post-alan-1782726611378",
+        "source-post-alan-1782726639246"
+      ],
+      "holdoutRecordCount": 11,
+      "candidateFingerprint": "37da5da9f9b50aec194894a9b0ec0bd23c6381107dbfe27b4e8938fa08b76214",
+      "calibration": "STATIC_SOURCE_AGNOSTIC_RULES; HOLDOUT NOT PASSED TO EXTRACTOR OR PROMPT",
+      "candidateA": {
+        "precision": 100,
+        "recall": 83.33,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 75,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 60,
+        "invalidationExecutableRate": 60,
+        "weakInvalidationRate": 40,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 0,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 5,
+          "abstentionRate": 100,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 5.17,
+        "normalizedFivePointScore": 3.69,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 4,
+          "MANUAL_VERIFICATION_REQUIRED": 1,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 5,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "critical": 1,
+          "criticalMissed": 0
+        }
+      },
+      "candidateB": {
+        "precision": 100,
+        "recall": 100,
+        "criticalRecall": 100,
+        "narrativeFalsePositiveRate": 0,
+        "tickerAccuracy": 100,
+        "directionCompletionRate": 100,
+        "confirmationExecutableRate": 83.33,
+        "invalidationExecutableRate": 83.33,
+        "weakInvalidationRate": 16.67,
+        "committee": {
+          "autoEntryPrecision": 100,
+          "autoEntryRecall": 80,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 1,
+          "abstentionRate": 33.33,
+          "needsReviewRoutingAccuracy": 100
+        },
+        "averageQualityScore": 6.83,
+        "normalizedFivePointScore": 4.88,
+        "duplicateSignalCount": 0,
+        "missingDirectionCount": 0,
+        "dataUnavailableReasons": {
+          "SOURCE_UNAVAILABLE": 0,
+          "AWAITING_EVENT": 4,
+          "MANUAL_VERIFICATION_REQUIRED": 1,
+          "INVALID_TICKER": 0,
+          "UNSUPPORTED_INSTRUMENT": 0
+        },
+        "yahooFinanceFailureCount": 0,
+        "counts": {
+          "truePositive": 6,
+          "falsePositive": 0,
+          "falseNegative": 0,
+          "critical": 1,
+          "criticalMissed": 0
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "candidateA": {
+      "precision": 100,
+      "recall": 80,
+      "criticalRecall": 42.86,
+      "narrativeFalsePositiveRate": 0,
+      "tickerAccuracy": 80,
+      "directionCompletionRate": 100,
+      "confirmationExecutableRate": 82.14,
+      "invalidationExecutableRate": 71.43,
+      "weakInvalidationRate": 28.57,
+      "committee": {
+        "autoEntryPrecision": 100,
+        "autoEntryRecall": 20.69,
+        "falsePositiveCount": 0,
+        "falseNegativeCount": 23,
+        "abstentionRate": 82.86,
+        "needsReviewRoutingAccuracy": 83.33
+      },
+      "averageQualityScore": 5.14,
+      "normalizedFivePointScore": 3.67,
+      "duplicateSignalCount": 0,
+      "missingDirectionCount": 0,
+      "dataUnavailableReasons": {
+        "SOURCE_UNAVAILABLE": 0,
+        "AWAITING_EVENT": 17,
+        "MANUAL_VERIFICATION_REQUIRED": 11,
+        "INVALID_TICKER": 0,
+        "UNSUPPORTED_INSTRUMENT": 1
+      },
+      "yahooFinanceFailureCount": 0,
+      "counts": {
+        "truePositive": 28,
+        "falsePositive": 0,
+        "falseNegative": 7,
+        "critical": 7,
+        "criticalMissed": 4
+      }
+    },
+    "candidateB": {
+      "precision": 100,
+      "recall": 94.29,
+      "criticalRecall": 100,
+      "narrativeFalsePositiveRate": 0,
+      "tickerAccuracy": 100,
+      "directionCompletionRate": 100,
+      "confirmationExecutableRate": 90.91,
+      "invalidationExecutableRate": 87.88,
+      "weakInvalidationRate": 12.12,
+      "committee": {
+        "autoEntryPrecision": 100,
+        "autoEntryRecall": 75.86,
+        "falsePositiveCount": 0,
+        "falseNegativeCount": 7,
+        "abstentionRate": 37.14,
+        "needsReviewRoutingAccuracy": 83.33
+      },
+      "averageQualityScore": 6.37,
+      "normalizedFivePointScore": 4.55,
+      "duplicateSignalCount": 0,
+      "missingDirectionCount": 0,
+      "dataUnavailableReasons": {
+        "SOURCE_UNAVAILABLE": 0,
+        "AWAITING_EVENT": 19,
+        "MANUAL_VERIFICATION_REQUIRED": 16,
+        "INVALID_TICKER": 0,
+        "UNSUPPORTED_INSTRUMENT": 1
+      },
+      "yahooFinanceFailureCount": 0,
+      "counts": {
+        "truePositive": 33,
+        "falsePositive": 0,
+        "falseNegative": 2,
+        "critical": 7,
+        "criticalMissed": 0
+      }
+    }
+  },
+  "invalidationRepairs": {
+    "candidateAWeakCount": 6,
+    "repairedCount": 5,
+    "repairedUnitIds": [
+      "gold-009-panw-ai-kyc",
+      "gold-010-net-ai-security",
+      "gold-011-anthropic-roadshow",
+      "gold-024-korea-margin-deleveraging",
+      "gold-029-fed-inflation-anchor"
+    ]
+  },
+  "gates": {
+    "aggregate": {
+      "precisionAtLeast95": true,
+      "recallAtLeast90": true,
+      "criticalRecall100": true,
+      "narrativeFalsePositiveAtMost5": true,
+      "tickerAccuracyAtLeast95": true,
+      "directionCompletion100": true,
+      "confirmationExecutableAtLeast85": true,
+      "invalidationExecutableAtLeast80": true,
+      "weakInvalidationAtMost20": true,
+      "incorrectCommitteeAutoEntryZero": true,
+      "duplicateSignalZero": true,
+      "averageQualityAtLeast4_5": true,
+      "normalizedFivePointAtLeast3": true
+    },
+    "coverage": {
+      "sourcePostIdsAtLeast12": false,
+      "atomicUnitsAtLeast60": true,
+      "rejectionSamplesAtLeast15": true
+    },
+    "perFold": [
+      {
+        "holdoutSourcePostId": "source-post-alan-1781222941327",
+        "precisionAtLeast95": true,
+        "recallAtLeast90": true,
+        "criticalRecall100": true,
+        "narrativeFalsePositiveAtMost5": true,
+        "tickerAccuracyAtLeast95": true,
+        "directionCompletion100": true,
+        "confirmationExecutableAtLeast85": true,
+        "invalidationExecutableAtLeast80": true,
+        "weakInvalidationAtMost20": true,
+        "incorrectCommitteeAutoEntryZero": true,
+        "duplicateSignalZero": true,
+        "averageQualityAtLeast4_5": true,
+        "normalizedFivePointAtLeast3": true
+      },
+      {
+        "holdoutSourcePostId": "source-post-alan-1781491973583",
+        "precisionAtLeast95": true,
+        "recallAtLeast90": false,
+        "criticalRecall100": true,
+        "narrativeFalsePositiveAtMost5": true,
+        "tickerAccuracyAtLeast95": true,
+        "directionCompletion100": true,
+        "confirmationExecutableAtLeast85": true,
+        "invalidationExecutableAtLeast80": true,
+        "weakInvalidationAtMost20": true,
+        "incorrectCommitteeAutoEntryZero": true,
+        "duplicateSignalZero": true,
+        "averageQualityAtLeast4_5": true,
+        "normalizedFivePointAtLeast3": true
+      },
+      {
+        "holdoutSourcePostId": "source-post-alan-1782726594854",
+        "precisionAtLeast95": true,
+        "recallAtLeast90": true,
+        "criticalRecall100": true,
+        "narrativeFalsePositiveAtMost5": true,
+        "tickerAccuracyAtLeast95": true,
+        "directionCompletion100": true,
+        "confirmationExecutableAtLeast85": false,
+        "invalidationExecutableAtLeast80": true,
+        "weakInvalidationAtMost20": true,
+        "incorrectCommitteeAutoEntryZero": true,
+        "duplicateSignalZero": true,
+        "averageQualityAtLeast4_5": true,
+        "normalizedFivePointAtLeast3": true
+      },
+      {
+        "holdoutSourcePostId": "source-post-alan-1782726611378",
+        "precisionAtLeast95": true,
+        "recallAtLeast90": false,
+        "criticalRecall100": true,
+        "narrativeFalsePositiveAtMost5": true,
+        "tickerAccuracyAtLeast95": true,
+        "directionCompletion100": true,
+        "confirmationExecutableAtLeast85": false,
+        "invalidationExecutableAtLeast80": true,
+        "weakInvalidationAtMost20": true,
+        "incorrectCommitteeAutoEntryZero": true,
+        "duplicateSignalZero": true,
+        "averageQualityAtLeast4_5": true,
+        "normalizedFivePointAtLeast3": true
+      },
+      {
+        "holdoutSourcePostId": "source-post-alan-1782726639246",
+        "precisionAtLeast95": true,
+        "recallAtLeast90": true,
+        "criticalRecall100": true,
+        "narrativeFalsePositiveAtMost5": true,
+        "tickerAccuracyAtLeast95": true,
+        "directionCompletion100": true,
+        "confirmationExecutableAtLeast85": true,
+        "invalidationExecutableAtLeast80": true,
+        "weakInvalidationAtMost20": true,
+        "incorrectCommitteeAutoEntryZero": true,
+        "duplicateSignalZero": true,
+        "averageQualityAtLeast4_5": true,
+        "normalizedFivePointAtLeast3": true
+      },
+      {
+        "holdoutSourcePostId": "source-post-alan-1782726656984",
+        "precisionAtLeast95": true,
+        "recallAtLeast90": true,
+        "criticalRecall100": true,
+        "narrativeFalsePositiveAtMost5": true,
+        "tickerAccuracyAtLeast95": true,
+        "directionCompletion100": true,
+        "confirmationExecutableAtLeast85": false,
+        "invalidationExecutableAtLeast80": true,
+        "weakInvalidationAtMost20": true,
+        "incorrectCommitteeAutoEntryZero": true,
+        "duplicateSignalZero": true,
+        "averageQualityAtLeast4_5": true,
+        "normalizedFivePointAtLeast3": true
+      }
+    ]
+  },
+  "deploymentEligible": false,
+  "recommendation": "DO NOT DEPLOY. Failed gates: sourcePostIdsAtLeast12."
+}

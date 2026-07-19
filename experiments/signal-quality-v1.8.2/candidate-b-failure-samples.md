@@ -1,0 +1,71 @@
+# WorldMonitor V1.8.2 — Candidate B Failure Samples
+
+Failure units: **6**
+
+## gold-012-q3-export-control-disclosures
+
+- Source Post: `source-post-alan-1781491973583`
+- Importance: **Material**
+- Issues: MISSED_SIGNAL
+- Expected ticker/status: — / NEEDS_REVIEW
+- Actual ticker/status: — / —
+- Rejection: MANUAL_VERIFICATION_REQUIRED
+
+③ Q3科技财报李（7-8月）：如果出口管制持续超过一个月，它的影响会最早出现在科技公司的Q3财报里。特别关注这些关键词：各AI公司是否提到”出口管制影响"国际客户迁移"合规成本"区域化部署"。如果多家公司同时提到
+-出口管制正在重塑AI行业的收入结构。
+
+## gold-013-mu-contract-cycle
+
+- Source Post: `source-post-alan-1782726594854`
+- Importance: **Critical**
+- Issues: WEAK_CONFIRMATION, WEAK_INVALIDATION
+- Expected ticker/status: MU / VALIDATED
+- Actual ticker/status: MU / VALIDATED
+- Rejection: —
+
+⚡ 核心结论：
+美光一个季度的净利，追平了一年前的英伟达，下季指引还要全面盖过它，可它的市值只有当年英伟达的四分之一。市场嘴上喊它便宜，手上仍按“周期股”给它打折。真正的问题不是它贵不贵，而是它签下的16份长约，到底能不能废掉内存四十年的周期律——而这笔赌注，悄悄押在了“七姐妹的资本开支永远不停”这件事上。
+
+## gold-021-googl-talent-trend
+
+- Source Post: `source-post-alan-1782726611378`
+- Importance: **Material**
+- Issues: MISSED_SIGNAL
+- Expected ticker/status: GOOG / VALIDATED
+- Actual ticker/status: — / —
+- Rejection: MANUAL_VERIFICATION_REQUIRED
+
+权重最低的是GOOG的人才流失。两个人走了对短期股价有冲击，但Alphabet Q1利润增长82%，零个分析师给卖出，$350支撑位没破。这更像情绪打折，不是基本面转折。真正需要关注的是后续是否还有更多核心研究者离开——如果变成趋势性流失，那是另一个故事。
+
+## gold-036-spcx-q2-earnings
+
+- Source Post: `source-post-alan-1782726656984`
+- Importance: **Critical**
+- Issues: WEAK_CONFIRMATION, WEAK_INVALIDATION
+- Expected ticker/status: SPCX / VALIDATED
+- Actual ticker/status: SPCX / VALIDATED
+- Rejection: —
+
+② 7月底（Q2财报）：SpaceX作为上市公司的第一份季度财报。所有人会盯三个数字。第一，Starlink用户增长和ARPU变化（5月涨价$10有没有效果）。第二，xAI云租赁收入规模（260亿年合同实际执行了多少）。第三，Cursor并表后的收入贡献。这份财报决定了市场对"飞轮"的信仰能不能撑到年底。
+
+## gold-b-039-spacex-opening-liquidity
+
+- Source Post: `source-post-alan-1781222941327`
+- Importance: **Material**
+- Issues: WEAK_INVALIDATION
+- Expected ticker/status: SPCX / VALIDATED
+- Actual ticker/status: SPCX / VALIDATED
+- Rejection: —
+
+① 明天6月12日：SpaceX上市首日。观察第一个小时的成交量、MSCI被动基金买入占总成交的比例、以及散户券商的申购完成率。如果开盘成交量超过500亿美金且被动基金占比超过30% → 价格是被指数规则顶上去的，这种支撑一旦被动买入完成就会消失。如果成交量低于200亿且价格守住$135以上 → 说明市场自发愿意在这个价位接。
+
+## gold-b-051-mu-earnings-event
+
+- Source Post: `source-post-alan-1782726611378`
+- Importance: **Critical**
+- Issues: WEAK_CONFIRMATION, WEAK_INVALIDATION
+- Expected ticker/status: MU / VALIDATED
+- Actual ticker/status: MU / VALIDATED
+- Rejection: —
+
+① 6月24日盘后（明天）：MU财报。本轮最重要的单一事件。毛利率 > guidance措辞 > HBM4爬坡。数字出来后第一时间在会员区更新拆解。

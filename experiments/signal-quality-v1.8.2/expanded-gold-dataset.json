@@ -1,0 +1,2203 @@
+{
+  "name": "WorldMonitor Signal Extraction Expanded Gold Dataset",
+  "version": "v1.8.2-candidate-b-1",
+  "generatedAt": "2026-07-19T10:35:07.585Z",
+  "source": "Frozen local Production backup plus read-only anon sourcePostId inventory",
+  "productionWriteCredentialsUsed": false,
+  "productionWrites": 0,
+  "sourcePostIdCount": 6,
+  "sourcePostIds": [
+    "source-post-alan-1781222941327",
+    "source-post-alan-1781491973583",
+    "source-post-alan-1782726594854",
+    "source-post-alan-1782726611378",
+    "source-post-alan-1782726639246",
+    "source-post-alan-1782726656984"
+  ],
+  "atomicUnitCount": 60,
+  "positiveCount": 35,
+  "rejectionCount": 25,
+  "coverageTargets": {
+    "sourcePostIds": {
+      "actual": 6,
+      "required": 12,
+      "passed": false
+    },
+    "atomicUnits": {
+      "actual": 60,
+      "required": 60,
+      "passed": true
+    },
+    "rejections": {
+      "actual": 25,
+      "required": 15,
+      "passed": true
+    }
+  },
+  "records": [
+    {
+      "unitId": "gold-001-polymarket-contract",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "Polymarket 2026年加息概率从一个月前10%升至约54%（Polymarket 6/11）",
+      "shouldCreateSignal": false,
+      "rejectionReason": "UNSUPPORTED_INSTRUMENT",
+      "expectedTicker": [],
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "PREDICTION_MARKET",
+      "expectedTickerResolutionStatus": "UNSUPPORTED",
+      "expectedInstrumentType": "NONE",
+      "importance": "Marginal"
+    },
+    {
+      "unitId": "gold-002-vlo-crack-spread",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "第一个，Valero Energy（VLO）。美国最大的独立炼油商之一。视频里讲的伊朗局势推高了原油价格，但炼油商的利润取决于\"裂解价差\"，也就是成品油和原油之间的价格差。如果伊朗和美国真的谈成，原油跌但成品油跌得更慢，裂解价差反而可能扩大。反过来，如果谈崩了油价继续冲，炼油商的进货成本暴涨，价差可能被压缩。\n观察条件：如果WTI在一周内从$90跌到$80以下、而RBOB汽油期货跌幅小于原油跌幅 → 裂解价差在扩大，对VLO是正面的。如果WTI突破$95且裂解价差收窄到$20以下 → 进货成本吃掉利润，要小心。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "VLO"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "WTI falls below $80 within one week while RBOB gasoline falls more slowly, widening the crack spread.",
+      "expectedTimeHorizon": "1 week",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "WTI_RBOB_CRACK_SPREAD",
+          "unit": "USD_PER_BARREL",
+          "timeWindow": "1 week",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "WTI_RBOB_CRACK_SPREAD",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "WTI < 80 and RBOB decline is smaller than WTI decline",
+          "unit": "USD_PER_BARREL",
+          "timeWindow": "1 week",
+          "deadline": "2026-06-19",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "WTI_RBOB_CRACK_SPREAD",
+          "operator": "LESS_THAN",
+          "threshold": 20,
+          "event": null,
+          "unit": "USD_PER_BARREL",
+          "timeWindow": "1 week",
+          "deadline": "2026-06-19",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedDataSourceType": "MARKET_PRICE",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-003-anet-oracle-capex",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "第二个，Arista Networks（ANET）。甲骨文、谷歌、微软这些公司砸几百亿建数据中心，机房里面需要什么？网络交换机。Arista是数据中心网络设备的主要供应商之一。视频里讲甲骨文一年半花了近900亿建机房，这些钱有相当一部分流向了网络设备。但ANET的估值已经不低，如果AI资本支出的增速放缓，它的订单增速也会跟着掉。\n观察条件：关注甲骨文FY2027 Q1财报（预计9月）里的资本开支实际执行数字。如果甲骨文的CapEx同比增速从60%以上降到30%以下 → AI基建周期减速的信号，ANET需要重新评估。如果CapEx继续加速 → 管道里的订单还在涨。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "ANET"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Oracle FY2027 Q1 capex growth confirms or breaks the AI networking demand pipeline for Arista.",
+      "expectedTimeHorizon": "through September 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "ORCL_CAPEX_YOY",
+          "unit": "PERCENT",
+          "timeWindow": "through September 2026",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "ORCL_CAPEX_YOY",
+          "operator": "GREATER_THAN_OR_EQUAL",
+          "threshold": 60,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "FY2027 Q1",
+          "deadline": "2026-09-30",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "ORCL_CAPEX_YOY",
+          "operator": "LESS_THAN",
+          "threshold": 30,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "FY2027 Q1",
+          "deadline": "2026-09-30",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-004-rklb-spacex-linkage",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "第三个，Rocket Lab（RKLB）。SpaceX明天上市，整个商业航天板块的估值锚会被重新定义。如果SpaceX以1.75万亿上市并且守住甚至涨，\"航天估值天花板\"被抬高，市场可能重新审视Rocket Lab这类中小型火箭公司的估值折价。但如果SpaceX上市后跌破发行价，整个板块的情绪会跟着降温。\n观察条件：观察SpaceX上市后第一周RKLB的走势是否出现\"跟涨效应\"。如果SpaceX涨10%以上且RKLB同步涨5%以上 → 板块联动生效。如果SpaceX跌破$135且RKLB不跟跌 → 说明市场已经把两家区分定价了。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "RKLB"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "SpaceX's first public-market week tests whether RKLB receives a commercial-space valuation linkage.",
+      "expectedTimeHorizon": "first trading week",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "RKLB_RELATIVE_RETURN_VS_SPCX",
+          "unit": "PERCENT",
+          "timeWindow": "first trading week",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "RKLB_RELATIVE_RETURN_VS_SPCX",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "SPCX return >= 10% and RKLB return >= 5%",
+          "unit": "PERCENT",
+          "timeWindow": "1 week",
+          "deadline": "2026-06-19",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "RKLB_RELATIVE_RETURN_VS_SPCX",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "SPCX trades below 135 while RKLB does not follow, disproving sector linkage",
+          "unit": "PERCENT",
+          "timeWindow": "1 week",
+          "deadline": "2026-06-19",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedDataSourceType": "MARKET_PRICE",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-005-fomc-growth-repricing",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "② 6月16-17日：沃什首次FOMC。重点不是加不加息（99%不动），而是看三件事：点阵图有没有上移、声明里有没有出现\"加息\"字样、新闻发布会语气是鸽是鹰。如果沃什说\"如果通胀持续上行我们不排除采取行动\" → 科技股会先跌为敬，甲骨文/SpaceX的借钱成本叙事会被重新定价。如果他说\"我们有耐心等通胀自然回落\" → 市场松一口气，成长股反弹。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "QQQ"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "The June FOMC statement and press conference reprice long-duration growth equities through policy tone.",
+      "expectedTimeHorizon": "June 16-17, 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "FOMC_POLICY_TONE",
+          "unit": "EVENT",
+          "timeWindow": "June 16-17, 2026",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "FOMC_POLICY_TONE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Fed explicitly keeps further tightening on the table",
+          "unit": "EVENT",
+          "timeWindow": "meeting window",
+          "deadline": "2026-06-17",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "FOMC_POLICY_TONE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Fed emphasizes patience and natural disinflation",
+          "unit": "EVENT",
+          "timeWindow": "meeting window",
+          "deadline": "2026-06-17",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedDataSourceType": "MACRO",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "ETF",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-006-iran-oil-window",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "③ 伊朗停火谈判60天窗口。川普今天声称伊朗最高层已批准一份含60天核谈判的草案。如果接下来一周伊朗方面正式确认并重开霍尔木兹海峡通航 → 油价可能快速回落到$80以下，CPI的能源推力消失，通胀叙事大幅缓和。如果一周内没有正式确认且美伊再次交火 → 油价可能突破$95，下一期CPI可能冲上4.5%。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "CL=F"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Iran's response within the ceasefire negotiation window determines whether oil falls below $80 or breaks above $95.",
+      "expectedTimeHorizon": "1 week within a 60-day negotiation window",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "HORMUZ_NEGOTIATION_STATUS",
+          "unit": "EVENT",
+          "timeWindow": "1 week within a 60-day negotiation window",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "HORMUZ_NEGOTIATION_STATUS",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Iran confirms the proposal and Strait of Hormuz traffic reopens",
+          "unit": "EVENT",
+          "timeWindow": "1 week",
+          "deadline": "2026-06-19",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "HORMUZ_NEGOTIATION_STATUS",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "No confirmation and renewed US-Iran hostilities",
+          "unit": "EVENT",
+          "timeWindow": "1 week",
+          "deadline": "2026-06-19",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedDataSourceType": "EVENT",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "COMMODITY_FUTURE",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-007-sovereignty-narrative",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "6月12日发生了两件表面无关的事：Spacex上市+Anthropic 最强AI模型被出口管制。把它们放在一起看，你会发现美国正在把一整条“技术主权栈\"锁住—从火箭到芯片到AI模型。这意味着AI不再是一个普通的互联网产品，它正在变成跟火箭一样级别的国家管制资产。",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "importance": "Marginal"
+    },
+    {
+      "unitId": "gold-008-meta-open-model-regulation",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "第一个，Meta （META）。Meta的Llama是目前最大的开源AI模型。视频里讲到一个法律争论：闭源模型和开源模型在出口管制下的法律地位可能完全不同。开源权重更接近“代码/出版物\"，可能受言论自由保护；闭源云模型更像\"商业服务\"，政府管制空间大得多。如果这条分裂真的发生，Meta的开源策略从\"防御姿态\"变成\"全球唯一不受管制的前沿AI\"。观察条件：如果未来6个月更多闭源模型被出口管制+美国法院倾向认定开源权重受第一修正案保护 Llama的全球企业采用率会显著加速。反面：如果管制扩展到开源模型 —这条逻辑不成立。观察META 下季度财报中\"Llama全球下载量和企业部署\"数据变化。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "META"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "A regulatory split between closed and open AI models could accelerate Llama enterprise adoption.",
+      "expectedTimeHorizon": "6 months",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "LLAMA_ENTERPRISE_ADOPTION",
+          "unit": "DOWNLOADS_AND_DEPLOYMENTS",
+          "timeWindow": "6 months",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "LLAMA_ENTERPRISE_ADOPTION",
+          "operator": "INCREASES",
+          "threshold": null,
+          "event": "Closed models face more restrictions while open weights retain legal protection",
+          "unit": "DOWNLOADS_AND_DEPLOYMENTS",
+          "timeWindow": "6 months",
+          "deadline": "2026-12-12",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "AI_EXPORT_CONTROL_SCOPE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Export controls expand to open-source model weights",
+          "unit": "EVENT",
+          "timeWindow": "6 months",
+          "deadline": "2026-12-12",
+          "sourceType": "OFFICIAL_ANNOUNCEMENT"
+        }
+      ],
+      "expectedDataSourceType": "OPERATIONAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-009-panw-ai-kyc",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "第二个，Palo Alto Networks （PANW）。视频里提到一个问题：如果\"外国国民”是管制对象，迟早需要一套身份验证系统。“KYC for AI\"（AI身份验证）如果成为行业标准，提供这类安全基础设施的公司就是这条赛道的卖铲子的。\nPANW已经在做AI驱动的网络安全，如果 AI访问控制变成合规需求，它的产品线直接对接。\n观察条件：如果美国政府在接下来3个月出台AI访问控制的具体执行标准 关注PANW/CRWD是否推出\"AI合规验证“产品线。如果管制被撤回或淡化 -这条需求减弱。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "PANW"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "US implementation standards for AI access control create a compliance product opportunity for PANW.",
+      "expectedTimeHorizon": "3 months",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "AI_ACCESS_CONTROL_STANDARD",
+          "unit": "EVENT",
+          "timeWindow": "3 months",
+          "sourceType": "OFFICIAL_ANNOUNCEMENT"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "AI_ACCESS_CONTROL_STANDARD",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "US government publishes implementation rules and PANW launches an AI compliance product",
+          "unit": "EVENT",
+          "timeWindow": "3 months",
+          "deadline": "2026-09-12",
+          "sourceType": "OFFICIAL_ANNOUNCEMENT"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "AI_ACCESS_CONTROL_STANDARD",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Restrictions are withdrawn or materially diluted",
+          "unit": "EVENT",
+          "timeWindow": "3 months",
+          "deadline": "2026-09-12",
+          "sourceType": "OFFICIAL_ANNOUNCEMENT"
+        }
+      ],
+      "expectedDataSourceType": "EVENT",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-010-net-ai-security",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "第三个，Cloudflare （NET）。Cloudflare 是 Anthropic\"玻璃翼计划”的参与方之一，一家就报告了2000个漏洞、其中\n400个高危级别。如果AI安全检测变成常态化需求—每次发布新模型都要过安全验证—Cloudflare 的安全CDN角色变得更重要。它既是AI服务的分发入口，又是安全检查的节点。\n观察条件：如果Cloudflare 在下季度财报提到 Glasswing/AI 安全检测相关收入增长 -验证\"AI安全基础设施\"赛道成立。如果出口管制只是一次性事件 ＞影响有限。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "NET"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Cloudflare's next earnings disclosure tests whether AI security validation has become recurring revenue.",
+      "expectedTimeHorizon": "next quarterly earnings",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "NET_AI_SECURITY_REVENUE",
+          "unit": "USD",
+          "timeWindow": "next quarterly earnings",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "NET_AI_SECURITY_REVENUE",
+          "operator": "INCREASES",
+          "threshold": null,
+          "event": "Management reports Glasswing or AI security detection revenue growth",
+          "unit": "USD",
+          "timeWindow": "next quarter",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "NET_AI_SECURITY_REVENUE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Management characterizes the export-control demand as a one-time event",
+          "unit": "EVENT",
+          "timeWindow": "next quarter",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-011-anthropic-roadshow",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "② Anthropic IPO路演期（预计9月）：S-1已递交，目标10月上市。路演时投资人会直接问管理层两个问题：“出口管制会持续多久？\"“你的国际收入怎么办？\"管理层的回答会定义IPO的估值折扣。如果路演前管制解除-估值回到$9650亿基线。如果路演时管制仍在 -估值折扣是确定性事件。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Anthropic's September IPO roadshow must quantify the valuation discount caused by export controls.",
+      "expectedTimeHorizon": "September-October 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "ANTHROPIC_IPO_VALUATION",
+          "unit": "USD",
+          "timeWindow": "September-October 2026",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "ANTHROPIC_IPO_VALUATION",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Export controls are lifted before the roadshow and valuation returns toward baseline",
+          "unit": "USD",
+          "timeWindow": "roadshow period",
+          "deadline": "2026-10-31",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "ANTHROPIC_IPO_VALUATION",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Controls remain during the roadshow and management discloses an international-revenue penalty",
+          "unit": "USD",
+          "timeWindow": "roadshow period",
+          "deadline": "2026-10-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "EVENT",
+      "expectedTickerResolutionStatus": "PRIVATE_COMPANY",
+      "expectedInstrumentType": "PRIVATE_COMPANY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-012-q3-export-control-disclosures",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "③ Q3科技财报李（7-8月）：如果出口管制持续超过一个月，它的影响会最早出现在科技公司的Q3财报里。特别关注这些关键词：各AI公司是否提到”出口管制影响\"国际客户迁移\"合规成本\"区域化部署\"。如果多家公司同时提到\n-出口管制正在重塑AI行业的收入结构。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [],
+      "expectedDirection": "MIXED",
+      "expectedTriggerEvent": "Q3 earnings disclosures reveal whether AI export controls are changing international revenue and deployment costs.",
+      "expectedTimeHorizon": "Q3 earnings season, July-August 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "EXPORT_CONTROL_DISCLOSURE_COUNT",
+          "unit": "COMPANY_COUNT",
+          "timeWindow": "Q3 earnings season, July-August 2026",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "EXPORT_CONTROL_DISCLOSURE_COUNT",
+          "operator": "GREATER_THAN_OR_EQUAL",
+          "threshold": 2,
+          "event": null,
+          "unit": "COMPANY_COUNT",
+          "timeWindow": "Q3 earnings season",
+          "deadline": "2026-08-31",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "EXPORT_CONTROL_DISCLOSURE_COUNT",
+          "operator": "EQUALS",
+          "threshold": 0,
+          "event": null,
+          "unit": "COMPANY_COUNT",
+          "timeWindow": "Q3 earnings season",
+          "deadline": "2026-08-31",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedDataSourceType": "OPERATIONAL",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "MULTI_ASSET_BASKET",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-013-mu-contract-cycle",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "⚡ 核心结论：\n美光一个季度的净利，追平了一年前的英伟达，下季指引还要全面盖过它，可它的市值只有当年英伟达的四分之一。市场嘴上喊它便宜，手上仍按“周期股”给它打折。真正的问题不是它贵不贵，而是它签下的16份长约，到底能不能废掉内存四十年的周期律——而这笔赌注，悄悄押在了“七姐妹的资本开支永远不停”这件事上。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "MU"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Micron's long-term take-or-pay contracts must prove they can reduce the historic memory-cycle volatility discount.",
+      "expectedTimeHorizon": "through 2027 supply expansion",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "MU_CONTRACTED_REVENUE_AND_MARGIN",
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "through 2027 supply expansion",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "MU_CONTRACTED_REVENUE_AND_MARGIN",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Contract floor pricing preserves margin during the first spot-price decline",
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "through 2027",
+          "deadline": "2027-12-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "MU_CONTRACTED_REVENUE_AND_MARGIN",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Realized margin falls through the contract floor when spot pricing declines",
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "through 2027",
+          "deadline": "2027-12-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Critical"
+    },
+    {
+      "unitId": "gold-014-mu-video-summary",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "🧩 视频里还讲了：\n正片里我把“存储吸血”这件事拆成了两层——为什么同一天美光涨12%、苹果反而跌5%、戴尔跌7%，为什么你下一台iPhone会贵差不多两成；还有2007年金融危机前那句“音乐还在放，你就得站起来跳舞”，跟美光这一万亿估值到底是什么关系。这两段我在视频里讲透了。这帖不复述，只补正片放不下的延伸标的和观察日历。\n──────────────\n🔒 暗线一：跟着内存超级周期的“卖铲子”和“卖镜子”——",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "importance": "Marginal"
+    },
+    {
+      "unitId": "gold-015-kioxia-nand",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "第一个，铠侠（Kioxia，东京 285A）。它是全球主要的NAND厂之一，等于美光NAND业务的纯粹对照组——几乎不掺DRAM，盈利对NAND价格的弹性比美光更大，而美国投资者对它覆盖很少。\n观察条件：如果NAND现货价格延续这轮涨势（美光这季NAND售价环比涨了八十多个点）→ 看铠侠下一份财报的盈利弹性是否同步放大；反面——NAND一旦第一个松动，它通常也是最先承压的那一个。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "285A.T"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Kioxia earnings test whether rising NAND spot prices produce greater profit elasticity than Micron.",
+      "expectedTimeHorizon": "next earnings",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "KIOXIA_NAND_PROFIT_ELASTICITY",
+          "unit": "PERCENT",
+          "timeWindow": "next earnings",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "KIOXIA_NAND_PROFIT_ELASTICITY",
+          "operator": "INCREASES",
+          "threshold": null,
+          "event": "NAND spot prices and Kioxia earnings rise together",
+          "unit": "PERCENT",
+          "timeWindow": "next earnings",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "NAND_SPOT_PRICE",
+          "operator": "DECREASES",
+          "threshold": null,
+          "event": "NAND is the first memory category to weaken",
+          "unit": "PERCENT",
+          "timeWindow": "next earnings",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-016-lrcx-memory-orders",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "第二个，泛林集团（Lam Research，LRCX）。它做的是造存储芯片的设备（刻蚀、薄膜），不赌美光、海力士、三星谁赢，三家扩产的钱都得从它这儿过。这是一条不绑定单家胜负的行业beta。\n观察条件：如果三家2027年的产能扩张如期推进、资本开支不踩刹车 → 看Lam的存储设备订单和在手订单是否同步走高；反面——七姐妹的capex一旦第一次松口，设备订单往往是最早反映的地方之一。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "LRCX"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "2027 memory capacity plans should appear first in Lam Research memory-equipment orders and backlog.",
+      "expectedTimeHorizon": "through 2027 capex planning",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "LRCX_MEMORY_ORDERS",
+          "unit": "USD",
+          "timeWindow": "through 2027 capex planning",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "LRCX_MEMORY_ORDERS",
+          "operator": "INCREASES",
+          "threshold": null,
+          "event": "Memory equipment orders and backlog rise with planned capacity",
+          "unit": "USD",
+          "timeWindow": "through 2027",
+          "deadline": "2027-12-31",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "HYPERSCALER_CAPEX_GUIDANCE",
+          "operator": "DECREASES",
+          "threshold": null,
+          "event": "Hyperscalers reduce capex before memory equipment orders convert",
+          "unit": "PERCENT",
+          "timeWindow": "through 2027",
+          "deadline": "2027-12-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "OPERATIONAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-017-camt-hbm4",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "第三个，Camtek（CAMT）。它是HBM和先进封装的“眼睛”——给一层层堆叠起来的HBM做检测和量测，HBM4越复杂、堆得越高，越离不开它。今年6月它刚拿下一家HBM大厂五千万美金以上的订单，2027年交付。小盘、流动性差，但跟踪价值高。\n观察条件：如果HBM4真按美光说的两倍速爬坡 → 看Camtek的HBM相关订单是不是同步往上走（封装检测需求，通常是HBM扩产最早启动的一环）；反面——HBM扩产一放缓，检测设备订单也是最先暂停的，所以它本身就是一个提前预警的指标。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "CAMT"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Camtek's HBM inspection orders should lead or warn on the HBM4 capacity ramp.",
+      "expectedTimeHorizon": "through 2027 deliveries",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "CAMT_HBM_ORDERS",
+          "unit": "USD",
+          "timeWindow": "through 2027 deliveries",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "CAMT_HBM_ORDERS",
+          "operator": "INCREASES",
+          "threshold": null,
+          "event": "HBM-related inspection orders rise with the HBM4 ramp",
+          "unit": "USD",
+          "timeWindow": "through 2027",
+          "deadline": "2027-12-31",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "CAMT_HBM_ORDERS",
+          "operator": "DECREASES",
+          "threshold": null,
+          "event": "Inspection equipment orders pause as HBM expansion slows",
+          "unit": "USD",
+          "timeWindow": "through 2027",
+          "deadline": "2027-12-31",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedDataSourceType": "OPERATIONAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-018-mu-rpo-monitor",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "📡 持续追踪的信号：\n① RPO环比方向：接着涨=故事还在；第一次环比掉头=周期从资本开支链条传导回美光的第一声警报。\n② 七姐妹的capex与自由现金流：capex会不会第一次踩刹车、亚马逊FCF会不会转负——这决定了美光需求的源头还稳不稳。\n③ 第一次现货价格回落时，美光的实际毛利守不守得住那块“地板”——守住，这次可能真不一样；守不住，它还是那只老周期股。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "MU"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Micron RPO, hyperscaler capex and realized margin jointly test whether the memory cycle has structurally changed.",
+      "expectedTimeHorizon": "FQ4 2026 through first spot-price decline",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "MU_RPO_QOQ",
+          "unit": "PERCENT",
+          "timeWindow": "FQ4 2026 through first spot-price decline",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "MU_RPO_QOQ",
+          "operator": "GREATER_THAN",
+          "threshold": 0,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "quarter over quarter",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "MU_RPO_QOQ",
+          "operator": "LESS_THAN",
+          "threshold": 0,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "quarter over quarter",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Critical"
+    },
+    {
+      "unitId": "gold-019-crowded-raw-data",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "KOSPI收盘8203.84，跌9.99%（-910.71点），史上第五大跌幅，一天触发两次熔断（Bloomberg/Reuters 2026-06-23）\n三星电子-12.3%至₩322,500 | SK海力士-12.5%至₩258.2万，两家合占KOSPI市值约52%（Korea Exchange 2026-06-23）\n外资单日净卖出₩5.79万亿（~$38亿）| 散户单日净买入₩11.11万亿（创纪录）（Korea Exchange 2026-06-23）\n韩国散户保证金贷款余额>₩60万亿（~$390亿），历史新高，较6月初₩37.74万亿增长约60%（韩国央行/CryptoBriefing）\nMSCI最新审查再次将韩国排除在发达市场指数之外（MSCI 2026-06-23）\n韩国执政党议员提出对股票/房地产未实现资本利得征税，论坛阶段，未立法（Seoul Economic Daily 2026-06-23）\nSpaceX（SPCX）周一-16.4%至$154.60，盘前跌破$150（IPO首日开盘价），从$225.64高点回撤>30%（Yahoo Finance 2026-06-23）\nSpaceX发行首笔债券~$200亿用于偿还xAI收购桥梁贷款，认购需求$890亿（Bloomberg/SEC Filing 2026-06-22）\nxAI 2025运营亏损$63.55亿、CapEx $127亿；Starlink运营利润$44.23亿；SPCX全年净亏损$49.37亿（S-1/TradingKey）\nxAI全部11位联合创始人在IPO前离职；Musk 2026年3月表态\"xAI第一次没有建对\"（TradingKey 2026-06-23）\nMicron（MU）今日-11%，6/24盘后发FY2026 Q3财报；YTD +325%，S&P 500第三大涨幅股（MarketScreener）\nMU期权implied move ±17% | 共识：营收$346亿、EPS $19.72 | Goldman唯一大行看空，目标价~$400（各券商）\nNoam Shazeer（Transformer论文作者/Gemini co-lead）6/18离职加入OpenAI，Google曾花$27亿买回他（Axios/CNBC）\nJohn Jumper（AlphaFold负责人/2024诺贝尔化学奖）6/19离职加入Anthropic（Reuters/Bloomberg）\nGOOG周一-5%创一年最大单日跌幅（DA Davidson/Barron's 2026-06-22）",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "importance": "Marginal"
+    },
+    {
+      "unitId": "gold-020-mu-earnings-gate",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "权重最高的是明天MU的财报。原因很简单：韩国的崩盘、SpaceX的回调、GOOG的人才流失，这些都是情绪层面的事件。MU的财报是硬数据。毛利率破不破80%，直接决定了\"HBM是结构性定价还是周期性定价\"这个根本问题。\n观察条件：if 毛利率>80% + guidance说供需紧张延续，then 整个半导体板块的估值锚变了，韩国的回调是买点信号；if 毛利率低于预期或guidance转保守，then Goldman那个\"peak margin周期股\"叙事全面占上风，后面可能还有15-20%的下行空间。一个数字，改写其他所有线的含义。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "MU"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Micron gross margin and guidance determine whether HBM receives structural-infrastructure or peak-cycle valuation.",
+      "expectedTimeHorizon": "June 24, 2026 earnings",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "MU_GROSS_MARGIN",
+          "unit": "PERCENT",
+          "timeWindow": "June 24, 2026 earnings",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "MU_GROSS_MARGIN",
+          "operator": "GREATER_THAN",
+          "threshold": 80,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "reported quarter",
+          "deadline": "2026-06-24",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "MU_GROSS_MARGIN",
+          "operator": "LESS_THAN",
+          "threshold": 80,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "reported quarter",
+          "deadline": "2026-06-24",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Critical"
+    },
+    {
+      "unitId": "gold-021-googl-talent-trend",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "权重最低的是GOOG的人才流失。两个人走了对短期股价有冲击，但Alphabet Q1利润增长82%，零个分析师给卖出，$350支撑位没破。这更像情绪打折，不是基本面转折。真正需要关注的是后续是否还有更多核心研究者离开——如果变成趋势性流失，那是另一个故事。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "GOOG"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Additional senior AI researcher departures would turn Google's current talent shock into a fundamental trend.",
+      "expectedTimeHorizon": "next quarter",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "GOOGLE_SENIOR_AI_DEPARTURES",
+          "unit": "PEOPLE",
+          "timeWindow": "next quarter",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "GOOGLE_SENIOR_AI_DEPARTURES",
+          "operator": "GREATER_THAN",
+          "threshold": 2,
+          "event": null,
+          "unit": "PEOPLE",
+          "timeWindow": "next quarter",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "GOOGLE_SENIOR_AI_DEPARTURES",
+          "operator": "LESS_THAN_OR_EQUAL",
+          "threshold": 2,
+          "event": null,
+          "unit": "PEOPLE",
+          "timeWindow": "next quarter",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "NEWS_SOURCE"
+        }
+      ],
+      "expectedDataSourceType": "OPERATIONAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-022-mu-scenario-tree",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "情景A：毛利率>80% + guidance说供需紧张延续到2027年\n→ MU盘后涨10-15%（implied move上沿）→ 次日亚洲开盘SK Hynix/三星跟涨、KOSPI反弹 → 半导体板块信心稳住、NVDA/AVGO/MRVL跟着回弹 → \"HBM是结构性定价\"叙事确认、Goldman的$400目标价被市场忽略 → 这轮回调大概率一周内消化。\n\n情景B：毛利率接近但未破80%，guidance措辞中性\n→ MU盘后波动±5%，方向不明 → 市场进入观望，等下一个数据点（7月中NVDA财报/7月底Fed FOMC）→ 韩国继续高波动但不至于再崩 → 最无聊但最可能的情景。\n\n情景C：毛利率低于预期 或 guidance转保守（提到客户推迟/竞争加剧）\n→ MU盘后跌15-20%（implied move下沿甚至突破）→ 次日亚洲SK Hynix/三星再崩、KOSPI可能第四次熔断 → Goldman的\"peak margin周期股\"叙事全面占上风 → 整个AI半导体板块进入估值重估 → 尾部风险情景，概率低但冲击力最大。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "MU"
+      ],
+      "expectedDirection": "MIXED",
+      "expectedTriggerEvent": "Micron earnings resolve a three-branch gross-margin and guidance scenario for the semiconductor complex.",
+      "expectedTimeHorizon": "earnings release and following week",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "MU_GROSS_MARGIN_AND_GUIDANCE",
+          "unit": "PERCENT_AND_EVENT",
+          "timeWindow": "earnings release and following week",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "MU_GROSS_MARGIN",
+          "operator": "GREATER_THAN",
+          "threshold": 80,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "reported quarter",
+          "deadline": "2026-06-24",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "MU_GUIDANCE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Guidance turns conservative or mentions customer delays or competition",
+          "unit": "EVENT",
+          "timeWindow": "reported quarter",
+          "deadline": "2026-06-24",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Critical"
+    },
+    {
+      "unitId": "gold-023-spcx-index-inclusion",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "② 7月初（约7月6日）：SpaceX纳入纳斯达克100指数。被动基金需要买入大量SPCX匹配权重，是上市后第一波结构性被动买盘。\n观察条件：if 在$150附近企稳后遇到被动买入，then 技术面反弹窗口；if 纳入前继续下跌，then 被动买盘可能只是减速不是反转。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "SPCX"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Nasdaq-100 inclusion tests whether passive buying can stabilize SPCX near $150.",
+      "expectedTimeHorizon": "through July 6, 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "SPCX_CLOSE",
+          "unit": "USD",
+          "timeWindow": "through July 6, 2026",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "SPCX_CLOSE",
+          "operator": "GREATER_THAN_OR_EQUAL",
+          "threshold": 150,
+          "event": null,
+          "unit": "USD",
+          "timeWindow": "inclusion window",
+          "deadline": "2026-07-06",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "SPCX_CLOSE",
+          "operator": "LESS_THAN",
+          "threshold": 150,
+          "event": null,
+          "unit": "USD",
+          "timeWindow": "before inclusion",
+          "deadline": "2026-07-06",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedDataSourceType": "MARKET_PRICE",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-024-korea-margin-deleveraging",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "① 韩国保证金贷款余额变化——如果从₩60万亿开始下降 → 去杠杆开始，短期利空但长期利好市场健康度",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "EWY"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "A decline from Korea's ₩60 trillion margin-loan balance marks the start of deleveraging.",
+      "expectedTimeHorizon": "next monthly balance update",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "KOREA_MARGIN_LOAN_BALANCE",
+          "unit": "KRW",
+          "timeWindow": "next monthly balance update",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "KOREA_MARGIN_LOAN_BALANCE",
+          "operator": "LESS_THAN",
+          "threshold": 60000000000000,
+          "event": null,
+          "unit": "KRW",
+          "timeWindow": "monthly",
+          "deadline": "NEXT_OFFICIAL_RELEASE",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "KOREA_MARGIN_LOAN_BALANCE",
+          "operator": "GREATER_THAN_OR_EQUAL",
+          "threshold": 60000000000000,
+          "event": null,
+          "unit": "KRW",
+          "timeWindow": "monthly",
+          "deadline": "NEXT_OFFICIAL_RELEASE",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedDataSourceType": "MACRO",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "ETF",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-025-fed-ai-narrative",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "本期精华】《沃什第一刀：9人要加息、通胀预测飙了33%——但没人注意到他把AI写进了Fed议程》\n⚡ 核心结论：\n市场只读到了一个字：鹰。但发布会Q&A里，沃什四五轮被问AI，说AI是\"American ingenuity的简写\"，引弗里德曼供需线来框定AI对货币政策的影响，最后总结\"由生产力驱动的增长不是我们害怕的，是我们拥抱的\"。市场在为鹰定价，没人在为\"AI可能改写Fed整套框架\"定价。这就是不对称。",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "importance": "Marginal"
+    },
+    {
+      "unitId": "gold-026-vrt-rates-vs-growth",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "第一个，Vertiv Holdings（VRT）。做数据中心散热和电力管理，AI基建的卖铲子公司。它的处境最典型：AI资本开支在暴涨，订单满到溢出，但估值靠的是未来增长预期——利率越高，未来增长折到今天就越不值钱。\n观察条件：如果7月CPI继续走高、10月加息落地 → VRT短期估值承压，但营收增长如果连续两个季度超预期 → 说明AI需求端硬得住利率的压力，长线逻辑不变。反面：如果Q3财报营收增速放缓 → 需要重新评估\"AI需求是否见顶\"的问题。⏳ Q3财报预计10月下旬。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "VRT"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "VRT revenue growth must remain above expectations to offset valuation pressure from a possible October rate hike.",
+      "expectedTimeHorizon": "through Q3 earnings in October 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "VRT_REVENUE_GROWTH",
+          "unit": "PERCENT",
+          "timeWindow": "through Q3 earnings in October 2026",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "VRT_REVENUE_GROWTH",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Revenue growth beats expectations for two consecutive quarters",
+          "unit": "PERCENT",
+          "timeWindow": "2 quarters",
+          "deadline": "2026-10-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "VRT_REVENUE_GROWTH",
+          "operator": "DECREASES",
+          "threshold": null,
+          "event": "Q3 revenue growth slows",
+          "unit": "PERCENT",
+          "timeWindow": "Q3 earnings",
+          "deadline": "2026-10-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-027-kre-net-interest-margin",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "第二个，SPDR S&P Regional Banking ETF（KRE）。地区银行是加息最直接的受益方——利率越高，贷出去的钱赚的利差越大。沃什今天的鹰派表态对这个板块是顺风。\n观察条件：如果沃什持续鹰派、利率在3.75%以上维持到年底 → KRE的净息差逻辑成立，相对大盘有超额。反面：如果沃什的AI生产力工作组在秋季报告中给出\"AI正在结构性压低通胀\"的判断 → 市场会开始定价降息路径 → 银行股的利差故事就开始松动。两个方向的催化剂，时间窗口都在Q4。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "KRE"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Regional-bank net interest margins benefit if policy rates remain above 3.75% through year-end.",
+      "expectedTimeHorizon": "Q4 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "FED_POLICY_RATE",
+          "unit": "PERCENT",
+          "timeWindow": "Q4 2026",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "FED_POLICY_RATE",
+          "operator": "GREATER_THAN",
+          "threshold": 3.75,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "through year-end",
+          "deadline": "2026-12-31",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "FED_POLICY_PATH",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Fed begins pricing rate cuts after an AI-productivity disinflation finding",
+          "unit": "EVENT",
+          "timeWindow": "Q4",
+          "deadline": "2026-12-31",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedDataSourceType": "MACRO",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "ETF",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-028-tlt-cpi-yield",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "第三个，iShares 20+ Year Treasury Bond ETF（TLT）。长期美债ETF，利率预期的直接对手盘。今天2年期飙了16个基点，但10年期只涨了几个基点——短端跑得快、长端不跟，曲线在压缩。\n观察条件：如果7月CPI超4%且10年期跟着上 → TLT继续承压，30年固定房贷可能冲7%。反面：如果CPI回到3.8%以下 → 2年期回吐涨幅 → TLT可能出现阶段性反弹窗口，10月加息概率也会大幅回落。⏳ 7月CPI预计8月中旬公布。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "TLT"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "July CPI determines whether long yields extend higher or create a tactical TLT rebound window.",
+      "expectedTimeHorizon": "until mid-August 2026 CPI release",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "US_CPI_YOY",
+          "unit": "PERCENT",
+          "timeWindow": "until mid-August 2026 CPI release",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "US_CPI_YOY",
+          "operator": "LESS_THAN",
+          "threshold": 3.8,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "July reading",
+          "deadline": "2026-08-15",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "US_CPI_YOY",
+          "operator": "GREATER_THAN",
+          "threshold": 4,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "July reading",
+          "deadline": "2026-08-15",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedDataSourceType": "MACRO",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "ETF",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-029-fed-inflation-anchor",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "① 8月中旬·7月CPI和PCE数据：这是沃什的整套判断锁定的锚。如果通胀继续走高，10月加息从60%概率变成板上钉钉。如果伊朗停火落地、油价缓一缓，通胀可能回头，那今天的鹰派定价就过头了。变量在中东，不在美国。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "July CPI and PCE determine whether the October rate-hike probability becomes effectively certain or reverses.",
+      "expectedTimeHorizon": "August 2026 data releases",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "US_CPI_AND_PCE",
+          "unit": "PERCENT",
+          "timeWindow": "August 2026 data releases",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "OCTOBER_RATE_HIKE_PROBABILITY",
+          "operator": "INCREASES",
+          "threshold": null,
+          "event": "Inflation rises and the hike probability becomes near-certain",
+          "unit": "PERCENT",
+          "timeWindow": "August releases",
+          "deadline": "2026-08-31",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "US_CPI_AND_PCE",
+          "operator": "DECREASES",
+          "threshold": null,
+          "event": "Oil relief pulls inflation lower and hawkish pricing reverses",
+          "unit": "PERCENT",
+          "timeWindow": "August releases",
+          "deadline": "2026-08-31",
+          "sourceType": "OFFICIAL_STATISTICS"
+        }
+      ],
+      "expectedDataSourceType": "MACRO",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "MACRO_BASKET",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-030-fed-workgroup-leader",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "③ 秋季·\"生产力与就业\"工作组第一份报告：沃什说工作组几周内组建、年底前出建议。他挑谁来领队是关键信号——如果是硅谷或AI行业背景的人，说明他认真要改写Fed的通胀和就业模型；如果是传统宏观学者，走过场概率大。人选名单可能在7月公布。",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MANUAL_VERIFICATION_REQUIRED",
+      "expectedTicker": [],
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "importance": "Marginal"
+    },
+    {
+      "unitId": "gold-031-spacex-flywheel-narrative",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "⚡ 核心结论：\nSpaceX上市三个交易日，市值从1.78万亿涨到逼近3万亿，同一天宣布600亿美元全股票收购AI编程公司Cursor，一分钱现金没花。把这三件事连起来看，你会发现马斯克不是在\"上市套现\"，而是在启动一台飞轮：愿景推高股价 → 股价变成收购货币 → 收购扩大业务版图 → 版图支撑愿景。而飞轮的核心燃料，是上市前四天那段30分钟的太空AI采访——那不是科普视频，那是他给华尔街的商业计划书。",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "importance": "Marginal"
+    },
+    {
+      "unitId": "gold-032-spacex-video-summary",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "🧩 视频里还讲了：\n马斯克用卡尔达肖夫指数（衡量文明能量利用等级的硬核指标）做框架，说人类目前用的能量远不到太阳产出的万亿分之一。太空AI卫星的逻辑是同时解决地面数据中心的两个瓶颈——电力不足和散热成本，因为太空有近乎无限的太阳能，散热直接辐射到真空。视频里有一条从IPO暴涨 → AI卫星蓝图 → Cursor零现金收购 → 解禁时间表的完整叙事线，拉完之后你会发现，这台飞轮的精密程度比大多数人以为的高得多。",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL",
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "importance": "Marginal"
+    },
+    {
+      "unitId": "gold-033-nvda-space-orders",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "第一个，英伟达（NVDA）。SpaceX的AI1卫星参考设计直接基于英伟达的GB300和下一代Rubin芯片。马斯克在采访里说得很明确：初期用现有芯片送上天，TerraFab自产芯片是后面的事。如果SpaceX真的按\"明年底1GW\"的节奏下单，这是一笔增量需求，而且跟地面数据中心的订单完全不重叠——太空是一个全新的出货渠道。\n观察条件：如果SpaceX在2026年Q3或Q4开始大批量采购AI芯片用于卫星组装 → 关注NVDA财报中是否单独披露\"太空/卫星\"相关出货量。反面：如果SpaceX选择提前启动TerraFab自研芯片或转向谷歌TPU方案 → 英伟达在这条线上的增量有限。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "NVDA"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "SpaceX production orders for AI satellites would create an incremental NVDA channel distinct from terrestrial data centers.",
+      "expectedTimeHorizon": "2026 Q3-Q4",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "NVDA_SPACE_CHIP_SHIPMENTS",
+          "unit": "UNITS_OR_USD",
+          "timeWindow": "2026 Q3-Q4",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "NVDA_SPACE_CHIP_SHIPMENTS",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "NVDA discloses material space or satellite shipments after SpaceX volume orders",
+          "unit": "UNITS_OR_USD",
+          "timeWindow": "Q3-Q4",
+          "deadline": "2026-12-31",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "SPACEX_CHIP_ARCHITECTURE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "SpaceX accelerates TerraFab self-designed chips or adopts Google TPU",
+          "unit": "EVENT",
+          "timeWindow": "Q3-Q4",
+          "deadline": "2026-12-31",
+          "sourceType": "OFFICIAL_ANNOUNCEMENT"
+        }
+      ],
+      "expectedDataSourceType": "OPERATIONAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-034-rklb-space-ai-multiple",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "第二个，Rocket Lab（RKLB）。RKLB是目前除SpaceX之外唯一在商业化运营轨道级火箭发射的上市公司，同时也做卫星组件（太阳能板、反应轮、星敏感器）。SpaceX的太空AI叙事如果成立，整个\"太空基础设施\"板块的估值逻辑都会被重写。RKLB不是SpaceX的供应商，但它是这个板块里市值最小、弹性最大的纯正标的。\n观察条件：如果SpaceX的太空AI叙事持续推高SPCX估值 → 观察RKLB的估值倍数是否跟着扩张（\"板块水涨船高\"效应）。反面：如果市场把太空AI视为SpaceX独家故事，不外溢到板块 → RKLB走自己的基本面。关注RKLB下季度财报中Neutron火箭进度和卫星组件订单数据。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "RKLB"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "RKLB valuation and operating progress test whether SpaceX's space-AI narrative rerates the broader infrastructure sector.",
+      "expectedTimeHorizon": "next quarterly earnings",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "RKLB_NEUTRON_AND_COMPONENT_ORDERS",
+          "unit": "MILESTONES_AND_USD",
+          "timeWindow": "next quarterly earnings",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "RKLB_VALUATION_MULTIPLE",
+          "operator": "INCREASES",
+          "threshold": null,
+          "event": "RKLB multiple expands while Neutron and component orders remain on plan",
+          "unit": "MULTIPLE",
+          "timeWindow": "next quarter",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "EARNINGS_CALL"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "RKLB_VALUATION_MULTIPLE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Space-AI valuation remains isolated to SpaceX with no RKLB rerating",
+          "unit": "EVENT",
+          "timeWindow": "next quarter",
+          "deadline": "NEXT_EARNINGS",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedDataSourceType": "OPERATIONAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-035-anthropic-claude-code",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "第三个，Cursor竞品方向——关注Anthropic IPO文件。Cursor被SpaceX吃掉后，AI编程工具赛道只剩两个大玩家：Anthropic的Claude Code和OpenAI的Codex。Anthropic预计10月IPO，S-1已经秘密递交。它的招股书里一定会披露Claude Code的收入数据和企业客户数。如果Claude Code在Cursor被收购后市占率快速上升，说明Cursor的企业客户正在迁移。\n观察条件：如果Anthropic S-1公开后显示Claude Code年化收入增速显著高于Cursor被收购前的趋势 → 验证\"Cursor客户流失\"假说，同时影响SpaceX收购Cursor的战略价值判断。反面：如果Cursor在SpaceX体系内通过联合训练保住了客户 → 说明收购整合顺利。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Anthropic's S-1 must show whether Claude Code gained enterprise share after SpaceX acquired Cursor.",
+      "expectedTimeHorizon": "through October 2026 IPO",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "CLAUDE_CODE_REVENUE_GROWTH",
+          "unit": "PERCENT",
+          "timeWindow": "through October 2026 IPO",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "CLAUDE_CODE_REVENUE_GROWTH",
+          "operator": "GREATER_THAN",
+          "threshold": null,
+          "event": "Claude Code annualized revenue growth accelerates above the pre-acquisition trend",
+          "unit": "PERCENT",
+          "timeWindow": "IPO filing period",
+          "deadline": "2026-10-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "CURSOR_ENTERPRISE_RETENTION",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Cursor retains enterprise customers after integration with SpaceX",
+          "unit": "EVENT",
+          "timeWindow": "IPO filing period",
+          "deadline": "2026-10-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "PRIVATE_COMPANY",
+      "expectedInstrumentType": "PRIVATE_COMPANY",
+      "importance": "Material"
+    },
+    {
+      "unitId": "gold-036-spcx-q2-earnings",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "② 7月底（Q2财报）：SpaceX作为上市公司的第一份季度财报。所有人会盯三个数字。第一，Starlink用户增长和ARPU变化（5月涨价$10有没有效果）。第二，xAI云租赁收入规模（260亿年合同实际执行了多少）。第三，Cursor并表后的收入贡献。这份财报决定了市场对\"飞轮\"的信仰能不能撑到年底。",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "SPCX"
+      ],
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "SpaceX's first public quarterly report tests whether Starlink, xAI leasing and Cursor revenue support the flywheel valuation.",
+      "expectedTimeHorizon": "Q2 earnings, July 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "SPCX_OPERATING_KPIS",
+          "unit": "USD_AND_USERS",
+          "timeWindow": "Q2 earnings, July 2026",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "SPCX_OPERATING_KPIS",
+          "operator": "INCREASES",
+          "threshold": null,
+          "event": "Starlink users and ARPU grow while xAI and Cursor contracts convert to revenue",
+          "unit": "USD_AND_USERS",
+          "timeWindow": "Q2 earnings",
+          "deadline": "2026-07-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "SPCX_OPERATING_KPIS",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Reported operating contribution fails to support the acquisition and compute commitments",
+          "unit": "EVENT",
+          "timeWindow": "Q2 earnings",
+          "deadline": "2026-07-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL",
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "importance": "Critical"
+    },
+    {
+      "unitId": "gold-b-037-trump-taco-narrative",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "川普在伊朗问题上形成了一个可观测的\"taco规律\"：帖子越疯、措辞越极端，离某种反转越近。4月5日第一次Praise be to Allah之后标普三天见底涨了近10%。6月10日他又写了Praise be to Allah，6月11日又上演了\"早上说打、下午说不打\"的反转。与此同时，CPI 4.2%和PPI 6.5%构成四年来最热的通胀组合，而甲骨文一年半借了近900亿建机房、SpaceX今晚以1.75万亿定价。所有数字都在变大，但没有人知道停在哪。",
+      "importance": "Marginal",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-038-orcl-earnings-raw",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "甲骨文Q4营收191.8亿（+21% YoY）、EPS $2.11均超预期，但云收入99.1亿低于预期99.9亿；股价当日跌10.67%（Yahoo Finance 6/11）",
+      "importance": "Marginal",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-039-spacex-opening-liquidity",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "① 明天6月12日：SpaceX上市首日。观察第一个小时的成交量、MSCI被动基金买入占总成交的比例、以及散户券商的申购完成率。如果开盘成交量超过500亿美金且被动基金占比超过30% → 价格是被指数规则顶上去的，这种支撑一旦被动买入完成就会消失。如果成交量低于200亿且价格守住$135以上 → 说明市场自发愿意在这个价位接。",
+      "importance": "Material",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "SPCX"
+      ],
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "SpaceX opening-hour volume and passive-fund share distinguish index-driven support from organic demand.",
+      "expectedTimeHorizon": "June 12, 2026 opening hour",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "SPCX_OPENING_VOLUME_AND_PASSIVE_SHARE",
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "June 12, 2026 opening hour",
+          "sourceType": "YAHOO_FINANCE",
+          "executable": true
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "SPCX_OPENING_VOLUME_AND_PASSIVE_SHARE",
+          "operator": "GREATER_THAN",
+          "threshold": 50000000000,
+          "event": null,
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "June 12, 2026 opening hour",
+          "deadline": "2026-06-12",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "SPCX_OPENING_VOLUME_AND_PASSIVE_SHARE",
+          "operator": "LESS_THAN",
+          "threshold": 20000000000,
+          "event": null,
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "June 12, 2026 opening hour",
+          "deadline": "2026-06-12",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedDataSourceType": "MARKET_PRICE"
+    },
+    {
+      "unitId": "gold-b-040-wti-deal-confirmation",
+      "sourcePostId": "source-post-alan-1781222941327",
+      "sourceText": "① WTI油价是否跌破$85（伊朗deal落地的确认信号）",
+      "importance": "Material",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MISSING_HORIZON",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-041-spacex-ipo-raw-fact",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "SpaceX 以$1.75万亿估值上市，首日涨19%（纳斯达克 2026-06-12）",
+      "importance": "Marginal",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-042-anthropic-export-order-raw",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "商务部长Lutnick 下令禁止任何外国国民使用 Anthropic的Fable 5和 Mythos 5，包括在美国境内的外国人",
+      "importance": "Ambiguous",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MANUAL_VERIFICATION_REQUIRED",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-043-first-market-reaction",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "①6月15日周一美股开盘：出口管制后的第一个交易日。要看两个东西。第一，Al大盘股（NVDA/AMD/MSFT/GOOG）怎么反应—如果集体下跌说明市场在给\"出口管制风险\"重新定价。第二，开源概念股（META）和闭源AI股（如果有可比标的）是不是走出分化—如果Meta没跌甚至涨，说明市场在押“开源vs闭源\"的结构性分裂。",
+      "importance": "Material",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "META"
+      ],
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "expectedDirection": "MIXED",
+      "expectedTriggerEvent": "The first trading session after AI export controls tests whether open-source META diverges from closed-model exposure.",
+      "expectedTimeHorizon": "June 15, 2026 session",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "META_RELATIVE_RETURN_VS_AI_BASKET",
+          "unit": "PERCENT",
+          "timeWindow": "June 15, 2026 session",
+          "sourceType": "YAHOO_FINANCE",
+          "executable": true
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "META_RELATIVE_RETURN_VS_AI_BASKET",
+          "operator": "GREATER_THAN",
+          "threshold": 0,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "June 15, 2026 session",
+          "deadline": "2026-06-15",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "META_RELATIVE_RETURN_VS_AI_BASKET",
+          "operator": "LESS_THAN_OR_EQUAL",
+          "threshold": 0,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "June 15, 2026 session",
+          "deadline": "2026-06-15",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedDataSourceType": "MARKET_PRICE"
+    },
+    {
+      "unitId": "gold-b-044-ai-export-hearing-checklist",
+      "sourcePostId": "source-post-alan-1781491973583",
+      "sourceText": "① 美国国会是否就 AI出口管制举行听证会（如果有 管制可能常态化）",
+      "importance": "Ambiguous",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MANUAL_VERIFICATION_REQUIRED",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-045-mu-key-data-raw",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "营收414.6亿美金，同比+346%、环比+74%（美光FQ3财报/SEC，6/24）\n非GAAP每股收益25.11，市场预期20.78（LSEG，6/24）\n非GAAP毛利率84.9%，一年前还不到40%（美光电话会，6/24）\n16份“照付不议”合约，按地板价锁定约1000亿营收，约占协议期收入25%；且地板价对应毛利高于历史任何一个周期峰值（美光电话会，6/24）\n客户押金220亿美金，其中180亿为不受限现金、非预付款（美光电话会，6/24）\n七姐妹2026年资本开支合计约7000亿美金，已接近其经营性现金流的100%（Moody's/行业测算，2026）\n下季指引：营收约500亿、每股收益约31（美光官方指引，6/24）",
+      "importance": "Marginal",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-046-mu-calendar-tests",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "① 7月底到8月初，七姐妹二季度财报：capex指引是再上调，还是第一次松口；亚马逊的自由现金流是否真的转负。这是“音乐还在不在放”的第一手信号。\n② 9月底前后，美光FQ4财报：第一次披露的RPO（多年期订单簿，约1000亿）环比是涨是缩、realized margin守在什么位置、“涨价放缓”那句口风有没有恶化。\n③ 2027年的供给释放窗口：海力士、三星扩产，叠加美光纽约新厂产能集中上线，遇上第一次现货价格回落——这是合约“地板价”第一次被真刀真枪检验的时刻。",
+      "importance": "Critical",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "MU"
+      ],
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Hyperscaler capex, Micron RPO and the 2027 supply window jointly test whether contract floors break the memory cycle.",
+      "expectedTimeHorizon": "July 2026 through 2027 supply release",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "MU_RPO_AND_REALIZED_MARGIN",
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "July 2026 through 2027 supply release",
+          "sourceType": "COMPANY_FILING",
+          "executable": true
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "MU_RPO_AND_REALIZED_MARGIN",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "RPO grows and realized margin holds through the first spot-price decline",
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "July 2026 through 2027 supply release",
+          "deadline": "2027-12-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "MU_RPO_AND_REALIZED_MARGIN",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "RPO contracts or realized margin breaks the contract floor",
+          "unit": "USD_AND_PERCENT",
+          "timeWindow": "July 2026 through 2027 supply release",
+          "deadline": "2027-12-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL"
+    },
+    {
+      "unitId": "gold-b-047-memory-extension-preamble",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "视频聚焦美光本身。但这一轮内存紧缺，真正弹性大的，往往藏在那些华尔街覆盖少、却卡在产业链关键节点的公司里。下面三个，跟本期逻辑直接相关，视频没展开。",
+      "importance": "Marginal",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-048-mu-story-transition",
+      "sourcePostId": "source-post-alan-1782726594854",
+      "sourceText": "美光的故事是真是假，不靠嘴，靠几个未来的数据点来验证。",
+      "importance": "Marginal",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-049-korea-tax-risk",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "权重第三的是韩国未实现资本利得税。正片里说了大概率不会通过，这里补三个判断依据：①去年9月总统李在明亲自否决了修改股票资本利得税，理由是\"损害市场稳定\"；②KOSPI一个月崩三次的环境下推进征税是政治自杀；③韩国1.02亿个交易账户，动浮盈等于动选票。但这个议题被放上台面本身是一个长期的政策风险溢价——每一次市场创新高，就会有人拿出来讲。荷兰的经验说明，提案本身就够引发资本外流，不需要真的通过。",
+      "importance": "Material",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MISSING_INVESTABLE_ASSET",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-050-mu-options-iv-crush",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "不管哪种情景，期权的IV crush几乎是确定的。纯做多期权博方向的要注意这个。",
+      "importance": "Marginal",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MISSING_INVESTABLE_ASSET",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-051-mu-earnings-event",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "① 6月24日盘后（明天）：MU财报。本轮最重要的单一事件。毛利率 > guidance措辞 > HBM4爬坡。数字出来后第一时间在会员区更新拆解。",
+      "importance": "Critical",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "MU"
+      ],
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "Micron's June 24 earnings prioritize gross margin, guidance language and HBM4 ramp data.",
+      "expectedTimeHorizon": "June 24, 2026 after market close",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "MU_GROSS_MARGIN_AND_GUIDANCE",
+          "unit": "PERCENT_AND_EVENT",
+          "timeWindow": "June 24, 2026 after market close",
+          "sourceType": "COMPANY_FILING",
+          "executable": true
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "MU_GROSS_MARGIN_AND_GUIDANCE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Reported gross margin meets or exceeds guidance and HBM4 ramp remains on plan",
+          "unit": "PERCENT_AND_EVENT",
+          "timeWindow": "June 24, 2026 after market close",
+          "deadline": "2026-06-24",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "MU_GROSS_MARGIN_AND_GUIDANCE",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Reported gross margin misses guidance or HBM4 ramp is delayed",
+          "unit": "PERCENT_AND_EVENT",
+          "timeWindow": "June 24, 2026 after market close",
+          "deadline": "2026-06-24",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL"
+    },
+    {
+      "unitId": "gold-b-052-spcx-earnings-unlock",
+      "sourcePostId": "source-post-alan-1782726611378",
+      "sourceText": "③ 8月中：SpaceX首份上市季度财报 + 首批锁仓解禁（最多30%，20%基础+10%绩效触发，绩效条件已满足）。\n观察条件：if 财报好 + 内部人不卖，then 飞轮信仰加固；if 财报平庸 + 内部人密集卖出，then 市场重新定价。",
+      "importance": "Material",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "SPCX"
+      ],
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "SpaceX earnings quality and insider selling at the first unlock jointly test post-IPO valuation support.",
+      "expectedTimeHorizon": "August 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "SPCX_EARNINGS_AND_INSIDER_SALES",
+          "unit": "USD_AND_SHARES",
+          "timeWindow": "August 2026",
+          "sourceType": "COMPANY_FILING",
+          "executable": true
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "SPCX_EARNINGS_AND_INSIDER_SALES",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Earnings are strong and insiders do not sell materially",
+          "unit": "USD_AND_SHARES",
+          "timeWindow": "August 2026",
+          "deadline": "2026-08-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "SPCX_EARNINGS_AND_INSIDER_SALES",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "Earnings disappoint and insiders sell densely",
+          "unit": "USD_AND_SHARES",
+          "timeWindow": "August 2026",
+          "deadline": "2026-08-31",
+          "sourceType": "COMPANY_FILING"
+        }
+      ],
+      "expectedDataSourceType": "FINANCIAL"
+    },
+    {
+      "unitId": "gold-b-053-fed-hawkish-regime",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "利率维持3.50%-3.75%，12-0全票通过（FOMC声明 2026-06-17）\nFOMC声明约130字，近20年最短；鲍威尔时代约300-350字（CNBC 2026-06-17）\nDot plot中位数从3月的3.4%升至6月的3.8%，18人提交、沃什未提交（Fed SEP 2026-06-17）\n9/18名官员认为年底前需加息，其中5人认为应加两次（Fed SEP 2026-06-17）\nPCE通胀预测从2.7%飙至3.6%，核心PCE从2.7%升至3.3%（Fed SEP 2026-06-17）\n2年期国债收益率单日上涨约16个基点至4.21%，为一年多新高（市场数据 2026-06-17）\nCME FedWatch定价10月加息概率升至60%以上（CME FedWatch 2026-06-17）",
+      "importance": "Material",
+      "shouldCreateSignal": false,
+      "rejectionReason": "NARRATIVE_NOT_SIGNAL",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-054-next-fomc-press-conference",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "② 7月28-29日·下一次FOMC：关注的不只是利率决定——而是沃什开不开记者会。如果不开，本身就是信号：没有新东西要对外讲，按兵不动。如果开了，而且宣布工作组的初步进展，那就是第二波信号弹。",
+      "importance": "Material",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MISSING_INVESTABLE_ASSET",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-055-fed-tracking-dashboard",
+      "sourcePostId": "source-post-alan-1782726639246",
+      "sourceText": "📡 持续追踪的信号：\n① 2年期国债收益率（今天4.21%）——短端利率是加息预期最灵敏的温度计\n② CME FedWatch 10月会议加息概率（今天60%+）——如果升破80%，市场就在押注加息是定局\n③ 沃什\"生产力与就业\"工作组人选公布——几周内应该出来，这个人选决定了AI牌是真打还是做样子",
+      "importance": "Material",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MISSING_INVESTABLE_ASSET",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-056-spcx-cursor-acquisition",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "600亿美元全股票收购Cursor（Anysphere），稀释仅3.4%，零现金（SEC 8-K 2026-06-16）",
+      "importance": "Ambiguous",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MANUAL_VERIFICATION_REQUIRED",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-057-ai1-product-specification",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "① AI1卫星原型的任何进展披露（如果2026年内有原型发射计划公布 → 太空AI叙事从PPT变成实物）",
+      "importance": "Material",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "SPCX"
+      ],
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "A 2026 AI1 prototype launch-plan disclosure would move the space-compute thesis from presentation to physical execution.",
+      "expectedTimeHorizon": "through December 31, 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "AI1_PROTOTYPE_LAUNCH_PLAN_STATUS",
+          "unit": "EVENT",
+          "timeWindow": "through December 31, 2026",
+          "sourceType": "OFFICIAL_ANNOUNCEMENT",
+          "executable": true
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "AI1_PROTOTYPE_LAUNCH_PLAN_STATUS",
+          "operator": "EVENT_OCCURS",
+          "threshold": null,
+          "event": "SpaceX announces a 2026 AI1 prototype launch plan",
+          "unit": "EVENT",
+          "timeWindow": "through December 31, 2026",
+          "deadline": "2026-12-31",
+          "sourceType": "OFFICIAL_ANNOUNCEMENT"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "AI1_PROTOTYPE_LAUNCH_PLAN_STATUS",
+          "operator": "NOT_OBSERVED_BY_DEADLINE",
+          "threshold": null,
+          "event": "No AI1 prototype launch plan is announced by year-end",
+          "unit": "EVENT",
+          "timeWindow": "through December 31, 2026",
+          "deadline": "2026-12-31",
+          "sourceType": "OFFICIAL_ANNOUNCEMENT"
+        }
+      ],
+      "expectedDataSourceType": "EVENT"
+    },
+    {
+      "unitId": "gold-b-058-space-compute-timeline",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "太空算力时间表：2027年底1GW → 2.5年10GW → 3.5年100GW → 最终TW级（同上）",
+      "importance": "Ambiguous",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MANUAL_VERIFICATION_REQUIRED",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-059-spcx-lockup",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "锁仓期180天（12月8日全部解除），马斯克本人锁至2027年6月12日（S-1/StockAlarm）",
+      "importance": "Ambiguous",
+      "shouldCreateSignal": false,
+      "rejectionReason": "MANUAL_VERIFICATION_REQUIRED",
+      "expectedTicker": [],
+      "expectedTickerResolutionStatus": "NEEDS_REVIEW",
+      "expectedInstrumentType": "NONE",
+      "expectedDirection": "UNKNOWN",
+      "expectedTriggerEvent": null,
+      "expectedTimeHorizon": null,
+      "expectedMonitoringMetrics": [],
+      "expectedConfirmationConditions": [],
+      "expectedInvalidationConditions": [],
+      "expectedDataSourceType": "MANUAL"
+    },
+    {
+      "unitId": "gold-b-060-spcx-index-week",
+      "sourcePostId": "source-post-alan-1782726656984",
+      "sourceText": "① 6月26-29日（指数纳入周）：FTSE Russell 6月26日、MSCI 6月29日相继将SpaceX纳入指数。被动基金需要买入220-270亿美元的SPCX来匹配权重。这是上市后最大的一波结构性买盘。要看的是：被动资金入场后，股价是继续拉升还是\"利好兑现\"开始回调。如果这波买盘都吃完了还在涨，说明主动资金也在加仓。",
+      "importance": "Material",
+      "shouldCreateSignal": true,
+      "rejectionReason": null,
+      "expectedTicker": [
+        "SPCX"
+      ],
+      "expectedTickerResolutionStatus": "VALIDATED",
+      "expectedInstrumentType": "EQUITY",
+      "expectedDirection": "CONDITIONAL",
+      "expectedTriggerEvent": "FTSE and MSCI inclusion-week buying tests whether SPCX has active demand after passive flows finish.",
+      "expectedTimeHorizon": "June 26-29, 2026",
+      "expectedMonitoringMetrics": [
+        {
+          "metric": "SPCX_RETURN_AFTER_PASSIVE_FLOW",
+          "unit": "PERCENT",
+          "timeWindow": "June 26-29, 2026",
+          "sourceType": "YAHOO_FINANCE",
+          "executable": true
+        }
+      ],
+      "expectedConfirmationConditions": [
+        {
+          "metric": "SPCX_RETURN_AFTER_PASSIVE_FLOW",
+          "operator": "GREATER_THAN",
+          "threshold": 0,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "June 26-29, 2026",
+          "deadline": "2026-06-30",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedInvalidationConditions": [
+        {
+          "metric": "SPCX_RETURN_AFTER_PASSIVE_FLOW",
+          "operator": "LESS_THAN_OR_EQUAL",
+          "threshold": 0,
+          "event": null,
+          "unit": "PERCENT",
+          "timeWindow": "June 26-29, 2026",
+          "deadline": "2026-06-30",
+          "sourceType": "YAHOO_FINANCE"
+        }
+      ],
+      "expectedDataSourceType": "MARKET_PRICE"
+    }
+  ]
+}
