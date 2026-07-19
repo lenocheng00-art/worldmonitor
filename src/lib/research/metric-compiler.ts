@@ -40,9 +40,9 @@ function compileCondition(signal: ExtractedSignal, metric: string, logicChainId:
     return metricDraft(logicChainId, {
       name: "SK hynix ADR premium convergence",
       metricKey: metric,
-      description: "SK hynix ADR/local premium remains inside ±3% for five trading days.",
+      description: "SK hynix Nasdaq ADS/local premium remains inside ±3% for five aligned trading sessions.",
       dataType: "spread", frequency: "trading_day", provider: "derived",
-      providerConfig: { adrTicker: "SKHY", localTicker: "000660.KS", fxPair: "USDKRW", adrRatio: 1 },
+      providerConfig: { adrTicker: "SKHY", depositaryReceiptCusip: "78392B206", localTicker: "000660.KS", fxPair: "KRW=X", adrRatio: 0.1, ratioSource: "SEC F-6 2026: each ADS represents one-tenth of one common share", alignment: "latest_common_completed_session" },
       evaluationRule: { operator: "abs_lte", threshold: 3, durationPeriods: 5 },
       validationImpact: 10, invalidationImpact: -5,
     });
@@ -53,9 +53,10 @@ function compileCondition(signal: ExtractedSignal, metric: string, logicChainId:
       metricKey: metric,
       description: "WDC post-earnings return exceeds the median of MU and SNDK.",
       dataType: "percentage", frequency: "event_driven", provider: "derived",
-      providerConfig: { ticker: "WDC", comparisonTickers: ["MU", "SNDK"], eventType: "earnings", window: ["0d", "2d"] },
+      providerConfig: { ticker: "WDC", comparisonTickers: ["MU", "SNDK"], eventType: "earnings", window: ["0d", "2d"], eventReference: null },
       evaluationRule: { operator: "custom", customExpression: "primary_return_gt_peer_median" },
-      validationImpact: 8, invalidationImpact: -6,
+      validationImpact: 8, invalidationImpact: -6, status: "paused",
+      compileError: "A verified earnings timestamp, timezone, and source reference are required before event-window execution.",
     });
   }
   if (metric === "TSM_GOOD_NEWS_REACTION") {
@@ -64,9 +65,10 @@ function compileCondition(signal: ExtractedSignal, metric: string, logicChainId:
       metricKey: metric,
       description: "TSM closes red on good news and does not recover the next trading day.",
       dataType: "percentage", frequency: "event_driven", provider: "derived",
-      providerConfig: { ticker: "TSM", eventType: "earnings", window: ["0d", "1d"] },
+      providerConfig: { ticker: "TSM", eventType: "earnings", window: ["0d", "1d"], eventReference: null },
       evaluationRule: { operator: "custom", durationPeriods: 2, customExpression: "good_news_failure" },
-      validationImpact: -8, invalidationImpact: 5,
+      validationImpact: -8, invalidationImpact: 5, status: "paused",
+      compileError: "A verified announcement timestamp, timezone, and source reference are required before event-window execution.",
     });
   }
   if (/^[A-Z0-9.=]+_GOOD_NEWS_REACTION$/.test(metric) && signal.relatedTickers[0]) {
@@ -76,7 +78,8 @@ function compileCondition(signal: ExtractedSignal, metric: string, logicChainId:
       dataType: "percentage", frequency: "event_driven", provider: "derived",
       providerConfig: { ticker: signal.relatedTickers[0], window: ["0d", "1d"] },
       evaluationRule: { operator: "custom", durationPeriods: 2, customExpression: "good_news_failure" },
-      validationImpact: -8, invalidationImpact: 5,
+      validationImpact: -8, invalidationImpact: 5, status: "paused",
+      compileError: "A verified market event reference is required before event-window execution.",
     });
   }
 

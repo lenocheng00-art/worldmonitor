@@ -17,6 +17,14 @@ export const normalizedEntitySchema = z.object({
   aliases: z.array(z.string().min(1)),
 });
 
+export const marketEventReferenceSchema = z.object({
+  eventType: z.enum(["earnings", "guidance", "price_announcement", "news"]),
+  occurredAt: z.iso.datetime(),
+  timezone: z.string().min(1),
+  sourceReference: z.string().min(1),
+  confidence: z.enum(["verified", "estimated", "unknown"]),
+});
+
 export const extractedConditionSchema = z.object({
   subject: z.string().min(1),
   metric: z.string().min(1),
@@ -127,6 +135,7 @@ export type LogicChainStatus = z.infer<typeof logicChainStatusSchema>;
 export type SignalDirection = z.infer<typeof signalDirectionSchema>;
 export type RelationType = z.infer<typeof relationTypeSchema>;
 export type MetricEvaluationResult = z.infer<typeof metricEvaluationResultSchema>;
+export type MarketEventReference = z.infer<typeof marketEventReferenceSchema>;
 
 export type ResearchSignal = {
   id: string;

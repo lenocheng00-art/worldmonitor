@@ -267,7 +267,7 @@ function nextRunAt(frequency: TrackingMetric["frequency"], now: string) {
   return new Date(new Date(now).getTime() + hours * 3_600_000).toISOString();
 }
 function isSemiconductorTicker(tickers: string[]) {
-  return tickers.some((ticker) => ["TSM", "2330.TW", "MU", "SKHY", "000660.KS", "WDC", "SNDK", "NVDA"].includes(ticker));
+  return tickers.some((ticker) => ["TSM", "2330.TW", "MU", "SKHY", "HYXS LX", "000660.KS", "WDC", "SNDK", "NVDA"].includes(ticker));
 }
 function unique(values: string[]) {
   return [...new Set(values.filter(Boolean))];

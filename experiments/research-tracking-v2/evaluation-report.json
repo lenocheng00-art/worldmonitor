@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-19T11:26:47.246Z",
-  "mode": "OFFLINE_NO_PRODUCTION_CONNECTION",
+  "generatedAt": "2026-07-19T12:10:24.061Z",
+  "mode": "OFFLINE_PLUS_LIVE_PUBLIC_MARKET_DATA_NO_SUPABASE",
   "productionWrites": 0,
   "candidateBRegressionSource": "Frozen Leave-One-SourcePost-Out report; Candidate B files were preserved unchanged.",
   "dataset": {
@@ -39,7 +39,10 @@
     "logicChainAttachmentPrecision": 100,
     "duplicateLogicChainRate": 0,
     "metricCompilationPrecision": 100,
-    "executableMetricRate": 100,
+    "offlineMetricCompilationSuccessRate": 50,
+    "liveMetricExecutionSuccessRate": 100,
+    "liveMetricDataAccuracy": 100,
+    "liveProviderAvailability": 100,
     "invalidMetricRejectionRate": 100,
     "confidenceUpdateCorrectness": 100,
     "idempotencyPassRate": 100,
@@ -52,15 +55,19 @@
     "logicChainAttachmentPrecision": true,
     "duplicateLogicChainRate": true,
     "metricCompilationPrecision": true,
+    "offlineMetricCompilationSuccessRate": false,
     "invalidMetricRejectionRate": true,
     "idempotencyPassRate": true,
     "committeeDuplicateRate": true,
     "narrativeFalsePositive": true
   },
-  "passed": true,
+  "passed": false,
+  "stagingReleasePassed": false,
+  "stagingDecision": "NO-GO",
   "limitations": [
     "Gold Dataset contains 6 unique sourcePostIds, below the prior 12-source deployment target; no samples were fabricated or duplicated.",
     "Candidate B atomic metrics are regression-tested separately from the deterministic semiconductor end-to-end fixture.",
-    "Real Yahoo Finance and derived ADR/FX behavior is not exercised in this offline evaluation."
+    "Real Supabase migration, RLS, database E2E, and browser validation remain blocked because no safe staging/local database is available.",
+    "Live field accuracy validates symbol/currency/timezone/adjustment contracts; it is not an independent consolidated-tape price audit."
   ]
 }

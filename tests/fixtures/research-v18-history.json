@@ -1,0 +1,56 @@
+{
+  "signals": [
+    {
+      "id": "legacy-signal-1",
+      "source_post_id": "legacy-source-shared",
+      "title": "Legacy MU signal",
+      "source": "Alan Source Text",
+      "original_text": "美光与 Micron 的同一条历史观察。",
+      "extracted_signal": "Micron pricing may improve",
+      "related_tickers": ["MU", "Micron", "mu"],
+      "priority_score": 72,
+      "status": "Tracking",
+      "linked_logic_chain_id": "legacy-chain-1"
+    },
+    {
+      "id": "legacy-signal-2",
+      "source_post_id": "legacy-source-shared",
+      "title": "Different claim in the same source post",
+      "source": "Alan Source Text",
+      "original_text": "同一帖子中的另一条独立判断。",
+      "extracted_signal": "TSM reaction is weak",
+      "related_tickers": ["TSM"],
+      "priority_score": 60,
+      "status": "New",
+      "linked_logic_chain_id": "legacy-chain-2"
+    }
+  ],
+  "logicChains": [
+    {
+      "id": "legacy-chain-1",
+      "title": "Legacy Memory Cycle",
+      "trigger_signal_id": "legacy-signal-1",
+      "transmission_path": ["Pricing", "Margin"],
+      "affected_assets": ["MU"],
+      "validation_status": "Active"
+    },
+    {
+      "id": "legacy-chain-2",
+      "title": "Legacy Foundry Reaction",
+      "trigger_signal_id": "legacy-signal-2",
+      "transmission_path": ["Earnings", "Price Reaction"],
+      "affected_assets": ["TSM"],
+      "validation_status": "Validating"
+    }
+  ],
+  "committeeReports": [
+    {
+      "id": "legacy-committee-1",
+      "topic": "Legacy Memory Cycle",
+      "trigger_signal_id": "legacy-signal-1",
+      "linked_logic_chain_id": "legacy-chain-1",
+      "related_tickers": ["MU", "Micron"],
+      "final_decision": "Watch"
+    }
+  ]
+}

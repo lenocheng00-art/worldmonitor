@@ -3,6 +3,71 @@
 
 create extension if not exists pgcrypto;
 
+-- A fresh staging database may not have the historical V1.8 bootstrap
+-- migration available in this repository. These definitions are no-ops when
+-- the existing application tables already exist, and make an empty staging
+-- reset capable of replaying this additive migration safely.
+create table if not exists public.signals (
+  id text primary key,
+  source_post_id text,
+  title text not null,
+  source text not null,
+  original_text text not null,
+  extracted_signal text not null,
+  related_tickers jsonb not null default '[]'::jsonb,
+  related_industry_chains jsonb not null default '[]'::jsonb,
+  priority_score numeric not null default 0,
+  status text not null default 'New',
+  linked_logic_chain_id text,
+  linked_committee_report_id text,
+  linked_backtest_id text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.logic_chains (
+  id text primary key,
+  title text not null,
+  trigger_signal_id text,
+  trigger_event text,
+  transmission_path jsonb not null default '[]'::jsonb,
+  affected_assets jsonb not null default '[]'::jsonb,
+  bull_case text,
+  bear_case text,
+  confidence_score numeric not null default 40,
+  follow_up_indicators jsonb not null default '[]'::jsonb,
+  validation_status text not null default 'Validating',
+  evidence_for jsonb not null default '[]'::jsonb,
+  evidence_against jsonb not null default '[]'::jsonb,
+  historical_hit_rate numeric not null default 0,
+  next_data_point text,
+  linked_committee_report_id text,
+  linked_backtest_id text,
+  last_checked_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.committee_reports (
+  id text primary key,
+  topic text not null,
+  trigger_signal_id text,
+  linked_logic_chain_id text,
+  related_tickers jsonb not null default '[]'::jsonb,
+  related_industry_chains jsonb not null default '[]'::jsonb,
+  agent_votes jsonb not null default '[]'::jsonb,
+  final_decision text not null default 'Watch',
+  final_confidence_score numeric not null default 0,
+  position_sizing text not null default '',
+  time_horizon text not null default '',
+  stop_loss_logic text not null default '',
+  invalidation_condition text not null default '',
+  follow_up_indicators jsonb not null default '[]'::jsonb,
+  linked_backtest_id text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table if exists public.logic_chains
   add column if not exists canonical_key text,
   add column if not exists thesis text,
@@ -12,6 +77,18 @@ alter table if exists public.logic_chains
   add column if not exists last_evidence_at timestamptz,
   add column if not exists next_review_at timestamptz,
   add column if not exists entity_keys jsonb not null default '[]'::jsonb;
+
+update public.logic_chains
+set canonical_key = 'legacy-' || id,
+    thesis = coalesce(nullif(thesis, ''), title),
+    confidence_score = coalesce(confidence_score, 40),
+    research_status = case validation_status
+      when 'Active' then 'tracking'
+      when 'Confirmed' then 'confirmed'
+      when 'Broken' then 'broken'
+      else research_status
+    end
+where canonical_key is null or thesis is null or thesis = '' or confidence_score is null;
 
 create unique index if not exists logic_chains_canonical_key_uidx
   on public.logic_chains (canonical_key)
@@ -250,8 +327,9 @@ begin
 end;
 $$;
 
--- New research tables are private to authenticated users. Scheduled jobs use
--- the server-only service role; no public/anonymous write policy is created.
+-- New research tables are readable by authenticated users. All writes are
+-- server-only through the service role; no public/anonymous/client write
+-- policy is created.
 alter table public.logic_chain_signals enable row level security;
 alter table public.logic_chain_match_candidates enable row level security;
 alter table public.tracking_metrics enable row level security;
@@ -271,9 +349,51 @@ begin
     'committee_research_objects', 'committee_research_versions', 'research_tracking_runs'
   ] loop
     execute format('drop policy if exists research_authenticated_access on public.%I', table_name);
+    execute format('drop policy if exists research_authenticated_read on public.%I', table_name);
     execute format(
-      'create policy research_authenticated_access on public.%I for all to authenticated using (true) with check (true)',
+      'create policy research_authenticated_read on public.%I for select to authenticated using (true)',
       table_name
     );
   end loop;
 end $$;
+
+grant select on table
+  public.logic_chain_signals,
+  public.logic_chain_match_candidates,
+  public.tracking_metrics,
+  public.metric_observations,
+  public.evidence,
+  public.confidence_events,
+  public.committee_research_objects,
+  public.committee_research_versions,
+  public.research_tracking_runs
+to authenticated;
+
+grant all on table
+  public.logic_chain_signals,
+  public.logic_chain_match_candidates,
+  public.tracking_metrics,
+  public.metric_observations,
+  public.evidence,
+  public.confidence_events,
+  public.committee_research_objects,
+  public.committee_research_versions,
+  public.research_tracking_runs
+to service_role;
+
+revoke all on table
+  public.logic_chain_signals,
+  public.logic_chain_match_candidates,
+  public.tracking_metrics,
+  public.metric_observations,
+  public.evidence,
+  public.confidence_events,
+  public.committee_research_objects,
+  public.committee_research_versions,
+  public.research_tracking_runs
+from anon;
+
+revoke all on function public.attach_research_signal(text, text, text, numeric, text, text) from public;
+revoke all on function public.attach_research_signal(text, text, text, numeric, text, text) from anon;
+revoke all on function public.attach_research_signal(text, text, text, numeric, text, text) from authenticated;
+grant execute on function public.attach_research_signal(text, text, text, numeric, text, text) to service_role;

@@ -50,10 +50,12 @@ test("repeating identical source is idempotent across signals, chains, metrics, 
   assert.deepEqual(snapshotSizes(repository), sizes);
 });
 
-test("five observations validate SKHY only on day five and increase confidence once", async () => {
+test("five observations validate a controlled SK Hynix fixture only on day five and increase confidence once", async () => {
   const repository = new InMemoryResearchRepository();
   await processResearchSource(repository, { sourceText: CORE_SOURCE, sourcePostId: "metric-source" }, "2026-07-19T00:00:00.000Z");
-  const metric = [...repository.metrics.values()].find((item) => item.metricKey === "SKHY_ADR_PREMIUM")!;
+  const compiledMetric = [...repository.metrics.values()].find((item) => item.metricKey === "SKHY_ADR_PREMIUM")!;
+  const metric = { ...compiledMetric, provider: "derived" as const, status: "active" as const };
+  await repository.updateMetric(metric);
   const provider = new SequenceProvider([1, 2, 2.5, 2, 1.5].map((value, index) => success(value, `2026-07-${String(19 + index).padStart(2, "0")}T00:00:00.000Z`)));
   const before = (await repository.getLogicChain(metric.logicChainId))!.confidenceScore;
   for (let index = 0; index < 4; index += 1) {
@@ -70,10 +72,10 @@ test("five observations validate SKHY only on day five and increase confidence o
 test("provider failure records error, preserves last value, and does not block other due metrics", async () => {
   const repository = new InMemoryResearchRepository();
   await processResearchSource(repository, { sourceText: CORE_SOURCE, sourcePostId: "failure-source" }, "2026-07-19T00:00:00.000Z");
-  const due = [...repository.metrics.values()].map((metric) => ({ ...metric, lastValue: { safe: true }, nextRunAt: "2026-07-19T00:00:00.000Z" }));
+  const due = [...repository.metrics.values()].map((metric) => ({ ...metric, status: "active" as const, lastValue: { safe: true }, nextRunAt: "2026-07-19T00:00:00.000Z" }));
   for (const metric of due) await repository.updateMetric(metric);
   const provider = new FailOnceProvider();
-  const result = await runDueResearchMetrics(repository, { derived: provider, yahoo_finance: provider }, { mode: "manual", now: "2026-07-20T12:00:00.000Z" });
+  const result = await runDueResearchMetrics(repository, { derived: provider, yahoo_finance: provider, manual: provider }, { mode: "manual", now: "2026-07-20T12:00:00.000Z" });
   assert.equal(result.processed, due.length);
   assert.equal(result.failed, 1);
   assert.ok(result.pending + result.validated + result.invalidated >= 1);

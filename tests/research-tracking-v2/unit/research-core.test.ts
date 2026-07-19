@@ -44,11 +44,15 @@ test("matcher applies the configured attach/review thresholds with an explainabl
   assert.equal(result.reasons.length, 5);
 });
 
-test("metric compiler emits deterministic executable metrics and pauses unsupported conditions", () => {
+test("metric compiler emits deterministic metrics and pauses unverified live inputs", () => {
   const signals = extractSignals({ sourceText: CORE_SOURCE, sourcePostId: "compiler-source" });
   const compiled = compileTrackingMetrics(signals, "chain-compiler");
   assert.equal(compiled.metrics.length, 4);
-  assert.equal(compiled.metrics.every((metric) => metric.status === "active"), true);
+  assert.equal(compiled.metrics.filter((metric) => metric.status === "active").length, 2);
+  assert.deepEqual(
+    compiled.metrics.filter((metric) => metric.status === "paused").map((metric) => metric.metricKey).sort(),
+    ["TSM_GOOD_NEWS_REACTION", "WDC_RELATIVE_STRENGTH_VS_MEMORY"],
+  );
   const unsupported = compileTrackingMetrics([{ ...signals[0], relatedTickers: [], explicitConditions: [{ ...signals[0].explicitConditions[0], metric: "PRIVATE_OPERATIONAL_EVENT" }] }], "chain-compiler");
   assert.equal(unsupported.metrics[0].status, "paused");
   assert.ok(unsupported.rejected.length > 0);
