@@ -45,14 +45,18 @@ test("navigation exposes only the seven Signals Core destinations", async () => 
   }
 });
 
-test("Overview contains only the five Signals workflow modules", async () => {
+test("Overview presents the V2.2 Mission Control information architecture", async () => {
   const overview = await source("src/components/overview-dashboard.tsx");
-  for (const moduleName of ["Today&apos;s Signals", "Signals Requiring Attention", "Active Logic Chains", "Committee Queue", "Watchlist Changes"]) {
+  for (const moduleName of ["Mission Control", "Research Pipeline", "Research Health", "Today&apos;s Workflow", "Research Queue", "Top Logic Chains", "Committee Snapshot", "Recently Added", "Recently Updated", "Highest Confidence"]) {
     assert.match(overview, new RegExp(moduleName));
   }
-  for (const forbidden of ["Total Assets", "Net Worth", "Cash Balance", "Cash Runway", "Portfolio Allocation", "Liquidity Risk"]) {
+  for (const forbidden of ["Today&apos;s Signals", "Signals Requiring Attention", "Active Logic Chains", "Committee Queue", "Watchlist Changes", "Total Assets", "Net Worth", "Cash Balance", "Cash Runway", "Portfolio Allocation", "Liquidity Risk"]) {
     assert.doesNotMatch(overview, new RegExp(forbidden));
   }
+  assert.match(overview, /memo\(/);
+  assert.match(overview, /useMemo\(/);
+  assert.match(overview, /useDecisionLoop\(\)/);
+  assert.doesNotMatch(overview, /Mock Research Data/);
 });
 
 test("Signal Monitor routes source extraction through the V2 structured cloud pipeline", async () => {
