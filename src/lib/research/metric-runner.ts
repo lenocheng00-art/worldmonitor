@@ -10,13 +10,22 @@ import type { Evidence, MetricObservation, TrackingMetric } from "@/lib/research
 export type ProviderRegistry = Partial<Record<TrackingMetric["provider"], MarketDataProvider>>;
 export type MetricRunResult = {
   metricId: string;
-  result: "validated" | "invalidated" | "neutral" | "pending" | "error" | "duplicate";
+  result: "validated" | "invalidated" | "neutral" | "pending" | "error" | "duplicate" | "data_unavailable";
   confidenceChanged: boolean;
   logicChainId: string;
   error?: string;
 };
 
 export async function runResearchMetric(repository: ResearchRepository, metric: TrackingMetric, providers: ProviderRegistry, now = new Date().toISOString()): Promise<MetricRunResult> {
+  if (metric.status === "paused") {
+    return {
+      metricId: metric.id,
+      result: "data_unavailable",
+      confidenceChanged: false,
+      logicChainId: metric.logicChainId,
+      error: metric.compileError ?? "Metric is paused pending a verified data dependency.",
+    };
+  }
   const provider = providers[metric.provider];
   const fetched = provider
     ? await provider.fetchMetricValue(metric)

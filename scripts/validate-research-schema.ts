@@ -1,5 +1,5 @@
 import { Client } from "pg";
-import { assertStagingTarget, StagingConfigurationError } from "./lib/staging-guard";
+import { assertSafeStagingEnvironment, StagingConfigurationError } from "./lib/staging-guard";
 
 const REQUIRED_TABLES = [
   "signals", "logic_chains", "logic_chain_signals", "logic_chain_match_candidates",
@@ -8,7 +8,7 @@ const REQUIRED_TABLES = [
 ] as const;
 
 const RESEARCH_TABLES = [
-  "logic_chain_signals", "logic_chain_match_candidates", "tracking_metrics", "metric_observations",
+  "signals", "logic_chains", "logic_chain_signals", "logic_chain_match_candidates", "tracking_metrics", "metric_observations",
   "evidence", "confidence_events", "committee_research_objects", "committee_research_versions",
   "research_tracking_runs",
 ] as const;
@@ -37,7 +37,8 @@ type Check = { name: string; passed: boolean; detail: string };
 
 async function main() {
   const connectionString = process.env.STAGING_DATABASE_URL;
-  const target = assertStagingTarget(connectionString, process.env.STAGING_ENVIRONMENT);
+  const safe = assertSafeStagingEnvironment();
+  const target = safe.database;
   const client = new Client({ connectionString, ssl: target.local ? undefined : { rejectUnauthorized: false } });
   const checks: Check[] = [];
   await client.connect();
@@ -98,7 +99,24 @@ async function main() {
       where schemaname = 'public' and tablename = any($1::text[]) group by tablename
     `, [RESEARCH_TABLES]);
     const policyCounts = new Map(policies.rows.map((row) => [row.tablename, Number(row.policy_count)]));
-    for (const table of RESEARCH_TABLES) check(checks, `policy:${table}`, policyCounts.get(table) === 1, `count=${policyCounts.get(table) ?? 0}`);
+    for (const table of RESEARCH_TABLES) {
+      const expected = table === "signals" || table === "logic_chains" ? 2 : 1;
+      check(checks, `policy:${table}`, policyCounts.get(table) === expected, `count=${policyCounts.get(table) ?? 0}; expected=${expected}`);
+    }
+
+    const grants = await client.query<{ table_name: string; grantee: string; privilege_type: string }>(`
+      select table_name, grantee, privilege_type from information_schema.role_table_grants
+      where table_schema = 'public' and table_name = any($1::text[])
+        and grantee = any($2::text[])
+    `, [RESEARCH_TABLES, ["anon", "authenticated", "service_role"]]);
+    for (const table of RESEARCH_TABLES) {
+      const has = (role: string, privilege: string) => grants.rows.some((row) => row.table_name === table && row.grantee === role && row.privilege_type === privilege);
+      const legacyReadable = table === "signals" || table === "logic_chains";
+      check(checks, `grant:${table}:anon-select`, has("anon", "SELECT") === legacyReadable, legacyReadable ? "granted" : "revoked");
+      check(checks, `grant:${table}:authenticated-select`, has("authenticated", "SELECT"), has("authenticated", "SELECT") ? "granted" : "missing");
+      check(checks, `grant:${table}:authenticated-insert`, !has("authenticated", "INSERT"), has("authenticated", "INSERT") ? "unexpected grant" : "revoked");
+      check(checks, `grant:${table}:service-insert`, has("service_role", "INSERT"), has("service_role", "INSERT") ? "granted" : "missing");
+    }
 
     const functions = await client.query<{ exists: boolean; security_definer: boolean; safe_search_path: boolean; anon_execute: boolean; auth_execute: boolean; service_execute: boolean }>(`
       select

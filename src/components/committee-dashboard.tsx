@@ -42,6 +42,7 @@ export function CommitteeDashboard() {
   } = useDecisionLoop();
   const requestedReport = searchParams.get("report");
   const [selectedId, setSelectedId] = useState(requestedReport ?? state.committeeReports[0]?.id ?? "");
+  const [selectedResearchChainId, setSelectedResearchChainId] = useState("");
   const [running, setRunning] = useState(false);
   const selected = state.committeeReports.find((report) => report.id === selectedId) ?? state.committeeReports[0];
 
@@ -56,6 +57,7 @@ export function CommitteeDashboard() {
   ], [state.logicChains]);
 
   function reviewOpportunity(id: string, type: string) {
+    if (type === "Logic Chain") setSelectedResearchChainId(id);
     setRunning(true);
     window.setTimeout(() => {
       const report = type === "Logic Chain" ? sendLogicChainToCommittee(id) : sendSignalToCommittee(id);
@@ -63,6 +65,8 @@ export function CommitteeDashboard() {
       setRunning(false);
     }, 350);
   }
+
+  const activeResearchChainId = selected?.linkedLogicChainId ?? selectedResearchChainId ?? pending[0]?.id;
 
   function runLinkedBacktest(report: CommitteeReport) {
     const signal = state.signals.find((item) => item.id === report.triggerSignalId);
@@ -122,6 +126,7 @@ export function CommitteeDashboard() {
           </CardHeader>
           <CardContent className="space-y-3 pt-5">
             {selected ? selected.agentVotes.map((vote) => <AgentRow key={vote.agentName} vote={vote} />) : <EmptyCommittee />}
+            {activeResearchChainId ? <CommitteeResearchPanel logicChainId={activeResearchChainId} /> : null}
           </CardContent>
         </Card>
 

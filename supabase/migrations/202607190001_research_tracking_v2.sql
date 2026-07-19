@@ -68,6 +68,65 @@ create table if not exists public.committee_reports (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.backtest_strategies (
+  id text primary key,
+  name text not null,
+  trigger_signal_id text,
+  linked_logic_chain_id text,
+  tickers jsonb not null default '[]'::jsonb,
+  start_date date,
+  end_date date,
+  entry_rules jsonb not null default '[]'::jsonb,
+  exit_rules jsonb not null default '[]'::jsonb,
+  benchmark text not null default '',
+  position_size numeric not null default 0,
+  rebalance_frequency text not null default '',
+  stop_loss numeric,
+  take_profit numeric,
+  signal_source text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.backtest_results (
+  id text primary key,
+  strategy_id text not null references public.backtest_strategies(id) on delete cascade,
+  linked_signal_id text,
+  linked_logic_chain_id text,
+  linked_committee_report_id text,
+  total_return numeric not null default 0,
+  annualized_return numeric not null default 0,
+  max_drawdown numeric not null default 0,
+  sharpe_ratio numeric not null default 0,
+  win_rate numeric not null default 0,
+  trade_count integer not null default 0,
+  avg_holding_period numeric not null default 0,
+  benchmark_return numeric not null default 0,
+  equity_curve jsonb not null default '[]'::jsonb,
+  drawdown_curve jsonb not null default '[]'::jsonb,
+  trade_log jsonb not null default '[]'::jsonb,
+  conclusion text not null default '',
+  decision_implication text not null default '',
+  best_trade text not null default '',
+  worst_trade text not null default '',
+  main_risk text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.watchlist_items (
+  ticker text primary key,
+  source_object_id text not null,
+  entry_trigger text not null default '',
+  invalidation_level text not null default '',
+  linked_signal_ids jsonb not null default '[]'::jsonb,
+  committee_view text not null default '',
+  backtest_edge text not null default '',
+  suggested_action text not null default '',
+  added_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table if exists public.logic_chains
   add column if not exists canonical_key text,
   add column if not exists thesis text,
@@ -330,6 +389,12 @@ $$;
 -- New research tables are readable by authenticated users. All writes are
 -- server-only through the service role; no public/anonymous/client write
 -- policy is created.
+alter table public.signals enable row level security;
+alter table public.logic_chains enable row level security;
+alter table public.committee_reports enable row level security;
+alter table public.backtest_strategies enable row level security;
+alter table public.backtest_results enable row level security;
+alter table public.watchlist_items enable row level security;
 alter table public.logic_chain_signals enable row level security;
 alter table public.logic_chain_match_candidates enable row level security;
 alter table public.tracking_metrics enable row level security;
@@ -357,6 +422,59 @@ begin
   end loop;
 end $$;
 
+do $$
+declare table_name text;
+begin
+  foreach table_name in array array[
+    'signals', 'logic_chains', 'committee_reports', 'backtest_strategies',
+    'backtest_results', 'watchlist_items'
+  ] loop
+    execute format('drop policy if exists legacy_anon_read on public.%I', table_name);
+    execute format('drop policy if exists legacy_authenticated_read on public.%I', table_name);
+    execute format('create policy legacy_anon_read on public.%I for select to anon using (true)', table_name);
+    execute format('create policy legacy_authenticated_read on public.%I for select to authenticated using (true)', table_name);
+  end loop;
+end $$;
+
+revoke all on table
+  public.signals,
+  public.logic_chains,
+  public.committee_reports,
+  public.backtest_strategies,
+  public.backtest_results,
+  public.watchlist_items
+from anon, authenticated;
+
+grant select on table
+  public.signals,
+  public.logic_chains,
+  public.committee_reports,
+  public.backtest_strategies,
+  public.backtest_results,
+  public.watchlist_items
+to anon, authenticated;
+
+grant all on table
+  public.signals,
+  public.logic_chains,
+  public.committee_reports,
+  public.backtest_strategies,
+  public.backtest_results,
+  public.watchlist_items
+to service_role;
+
+revoke all on table
+  public.logic_chain_signals,
+  public.logic_chain_match_candidates,
+  public.tracking_metrics,
+  public.metric_observations,
+  public.evidence,
+  public.confidence_events,
+  public.committee_research_objects,
+  public.committee_research_versions,
+  public.research_tracking_runs
+from anon, authenticated;
+
 grant select on table
   public.logic_chain_signals,
   public.logic_chain_match_candidates,
@@ -380,18 +498,6 @@ grant all on table
   public.committee_research_versions,
   public.research_tracking_runs
 to service_role;
-
-revoke all on table
-  public.logic_chain_signals,
-  public.logic_chain_match_candidates,
-  public.tracking_metrics,
-  public.metric_observations,
-  public.evidence,
-  public.confidence_events,
-  public.committee_research_objects,
-  public.committee_research_versions,
-  public.research_tracking_runs
-from anon;
 
 revoke all on function public.attach_research_signal(text, text, text, numeric, text, text) from public;
 revoke all on function public.attach_research_signal(text, text, text, numeric, text, text) from anon;

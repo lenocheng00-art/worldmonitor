@@ -81,9 +81,9 @@ test("Committee, Backtests, and Watchlist persist through the migration-free Sup
   assert.doesNotMatch(repository, /from\("committee_cases"\)/);
   assert.doesNotMatch(repository, /from\("research_links"\)/);
   const route = await source("src/app/api/research-state/route.ts");
-  assert.match(route, /createClient } from "@\/lib\/supabase\/server"/);
-  assert.match(route, /await createClient\(\)/);
-  assert.doesNotMatch(route, /createAdminClient\(\)/);
+  assert.match(route, /createAdminClient } from "@\/lib\/supabase\/admin"/);
+  assert.match(route, /createAdminClient\(\)/);
+  assert.doesNotMatch(route, /createClient } from "@\/lib\/supabase\/server"/);
   assert.match(route, /from\("signals"\)\.upsert/);
   assert.match(route, /from\("logic_chains"\)\.upsert/);
   assert.match(route, /from\("committee_reports"\)\.upsert/);

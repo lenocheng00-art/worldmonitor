@@ -1,0 +1,180 @@
+{
+  "generatedAt": "2026-07-19T12:57:10.958Z",
+  "mode": "LIVE_PUBLIC_MARKET_DATA_NO_SUPABASE",
+  "productionSupabaseConnections": 0,
+  "plannedSymbols": 7,
+  "successfulSymbols": 7,
+  "liveProviderAvailability": 100,
+  "liveMetricDataAccuracy": 100,
+  "rows": [
+    {
+      "symbol": "MU",
+      "provider": "Yahoo Finance chart API",
+      "success": true,
+      "providerSymbol": "MU",
+      "currency": "USD",
+      "timezone": "America/New_York",
+      "exchange": "NMS",
+      "latestTimestamp": "2026-07-17T13:30:00.000Z",
+      "rawClose": 848.9500122070312,
+      "adjustedClose": 848.9500122070312,
+      "historicalPoints": 20,
+      "marketState": null,
+      "failureCode": null,
+      "failureReason": null,
+      "contractAccurate": true
+    },
+    {
+      "symbol": "WDC",
+      "provider": "Yahoo Finance chart API",
+      "success": true,
+      "providerSymbol": "WDC",
+      "currency": "USD",
+      "timezone": "America/New_York",
+      "exchange": "NMS",
+      "latestTimestamp": "2026-07-17T13:30:00.000Z",
+      "rawClose": 477.2200012207031,
+      "adjustedClose": 477.2200012207031,
+      "historicalPoints": 20,
+      "marketState": null,
+      "failureCode": null,
+      "failureReason": null,
+      "contractAccurate": true
+    },
+    {
+      "symbol": "TSM",
+      "provider": "Yahoo Finance chart API",
+      "success": true,
+      "providerSymbol": "TSM",
+      "currency": "USD",
+      "timezone": "America/New_York",
+      "exchange": "NYQ",
+      "latestTimestamp": "2026-07-17T13:30:00.000Z",
+      "rawClose": 398.3699951171875,
+      "adjustedClose": 398.3699951171875,
+      "historicalPoints": 20,
+      "marketState": null,
+      "failureCode": null,
+      "failureReason": null,
+      "contractAccurate": true
+    },
+    {
+      "symbol": "000660.KS",
+      "provider": "Yahoo Finance chart API",
+      "success": true,
+      "providerSymbol": "000660.KS",
+      "currency": "KRW",
+      "timezone": "Asia/Seoul",
+      "exchange": "KSC",
+      "latestTimestamp": "2026-07-16T00:00:00.000Z",
+      "rawClose": 1842000,
+      "adjustedClose": 1842000,
+      "historicalPoints": 23,
+      "marketState": null,
+      "failureCode": null,
+      "failureReason": null,
+      "contractAccurate": true
+    },
+    {
+      "symbol": "SNDK",
+      "provider": "Yahoo Finance chart API",
+      "success": true,
+      "providerSymbol": "SNDK",
+      "currency": "USD",
+      "timezone": "America/New_York",
+      "exchange": "NMS",
+      "latestTimestamp": "2026-07-17T13:30:00.000Z",
+      "rawClose": 1354.8199462890625,
+      "adjustedClose": 1354.8199462890625,
+      "historicalPoints": 20,
+      "marketState": null,
+      "failureCode": null,
+      "failureReason": null,
+      "contractAccurate": true
+    },
+    {
+      "symbol": "SKHY",
+      "provider": "Yahoo Finance chart API",
+      "success": true,
+      "providerSymbol": "SKHY",
+      "currency": "USD",
+      "timezone": "America/New_York",
+      "exchange": "NMS",
+      "latestTimestamp": "2026-07-17T13:30:00.000Z",
+      "rawClose": 154.02999877929688,
+      "adjustedClose": 154.02999877929688,
+      "historicalPoints": 6,
+      "marketState": null,
+      "failureCode": null,
+      "failureReason": null,
+      "contractAccurate": true
+    },
+    {
+      "symbol": "KRW=X",
+      "provider": "Yahoo Finance chart API",
+      "success": true,
+      "providerSymbol": "KRW=X",
+      "currency": "KRW",
+      "timezone": "Europe/London",
+      "exchange": "CCY",
+      "latestTimestamp": "2026-07-17T21:23:33.000Z",
+      "rawClose": 1487.4599609375,
+      "adjustedClose": 1487.4599609375,
+      "historicalPoints": 24,
+      "marketState": null,
+      "failureCode": null,
+      "failureReason": null,
+      "contractAccurate": true
+    }
+  ],
+  "derivedMetrics": {
+    "rollingRelativeReturn": {
+      "name": "WDC five-session adjusted return versus median of MU and SNDK",
+      "success": true,
+      "observedAt": "2026-07-17T13:30:00.000Z",
+      "value": 3.2118812825999257,
+      "failureCode": null,
+      "failureReason": null,
+      "raw": {
+        "primaryTicker": "WDC",
+        "peerTickers": [
+          "MU",
+          "SNDK"
+        ],
+        "primaryReturn": -18.08647947571307,
+        "peerReturns": [
+          -29.28619591560919,
+          -13.3105256010168
+        ],
+        "windowTradingDays": 5
+      }
+    },
+    "skHynixCrossMarketPremium": {
+      "name": "SKHY ADS premium versus 000660.KS using KRW=X and a verified 0.1 share/ADS ratio",
+      "success": true,
+      "observedAt": "2026-07-16T13:30:00.000Z",
+      "value": 22.88985392756264,
+      "failureCode": null,
+      "failureReason": null,
+      "raw": {
+        "tradingDate": "2026-07-16",
+        "depositaryReceipt": {
+          "timestamp": "2026-07-16T13:30:00.000Z",
+          "close": 152.30999755859375,
+          "adjustedClose": 152.30999755859375
+        },
+        "local": {
+          "timestamp": "2026-07-16T00:00:00.000Z",
+          "close": 1842000,
+          "adjustedClose": 1842000
+        },
+        "fx": {
+          "timestamp": "2026-07-15T23:00:00.000Z",
+          "close": 1486.199951171875,
+          "adjustedClose": 1486.199951171875
+        },
+        "adrRatio": 0.1
+      }
+    }
+  }
+}

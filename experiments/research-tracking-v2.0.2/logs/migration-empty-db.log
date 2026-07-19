@@ -1,0 +1,9 @@
+2026-07-19T12:36:24.617Z target project=esanlgybhxabrlbsijpf host=aws-0-ap-southeast-1.pooler.supabase.com environment=staging
+2026-07-19T12:36:24.760Z empty-db reset: PASS
+2026-07-19T12:36:25.457Z empty-db migration: PASS
+2026-07-19T12:36:25.597Z empty-db required tables: PASS (11/11)
+2026-07-19T12:36:25.923Z V1.8 synthetic fixture seed: PASS (2 signals, 2 chains, 1 committee report)
+2026-07-19T12:36:26.897Z V1.8 fixture migration: PASS {"passed":true,"counts":{"signals":2,"logicChains":2,"committeeReports":1,"committeeResearchObjects":0},"canonicalKeysBackfilled":2,"legacyStatusMappings":{"legacy-chain-001":"tracking","legacy-chain-002":"confirmed"},"duplicateSourceBoundaryPreserved":true}
+2026-07-19T12:36:28.377Z reset/replay: PASS (two clean replays)
+2026-07-19T12:36:29.559Z failure recovery: PASS (transaction rollback followed by clean migration)
+2026-07-19T12:36:30.246Z final clean staging schema: PASS
