@@ -5,7 +5,7 @@ import { runDueResearchMetrics, runResearchMetric } from "@/lib/research/metric-
 import { processResearchSource } from "@/lib/research/research-engine";
 import { InMemoryResearchRepository } from "@/lib/research/repository";
 import type { MetricFetchResult } from "@/lib/market-data/provider";
-import { CORE_SOURCE, EXPECTED_PATH, FOLLOW_UP_SOURCE } from "../fixtures";
+import { CORE_SOURCE, EXPECTED_PATH, FOLLOW_UP_SOURCE, MULTI_THEME_SOURCE } from "../fixtures";
 
 test("core source creates four signals, one chain, four metrics, and one committee object", async () => {
   const repository = new InMemoryResearchRepository();
@@ -47,7 +47,47 @@ test("repeating identical source is idempotent across signals, chains, metrics, 
   const sizes = snapshotSizes(repository);
   const second = await processResearchSource(repository, input, "2026-07-20T00:00:00.000Z");
   assert.equal(second.acceptedSignals, 0);
+  assert.deepEqual(second.created, { signals: 0, logicChains: 0, metrics: 0, evidence: 0, confidenceEvents: 0, committeeObjects: 0 });
+  assert.equal(second.duplicates.signals, 4);
+  assert.equal(second.duplicates.logicChains, 4);
+  assert.equal(second.duplicates.metrics, 4);
   assert.deepEqual(snapshotSizes(repository), sizes);
+});
+
+test("manual full-pipeline request returns structured IDs and creates three independent research themes", async () => {
+  const repository = new InMemoryResearchRepository();
+  const result = await processResearchSource(repository, {
+    sourceText: MULTI_THEME_SOURCE,
+    sourceName: "Alan Chan",
+    submittedAt: "2026-07-20T02:00:00.000Z",
+    processMode: "full_pipeline",
+  }, "2026-07-20T02:00:00.000Z");
+  assert.match(result.sourcePostId, /^manual:[a-f0-9]{64}$/);
+  assert.equal(result.status, "completed");
+  assert.deepEqual(result.created, { signals: 3, logicChains: 3, metrics: 3, evidence: 3, confidenceEvents: 2, committeeObjects: 3 });
+  assert.deepEqual(result.attached, { existingLogicChains: 0 });
+  assert.deepEqual(result.reviewRequired, { signalIds: [], matchCandidateIds: [] });
+  assert.equal(new Set(result.resultIds.signalIds).size, 3);
+  assert.equal(new Set(result.resultIds.logicChainIds).size, 3);
+  assert.equal(new Set(result.resultIds.committeeObjectIds).size, 3);
+  assert.equal(repository.sources.size, 1);
+  assert.equal(repository.chains.size, 3);
+  assert.equal(repository.metrics.size, 3);
+  assert.equal(repository.committeeObjects.size, 3);
+  assert.ok(result.entityResolutions.some((item) => item.canonicalName === "SoftBank Group" && item.tickers.includes("9984.T")));
+  assert.ok(result.entityResolutions.some((item) => item.canonicalName === "AST SpaceMobile" && item.tickers.includes("ASTS")));
+  assert.ok(result.entityResolutions.some((item) => item.canonicalName === "SpaceX" && item.resolutionStatus === "private/security_unverified" && item.tickers.length === 0));
+
+  const repeated = await processResearchSource(repository, {
+    sourceText: MULTI_THEME_SOURCE,
+    sourceName: "Alan Chan",
+    submittedAt: "2026-07-20T03:00:00.000Z",
+    processMode: "full_pipeline",
+  }, "2026-07-20T03:00:00.000Z");
+  assert.equal(repeated.sourcePostId, result.sourcePostId);
+  assert.deepEqual(repeated.created, { signals: 0, logicChains: 0, metrics: 0, evidence: 0, confidenceEvents: 0, committeeObjects: 0 });
+  assert.deepEqual(repeated.duplicates, { signals: 3, logicChains: 3, metrics: 3 });
+  assert.equal(repository.confidenceEvents.size, 2);
 });
 
 test("five observations validate a controlled SK Hynix fixture only on day five and increase confidence once", async () => {

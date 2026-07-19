@@ -34,7 +34,17 @@ export type ResearchRunLog = {
   completedAt: string | null;
 };
 
+export type ResearchSourceRecord = {
+  id: string;
+  sourceName: string;
+  originalText: string;
+  submittedAt: string;
+  processMode: "full_pipeline";
+  contentHash: string;
+};
+
 export interface ResearchRepository {
+  saveSource(source: ResearchSourceRecord): Promise<{ created: boolean }>;
   findSignalByFingerprint(fingerprint: string): Promise<ResearchSignal | null>;
   getSignal(id: string): Promise<ResearchSignal | null>;
   saveSignal(signal: ResearchSignal): Promise<{ record: ResearchSignal; created: boolean }>;
@@ -64,6 +74,7 @@ export interface ResearchRepository {
 }
 
 export class InMemoryResearchRepository implements ResearchRepository {
+  readonly sources = new Map<string, ResearchSourceRecord>();
   readonly signals = new Map<string, ResearchSignal>();
   readonly chains = new Map<string, LogicChainRecord>();
   readonly matchAudits = new Map<string, MatchAudit>();
@@ -75,6 +86,12 @@ export class InMemoryResearchRepository implements ResearchRepository {
   readonly committeeObjects = new Map<string, CommitteeResearchObject>();
   readonly committeeVersions = new Map<string, CommitteeResearchVersion>();
   readonly runs = new Map<string, ResearchRunLog>();
+
+  async saveSource(source: ResearchSourceRecord) {
+    const created = !this.sources.has(source.id);
+    this.sources.set(source.id, structuredClone(source));
+    return { created };
+  }
 
   async findSignalByFingerprint(fingerprint: string) {
     return [...this.signals.values()].find((signal) => signal.signalFingerprint === fingerprint) ?? null;

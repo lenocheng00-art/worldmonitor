@@ -79,6 +79,7 @@ type DecisionLoopContextValue = {
   state: DecisionLoopState;
   ready: boolean;
   error?: string;
+  refresh: () => Promise<DecisionLoopState>;
   createSignal: (input: CreateSignalInput) => Signal;
   updateSignalStatus: (signalId: string, status: SignalStatus) => void;
   createLogicChainFromSignal: (signalId: string) => LogicChain | undefined;
@@ -156,6 +157,14 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
       setError(result.error);
     });
   }, [ready, state]);
+
+  const refresh = useCallback(async () => {
+    const result = await worldmonitorRepository.loadState(state);
+    setState(result.data);
+    setError(result.error);
+    setReady(true);
+    return result.data;
+  }, [state]);
 
   useEffect(() => {
     if (!ready) return;
@@ -551,6 +560,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
     state,
     ready,
     error,
+    refresh,
     createSignal,
     updateSignalStatus,
     createLogicChainFromSignal,
@@ -568,7 +578,7 @@ export function DecisionLoopProvider({ children }: { children: ReactNode }) {
   }), [
     addToWatchlist, createCommitteeReport, createLogicChain, createLogicChainFromSignal, createSignal,
     error, linkBacktestResult, ready, runBacktest, runBacktestFromLogicChain, runBacktestFromSignal, sendLogicChainToCommittee,
-    sendSignalToCommittee, state, updateCommitteeReport, updateLogicChainValidation, updateSignalStatus,
+    sendSignalToCommittee, state, refresh, updateCommitteeReport, updateLogicChainValidation, updateSignalStatus,
   ]);
 
   return <DecisionLoopContext.Provider value={value}>{children}</DecisionLoopContext.Provider>;

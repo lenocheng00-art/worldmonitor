@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CommitteeResearchObject, CommitteeResearchVersion } from "@/lib/research/committee-sync";
-import type { MatchAudit, ResearchRepository, ResearchRunLog } from "@/lib/research/repository";
+import type { MatchAudit, ResearchRepository, ResearchRunLog, ResearchSourceRecord } from "@/lib/research/repository";
 import type {
   ConfidenceEvent,
   Evidence,
@@ -13,6 +13,27 @@ import type {
 
 export class SupabaseResearchRepository implements ResearchRepository {
   constructor(private readonly supabase: SupabaseClient) {}
+
+  async saveSource(source: ResearchSourceRecord) {
+    const existing = await this.supabase.from("source_posts").select("id,created_at").eq("id", source.id).maybeSingle();
+    if (existing.error) throw existing.error;
+    const result = await this.supabase.from("source_posts").upsert({
+      id: source.id,
+      source: source.sourceName,
+      title: `Manual research source ${source.contentHash.slice(0, 12)}`,
+      original_text: source.originalText,
+      metadata: {
+        processMode: source.processMode,
+        contentHash: source.contentHash,
+        submittedAt: source.submittedAt,
+        origin: "signal-monitor",
+      },
+      created_at: existing.data?.created_at ?? source.submittedAt,
+      updated_at: source.submittedAt,
+    });
+    if (result.error) throw result.error;
+    return { created: !existing.data };
+  }
 
   async findSignalByFingerprint(fingerprint: string) {
     const result = await this.supabase.from("signals").select("*").eq("signal_fingerprint", fingerprint).maybeSingle();

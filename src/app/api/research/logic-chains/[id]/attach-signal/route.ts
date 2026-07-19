@@ -23,7 +23,28 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       logicChainId: id, signalId: signal.id, relationType: body.relationType, matchScore: 1, attachedBy: "manual", createdAt: now,
     };
     const result = await repository.attachSignal(relation);
-    return NextResponse.json({ relation: result.record, created: result.created, reactivated: ["archived", "broken"].includes(chain.status) });
+    const pendingAudits = await repository.listMatchAudits({ signalId: signal.id, decision: "review" });
+    await Promise.all([
+      repository.updateSignal({
+        ...signal,
+        logicChainId: id,
+        status: "linked",
+        reviewRequired: false,
+        updatedAt: now,
+      }),
+      ...pendingAudits.map((audit) => repository.saveMatchAudit({
+        ...audit,
+        selectedLogicChainId: id,
+        decision: "attach",
+        reasons: [...new Set([...audit.reasons, `Manually attached to Logic Chain ${id}.`])],
+      })),
+    ]);
+    return NextResponse.json({
+      relation: result.record,
+      created: result.created,
+      reviewResolved: pendingAudits.length,
+      reactivated: ["archived", "broken"].includes(chain.status),
+    });
   } catch (error) {
     return errorResponse(error);
   }

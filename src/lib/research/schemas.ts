@@ -36,11 +36,21 @@ export const extractedConditionSchema = z.object({
 });
 
 export const extractSignalsInputSchema = z.object({
-  sourceText: z.string().min(1).max(200_000),
+  sourceText: z.string().min(1).max(200_000).optional(),
+  originalText: z.string().min(1).max(200_000).optional(),
   sourceId: z.string().min(1).optional(),
   sourcePostId: z.string().min(1).optional(),
+  sourceName: z.string().min(1).max(120).optional(),
+  submittedAt: z.iso.datetime().optional(),
+  processMode: z.literal("full_pipeline").optional(),
   publishedAt: z.iso.datetime().optional(),
-});
+}).refine((input) => Boolean(input.sourceText ?? input.originalText), {
+  message: "sourceText or originalText is required.",
+}).transform((input) => ({
+  ...input,
+  sourceText: input.sourceText ?? input.originalText!,
+  originalText: input.originalText ?? input.sourceText!,
+}));
 
 export const extractedSignalSchema = z.object({
   title: z.string().min(1),
@@ -123,7 +133,16 @@ export const evidenceSchema = z.object({
 });
 
 export type NormalizedEntity = z.infer<typeof normalizedEntitySchema>;
-export type ExtractSignalsInput = z.infer<typeof extractSignalsInputSchema>;
+export type ExtractSignalsInput = {
+  sourceText: string;
+  originalText?: string;
+  sourceId?: string;
+  sourcePostId?: string;
+  sourceName?: string;
+  submittedAt?: string;
+  processMode?: "full_pipeline";
+  publishedAt?: string;
+};
 export type ExtractedSignal = z.infer<typeof extractedSignalSchema>;
 export type ExtractedCondition = z.infer<typeof extractedConditionSchema>;
 export type EvaluationRule = z.infer<typeof evaluationRuleSchema>;

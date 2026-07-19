@@ -173,7 +173,7 @@ function aggregateExtraction(results: ProcessSourceResponse[]) {
     extracted: sum(results, (item) => item.extractedSignals),
     accepted: sum(results, (item) => item.acceptedSignals),
     rejected: sum(results, (item) => item.rejectedSignals),
-    reviewRequired: sum(results, (item) => item.reviewRequired),
+    reviewRequired: sum(results, (item) => item.reviewRequiredCount),
     errors: sum(results, (item) => item.errors.length),
   };
 }

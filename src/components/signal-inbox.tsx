@@ -33,11 +33,13 @@ export function SignalInbox() {
     state,
     ready,
     error,
+    refresh,
     createLogicChainFromSignal,
     sendSignalToCommittee,
     updateSignalStatus,
   } = useDecisionLoop();
   const requestedTicker = searchParams.get("ticker");
+  const requestedSignal = searchParams.get("signal");
   const visibleSignals = useMemo(
     () => requestedTicker
       ? state.signals.filter((signal) => signal.status !== "ARCHIVED" && signal.relatedTickers.includes(requestedTicker))
@@ -47,7 +49,7 @@ export function SignalInbox() {
   const [activeStatus, setActiveStatus] = useState<SignalStatus | "All">("All");
   const filterSource = activeStatus === "ARCHIVED" ? state.signals : visibleSignals;
   const filtered = filterSource.filter((signal) => activeStatus === "All" || signal.status === activeStatus);
-  const [selectedId, setSelectedId] = useState(filtered[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState(requestedSignal ?? filtered[0]?.id ?? "");
   const [pasteText, setPasteText] = useState("");
   const [showImport, setShowImport] = useState(false);
   const [importError, setImportError] = useState<string>();
@@ -55,22 +57,31 @@ export function SignalInbox() {
   const selected = filtered.find((signal) => signal.id === selectedId) ?? filtered[0];
 
   useEffect(() => {
+    if (requestedSignal && filtered.some((signal) => signal.id === requestedSignal)) {
+      setSelectedId(requestedSignal);
+      return;
+    }
     if (filtered.length && !filtered.some((signal) => signal.id === selectedId)) {
       setSelectedId(filtered[0].id);
     }
-  }, [filtered, selectedId]);
+  }, [filtered, requestedSignal, selectedId]);
 
   async function importText() {
     if (!pasteText.trim() || busyAction) return;
     setBusyAction("import");
     setImportError(undefined);
     try {
-      const response = await fetch("/api/research/process-source", { method: "POST", headers: { "content-type": "application/json", "x-worldmonitor-client": "research-tracking-v2" }, body: JSON.stringify({ sourceText: pasteText.trim() }) });
+      const response = await fetch("/api/research/process-source", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-worldmonitor-client": "research-tracking-v2" },
+        body: JSON.stringify({ originalText: pasteText.trim(), sourceName: "Manual Signal Inbox", submittedAt: new Date().toISOString(), processMode: "full_pipeline" }),
+      });
       const payload = await response.json() as ProcessSourceResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Signal extraction failed.");
       setPasteText("");
       setShowImport(false);
-      window.dispatchEvent(new Event("focus"));
+      await refresh();
+      router.refresh();
     } catch (requestError) {
       setImportError(requestError instanceof Error ? requestError.message : "Signal extraction failed.");
     } finally {

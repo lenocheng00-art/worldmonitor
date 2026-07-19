@@ -41,14 +41,19 @@ export function CommitteeDashboard() {
     addToWatchlist,
   } = useDecisionLoop();
   const requestedReport = searchParams.get("report");
+  const requestedChain = searchParams.get("chain");
   const [selectedId, setSelectedId] = useState(requestedReport ?? state.committeeReports[0]?.id ?? "");
-  const [selectedResearchChainId, setSelectedResearchChainId] = useState("");
+  const [selectedResearchChainId, setSelectedResearchChainId] = useState(requestedChain ?? "");
   const [running, setRunning] = useState(false);
   const selected = state.committeeReports.find((report) => report.id === selectedId) ?? state.committeeReports[0];
 
   useEffect(() => {
     if (requestedReport) setSelectedId(requestedReport);
   }, [requestedReport]);
+
+  useEffect(() => {
+    if (requestedChain) setSelectedResearchChainId(requestedChain);
+  }, [requestedChain]);
 
   const pending = useMemo(() => [
     ...state.logicChains

@@ -61,11 +61,31 @@ test("Overview presents the V2.2 Mission Control information architecture", asyn
 
 test("Signal Monitor routes source extraction through the V2 structured cloud pipeline", async () => {
   const monitor = await source("src/components/signal-monitor.tsx");
+  const attachRoute = await source("src/app/api/research/logic-chains/[id]/attach-signal/route.ts");
+  const rejectRoute = await source("src/app/api/research/matches/[id]/route.ts");
   assert.match(monitor, /useDecisionLoop\(\)/);
   assert.match(monitor, /fetch\("\/api\/research\/process-source"/);
   assert.match(monitor, /x-worldmonitor-client": "research-tracking-v2"/);
+  for (const field of ["sourcePostId", "sourceName", "originalText", "submittedAt", "processMode", "full_pipeline"]) assert.match(monitor, new RegExp(field));
+  for (const stage of ["Extracting signals", "Resolving entities", "Matching logic chains", "Compiling metrics", "Updating committee"]) assert.match(monitor, new RegExp(stage));
+  for (const action of ["View Signals", "View Logic Chains", "Review Matches", "View Committee", "Manual Attach", "Reject Match"]) assert.match(monitor, new RegExp(action));
+  assert.match(monitor, /await refresh\(\)/);
+  assert.match(monitor, /router\.refresh\(\)/);
+  assert.match(monitor, /manual:\$\{hash\}/);
   assert.doesNotMatch(monitor, /createSignal\(/);
   assert.doesNotMatch(monitor, /useAlanSignals/);
+  assert.match(attachRoute, /decision: "attach"/);
+  assert.match(attachRoute, /reviewRequired: false/);
+  assert.match(rejectRoute, /Candidate rejected manually/);
+  assert.match(rejectRoute, /review_required: true/);
+});
+
+test("Research Orchestrator returns the structured full-pipeline result contract", async () => {
+  const engine = await source("src/lib/research/research-engine.ts");
+  for (const field of ["sourcePostId", "created", "attached", "reviewRequired", "duplicates", "warnings", "resultIds", "reviewMatches", "entityResolutions"]) assert.match(engine, new RegExp(field));
+  for (const stage of ["saveSource", "saveSignal", "matchLogicChain", "saveMatchAudit", "saveLogicChain", "attachSignal", "compileTrackingMetrics", "appendSourceEvidence", "syncCommittee"]) assert.match(engine, new RegExp(stage));
+  assert.match(engine, /missing_logic_chain/);
+  assert.match(engine, /private\/security_unverified/);
 });
 
 test("Committee, Backtests, and Watchlist persist through the migration-free Supabase compatibility layer", async () => {

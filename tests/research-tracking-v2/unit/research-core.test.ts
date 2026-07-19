@@ -19,7 +19,11 @@ test("Zod rejects incomplete atomic signals", () => {
 test("entity resolver maps listings without inventing private-company tickers", () => {
   assert.deepEqual(resolveEntities("台积电利润上升").tickers, ["TSM"]);
   assert.deepEqual(resolveEntities("海力士ADR与首尔本尊").tickers.sort(), ["000660.KS", "SKHY"]);
-  assert.deepEqual(resolveEntities("SpaceX launch").tickers, []);
+  assert.deepEqual(resolveEntities("SoftBank 9984.T and SFTBY").tickers.sort(), ["9984.T", "SFTBY"]);
+  assert.deepEqual(resolveEntities("Microsoft MSFT; Apple AAPL; AST SpaceMobile ASTS").tickers.sort(), ["AAPL", "ASTS", "MSFT"]);
+  const privateSpaceX = resolveEntities("SpaceX/SPCX Starship launch");
+  assert.deepEqual(privateSpaceX.tickers, []);
+  assert.equal(privateSpaceX.unresolvedEntities[0]?.reason, "private/security_unverified");
 });
 
 test("extractor returns the four continuous source quotes", () => {

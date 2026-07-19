@@ -6,6 +6,7 @@ type EntityRegistryEntry = {
   type: NormalizedEntity["type"];
   aliases: string[];
   listings: Array<{ ticker: string; exchange: string; currency: string; kind: "equity" | "adr" | "gdr" }>;
+  resolutionStatus?: "public" | "private/security_unverified" | "unresolved_entity";
 };
 
 const seedRegistry: EntityRegistryEntry[] = [
@@ -16,7 +17,12 @@ const seedRegistry: EntityRegistryEntry[] = [
   { key: "sandisk", canonicalName: "SanDisk", type: "company", aliases: ["SNDK", "闪迪", "SanDisk"], listings: [{ ticker: "SNDK", exchange: "NASDAQ", currency: "USD", kind: "equity" }] },
   { key: "cxmt", canonicalName: "ChangXin Memory Technologies", type: "company", aliases: ["长鑫存储", "长鑫", "CXMT"], listings: [] },
   { key: "nvidia", canonicalName: "NVIDIA", type: "company", aliases: ["NVIDIA", "NVDA", "英伟达"], listings: [{ ticker: "NVDA", exchange: "NASDAQ", currency: "USD", kind: "equity" }] },
-  { key: "spacex", canonicalName: "SpaceX", type: "company", aliases: ["SpaceX", "Starlink"], listings: [] },
+  { key: "softbank", canonicalName: "SoftBank Group", type: "company", aliases: ["SoftBank", "软银", "9984.T", "SFTBY"], listings: [{ ticker: "9984.T", exchange: "TSE", currency: "JPY", kind: "equity" }, { ticker: "SFTBY", exchange: "OTC", currency: "USD", kind: "adr" }] },
+  { key: "microsoft", canonicalName: "Microsoft", type: "company", aliases: ["Microsoft", "微软", "MSFT"], listings: [{ ticker: "MSFT", exchange: "NASDAQ", currency: "USD", kind: "equity" }] },
+  { key: "apple", canonicalName: "Apple", type: "company", aliases: ["Apple", "苹果", "AAPL"], listings: [{ ticker: "AAPL", exchange: "NASDAQ", currency: "USD", kind: "equity" }] },
+  { key: "ast-spacemobile", canonicalName: "AST SpaceMobile", type: "company", aliases: ["AST SpaceMobile", "ASTS"], listings: [{ ticker: "ASTS", exchange: "NASDAQ", currency: "USD", kind: "equity" }] },
+  { key: "openai", canonicalName: "OpenAI", type: "company", aliases: ["OpenAI"], listings: [], resolutionStatus: "private/security_unverified" },
+  { key: "spacex", canonicalName: "SpaceX", type: "company", aliases: ["SpaceX", "SPCX", "Starlink", "Starship"], listings: [], resolutionStatus: "private/security_unverified" },
   { key: "wti", canonicalName: "WTI Crude Oil", type: "commodity", aliases: ["WTI", "原油", "油价"], listings: [{ ticker: "CL=F", exchange: "NYMEX", currency: "USD", kind: "equity" }] },
   { key: "semiconductor", canonicalName: "Semiconductors", type: "industry", aliases: ["半导体", "费半", "SOXX", "memory", "存储"], listings: [] },
 ];
@@ -26,6 +32,7 @@ export type ResolvedEntities = {
   tickers: string[];
   entityKeys: string[];
   listingEvidence: Array<{ entityKey: string; ticker: string; exchange: string; currency: string; kind: "equity" | "adr" | "gdr" }>;
+  unresolvedEntities: Array<{ entityKey: string; canonicalName: string; reason: "private/security_unverified" | "unresolved_entity"; evidenceText: string }>;
 };
 
 export class EntityRegistry {
@@ -40,13 +47,22 @@ export class EntityRegistry {
     } satisfies NormalizedEntity));
     const explicitTickerTokens = new Set((text.match(/(?:^|[^A-Z0-9])([A-Z][A-Z0-9.=]{1,11})(?=$|[^A-Z0-9])/g) ?? []).map((value) => value.replace(/[^A-Z0-9.=]/g, "")));
     const listingEvidence = matches.flatMap((entry) => entry.listings
-      .filter((listing) => explicitTickerTokens.has(listing.ticker) || shouldSelectPrimaryListing(text, entry, listing))
+      .filter((listing) => explicitTickerTokens.has(listing.ticker) || containsAlias(text, listing.ticker) || shouldSelectPrimaryListing(text, entry, listing))
       .map((listing) => ({ entityKey: entry.key, ...listing })));
+    const unresolvedEntities = matches
+      .filter((entry) => !entry.listings.length || entry.resolutionStatus === "unresolved_entity")
+      .map((entry) => ({
+        entityKey: entry.key,
+        canonicalName: entry.canonicalName,
+        reason: entry.resolutionStatus === "private/security_unverified" ? "private/security_unverified" as const : "unresolved_entity" as const,
+        evidenceText: entry.aliases.find((alias) => containsAlias(text, alias)) ?? entry.canonicalName,
+      }));
     return {
       entities,
       tickers: [...new Set(listingEvidence.map((item) => item.ticker))],
       entityKeys: matches.map((entry) => entry.key),
       listingEvidence,
+      unresolvedEntities,
     };
   }
 

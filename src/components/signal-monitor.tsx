@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Cloud, Inbox, Loader2, RadioTower, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ArrowRight, Check, Cloud, GitBranch, Inbox, Link2, Loader2, RadioTower, RefreshCw, SearchCheck, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +12,12 @@ import { useDecisionLoop } from "@/lib/decision-loop-store";
 import type { ProcessSourceResponse } from "@/lib/research/research-engine";
 
 export function SignalMonitor() {
-  const { state, error } = useDecisionLoop();
+  const router = useRouter();
+  const { state, error, refresh } = useDecisionLoop();
   const [sourceText, setSourceText] = useState("");
-  const [createdCount, setCreatedCount] = useState<number | null>(null);
   const [extractionBusy, setExtractionBusy] = useState(false);
-  const [extractionMessage, setExtractionMessage] = useState<string>();
+  const [extractionError, setExtractionError] = useState<string>();
+  const [pipelineResult, setPipelineResult] = useState<ProcessSourceResponse>();
   const [automationRun, setAutomationRun] = useState<AutomationRunSummary>();
   const [automationRuns, setAutomationRuns] = useState<AutomationRunSummary[]>([]);
   const [automationStats, setAutomationStats] = useState<AutomationBurnInStats>();
@@ -66,21 +68,30 @@ export function SignalMonitor() {
   async function extractAndSave() {
     if (!sourceText.trim() || extractionBusy) return;
     setExtractionBusy(true);
-    setExtractionMessage(undefined);
+    setExtractionError(undefined);
+    setPipelineResult(undefined);
     try {
+      const originalText = sourceText.trim();
+      const sourcePostId = await manualSourcePostId(originalText);
       const response = await fetch("/api/research/process-source", {
         method: "POST",
         headers: { "content-type": "application/json", "x-worldmonitor-client": "research-tracking-v2" },
-        body: JSON.stringify({ sourceText: sourceText.trim() }),
+        body: JSON.stringify({
+          sourcePostId,
+          sourceName: "Alan Chan",
+          originalText,
+          submittedAt: new Date().toISOString(),
+          processMode: "full_pipeline",
+        }),
       });
       const payload = await response.json() as ProcessSourceResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Source processing failed.");
-      setCreatedCount(payload.acceptedSignals);
-      setExtractionMessage(`${payload.extractedSignals} atomic · ${payload.attachedToExistingChains} attached · ${payload.newLogicChains} new chain · ${payload.metricsCreated} metrics${payload.reviewRequired ? ` · ${payload.reviewRequired} review` : ""}`);
+      setPipelineResult(payload);
       if (payload.extractedSignals) setSourceText("");
-      window.dispatchEvent(new Event("focus"));
+      await refresh();
+      router.refresh();
     } catch (requestError) {
-      setExtractionMessage(requestError instanceof Error ? requestError.message : "Source processing failed.");
+      setExtractionError(requestError instanceof Error ? requestError.message : "Source processing failed.");
     } finally {
       setExtractionBusy(false);
     }
@@ -108,13 +119,16 @@ export function SignalMonitor() {
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-muted-foreground">
-              {createdCount === null ? "Signals enter Signal Inbox immediately; repeated evidence updates the existing Signal." : createdCount ? `${createdCount} extracted Signal${createdCount === 1 ? "" : "s"} processed in the cloud Inbox.` : "No supported signal pattern was found."}
-              {extractionMessage ? <div className="mt-1 text-xs">{extractionMessage}</div> : null}
+              One submission runs the authoritative Source → Signal → Logic Chain → Metric → Committee pipeline. Repeated content is idempotent.
             </div>
-            <Button onClick={() => void extractAndSave()} disabled={!sourceText.trim() || extractionBusy}>{extractionBusy ? <Loader2 className="size-4 animate-spin" /> : <Inbox className="size-4" />} Extract to Signal Inbox</Button>
+            <Button onClick={() => void extractAndSave()} disabled={!sourceText.trim() || extractionBusy}>{extractionBusy ? <Loader2 className="size-4 animate-spin" /> : <Inbox className="size-4" />} Extract to Signal Box</Button>
           </div>
         </CardContent>
       </Card>
+
+      {extractionBusy ? <PipelineProcessing /> : null}
+      {extractionError ? <div className="border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-900" data-testid="pipeline-error">{extractionError}</div> : null}
+      {pipelineResult ? <PipelineResultPanel result={pipelineResult} onRefresh={refresh} /> : null}
 
       <Card>
         <CardHeader className="border-b py-4">
@@ -196,6 +210,164 @@ export function SignalMonitor() {
       </Card>
     </div>
   );
+}
+
+const pipelineSteps = [
+  { label: "Extracting signals", icon: Inbox },
+  { label: "Resolving entities", icon: SearchCheck },
+  { label: "Matching logic chains", icon: GitBranch },
+  { label: "Compiling metrics", icon: RadioTower },
+  { label: "Updating committee", icon: Users },
+] as const;
+
+function PipelineProcessing() {
+  return (
+    <Card className="border-primary/20" data-testid="pipeline-processing">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base"><Loader2 className="size-4 animate-spin text-primary" /> Processing full research pipeline</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        {pipelineSteps.map(({ label, icon: Icon }) => (
+          <div key={label} className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-3 text-xs font-medium">
+            <Icon className="size-4 text-primary" /><span>{label}</span><Loader2 className="ml-auto size-3.5 animate-spin text-muted-foreground" />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PipelineResultPanel({ result, onRefresh }: { result: ProcessSourceResponse; onRefresh: () => Promise<unknown> }) {
+  const summary = useMemo(() => [
+    ["Signals created", result.created.signals],
+    ["Logic Chains created", result.created.logicChains],
+    ["Existing Chains attached", result.attached.existingLogicChains],
+    ["Metrics compiled", result.created.metrics],
+    ["Evidence initialized", result.created.evidence],
+    ["Committee objects", result.created.committeeObjects],
+  ] as const, [result]);
+  const firstSignal = result.resultIds.signalIds[0];
+  const firstChain = result.resultIds.logicChainIds[0];
+  return (
+    <Card className="overflow-hidden border-emerald-200" data-testid="pipeline-result-summary">
+      <CardHeader className="border-b bg-emerald-50">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base text-emerald-950"><Check className="size-4" /> Extraction complete</CardTitle>
+            <p className="mt-1 text-xs text-emerald-900/70">{result.sourcePostId} · {result.status.replaceAll("_", " ")}</p>
+          </div>
+          <Badge variant={result.errors.length ? "destructive" : result.reviewRequired.signalIds.length ? "outline" : "secondary"}>
+            {result.reviewRequired.signalIds.length ? `${result.reviewRequired.signalIds.length} require review` : "Pipeline complete"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5 pt-5">
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {summary.map(([label, value]) => <ResultMetric key={label} label={label} value={value} />)}
+        </div>
+        <div className="rounded-md bg-muted/35 px-4 py-3 text-xs text-muted-foreground">
+          Duplicates prevented · {result.duplicates.signals} Signals · {result.duplicates.logicChains} Logic Chains · {result.duplicates.metrics} Metrics
+          {result.created.confidenceEvents ? ` · ${result.created.confidenceEvents} confidence events initialized` : ""}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="outline"><Link href={firstSignal ? `/signal-inbox?signal=${encodeURIComponent(firstSignal)}` : "/signal-inbox"}>View Signals <ArrowRight className="size-4" /></Link></Button>
+          <Button asChild size="sm" variant="outline"><Link href={firstChain ? `/logic-chains?focus=${encodeURIComponent(firstChain)}` : "/logic-chains"}>View Logic Chains <ArrowRight className="size-4" /></Link></Button>
+          {result.reviewMatches.length ? <Button asChild size="sm" variant="outline"><a href="#match-review-queue">Review Matches <ArrowRight className="size-4" /></a></Button> : null}
+          <Button asChild size="sm" variant="outline"><Link href={firstChain ? `/committee?chain=${encodeURIComponent(firstChain)}` : "/committee"}>View Committee <ArrowRight className="size-4" /></Link></Button>
+        </div>
+        {result.entityResolutions.length ? (
+          <div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Entity resolution</div>
+            <div className="flex flex-wrap gap-2">
+              {result.entityResolutions.map((item) => (
+                <Badge key={`${item.canonicalName}-${item.resolutionStatus}`} variant={item.resolutionStatus === "VALIDATED" ? "secondary" : "outline"}>
+                  {item.canonicalName} · {item.tickers.join(", ") || item.resolutionStatus}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {result.warnings.length || result.errors.length ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-950">
+            {[...result.warnings, ...result.errors].map((warning) => <div key={warning}>• {warning}</div>)}
+          </div>
+        ) : null}
+        {result.reviewMatches.length ? <ReviewMatchQueue initialMatches={result.reviewMatches} onRefresh={onRefresh} /> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReviewMatchQueue({ initialMatches, onRefresh }: { initialMatches: ProcessSourceResponse["reviewMatches"]; onRefresh: () => Promise<unknown> }) {
+  const router = useRouter();
+  const [matches, setMatches] = useState(initialMatches);
+  const [busy, setBusy] = useState("");
+  const [message, setMessage] = useState<string>();
+
+  async function resolveMatch(match: ProcessSourceResponse["reviewMatches"][number], action: "attach" | "reject") {
+    if (busy || (action === "attach" && !match.candidateLogicChainId)) return;
+    setBusy(`${match.id}:${action}`);
+    setMessage(undefined);
+    try {
+      const response = action === "attach"
+        ? await fetch(`/api/research/logic-chains/${encodeURIComponent(match.candidateLogicChainId!)}/attach-signal`, {
+          method: "POST", headers: researchHeaders(), body: JSON.stringify({ signalId: match.signalId, relationType: "context" }),
+        })
+        : await fetch(`/api/research/matches/${encodeURIComponent(match.id)}`, {
+          method: "PATCH", headers: researchHeaders(), body: JSON.stringify({ action: "reject" }),
+        });
+      const payload = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? `${action === "attach" ? "Manual attach" : "Reject match"} failed.`);
+      setMatches((current) => current.filter((item) => item.id !== match.id));
+      setMessage(action === "attach" ? "Signal attached to the selected Logic Chain." : "Candidate rejected; Signal remains in Needs Review.");
+      await onRefresh();
+      router.refresh();
+    } catch (requestError) {
+      setMessage(requestError instanceof Error ? requestError.message : "Match review failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <div id="match-review-queue" className="scroll-mt-24 border-t pt-5" data-testid="match-review-queue">
+      <div className="flex items-center gap-2 text-sm font-semibold"><AlertTriangle className="size-4 text-amber-600" /> Logic Chain Review Queue</div>
+      <div className="mt-3 space-y-3">
+        {matches.length ? matches.map((match) => (
+          <div key={match.id} className="rounded-md border p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><div className="text-sm font-semibold">{match.signalTitle}</div><div className="mt-1 text-xs text-muted-foreground">Candidate: {match.candidateLogicChainTitle ?? "No eligible existing Chain"}</div></div>
+              <Badge variant="outline">Match {Math.round(match.matchScore * 100)}%</Badge>
+            </div>
+            <div className="mt-3 grid gap-3 text-xs sm:grid-cols-[1fr_auto]">
+              <div className="space-y-1 text-muted-foreground">{match.reasons.map((reason) => <div key={reason}>• {reason}</div>)}</div>
+              <div className="text-right text-muted-foreground">Auto attach ≥ {Math.round(match.autoAttachThreshold * 100)}%<br />Review ≥ {Math.round(match.reviewThreshold * 100)}%</div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => void resolveMatch(match, "attach")} disabled={!match.candidateLogicChainId || Boolean(busy)}>{busy === `${match.id}:attach` ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />} Manual Attach</Button>
+              <Button size="sm" variant="outline" onClick={() => void resolveMatch(match, "reject")} disabled={Boolean(busy)}>Reject Match</Button>
+            </div>
+          </div>
+        )) : <div className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">Review queue cleared.</div>}
+      </div>
+      {message ? <p className="mt-3 text-xs text-muted-foreground">{message}</p> : null}
+    </div>
+  );
+}
+
+function ResultMetric({ label, value }: { label: string; value: number }) {
+  return <div className="rounded-md bg-muted/35 p-3"><div className="text-2xl font-semibold text-primary">{value}</div><div className="mt-1 text-[11px] leading-4 text-muted-foreground">{label}</div></div>;
+}
+
+function researchHeaders() {
+  return { "content-type": "application/json", "x-worldmonitor-client": "research-tracking-v2" };
+}
+
+async function manualSourcePostId(sourceText: string) {
+  const normalized = sourceText.normalize("NFKC").toLowerCase().replace(/https?:\/\/\S+/g, " ").replace(/[^a-z0-9\u3400-\u9fff.=<>±%$]+/g, " ").trim();
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(normalized));
+  const hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
+  return `manual:${hash}`;
 }
 
 function AutomationMetric({ label, value }: { label: string; value: string | number }) {
