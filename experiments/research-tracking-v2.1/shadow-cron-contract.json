@@ -1,0 +1,9 @@
+{
+  "deploymentScope": "DEDICATED_SHADOW_ONLY",
+  "enabled": false,
+  "timezone": "UTC",
+  "schedule": "15 03 * * *",
+  "endpoint": "/api/shadow/replay",
+  "authorization": "Bearer ${SHADOW_REPLAY_SECRET}",
+  "notes": "Reference contract only. Not loaded by Production Vercel and not activated by this branch."
+}

@@ -1,6 +1,6 @@
 {
   "name": "worldmonitor",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -23,7 +23,12 @@
     "smoke:research:market": "node --import tsx scripts/smoke-test-live-market-data.ts",
     "e2e:research:staging": "node --import tsx scripts/run-research-staging-e2e.ts",
     "evaluate:research:v2": "node --import tsx scripts/evaluate-research-tracking-v2.ts",
-    "replay:signals:v1.8.2": "node experiments/signal-quality-v1.8.2/build-expanded-gold-dataset.mjs && node experiments/signal-quality-v1.8.2/grouped-cross-validation.mjs"
+    "replay:signals:v1.8.2": "node experiments/signal-quality-v1.8.2/build-expanded-gold-dataset.mjs && node experiments/signal-quality-v1.8.2/grouped-cross-validation.mjs",
+    "assert:safe-shadow": "node --import tsx scripts/shadow-cli.ts assert",
+    "migrate:shadow": "node --import tsx scripts/shadow-cli.ts migrate",
+    "validate:shadow:schema": "node --import tsx scripts/shadow-cli.ts validate",
+    "replay:shadow": "node --import tsx scripts/shadow-cli.ts replay",
+    "report:shadow": "node --import tsx scripts/shadow-cli.ts report"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.2",
