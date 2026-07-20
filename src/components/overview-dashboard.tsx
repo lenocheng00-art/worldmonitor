@@ -11,6 +11,7 @@ import {
   GitBranch,
   RadioTower,
   Shield,
+  WifiOff,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -21,8 +22,9 @@ import { ConfidenceBar } from "@/components/research-ui";
 import { macroRegime, researchStocks } from "@/lib/research-data";
 import { useDecisionLoop } from "@/lib/decision-loop-store";
 import { cn } from "@/lib/utils";
+import type { FutuAccountSnapshot, FutuAccountView } from "@/lib/futu-account";
 
-export function OverviewDashboard() {
+export function OverviewDashboard({ futuAccount }: { futuAccount: FutuAccountView }) {
   const { state } = useDecisionLoop();
   const { signals, committeeReports, backtestResults, logicChains, watchlist } = state;
   const topSignals = signals.slice(0, 3);
@@ -35,9 +37,24 @@ export function OverviewDashboard() {
   const pendingReviews = signals.filter((signal) => !signal.linkedCommitteeReportId).length;
   const waitingBacktests = committeeReports.filter((report) => !report.linkedBacktestId).length;
   const actionSignals = signals.filter((signal) => ["New", "Tracking", "Linked"].includes(signal.status)).slice(0, 3);
+  const criticalAlerts = futuAccount.alerts.filter((alert) => alert.severity === "CRITICAL" && alert.status === "ACTIVE");
 
   return (
     <div className="space-y-4">
+      {criticalAlerts.length ? (
+        <Card className="border-red-300 bg-red-50 text-red-950">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-700" />
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold">Critical account alert</div>
+              {criticalAlerts.slice(0, 2).map((alert) => (
+                <p key={alert.id} className="mt-1 text-sm leading-5">{alert.message}</p>
+              ))}
+              <p className="mt-2 text-xs text-red-800">Alert only — no order is submitted without the exact typed confirmation phrase.</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       <Card className="overflow-hidden border-primary/20">
         <CardHeader className="border-b bg-primary text-primary-foreground">
           <CardTitle className="flex items-center gap-2 text-lg text-primary-foreground">
@@ -74,30 +91,9 @@ export function OverviewDashboard() {
         </CardContent>
       </Card>
 
-      <Card className="hidden md:block xl:col-span-3">
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="size-4 text-amber-600" />
-            Market Risk Level
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5 pt-5">
-          <div>
-            <div className="text-3xl font-semibold">Moderate</div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-[62%] rounded-full bg-amber-500" />
-            </div>
-          </div>
-          <ul className="space-y-3 text-sm">
-            <RiskLine text="Long-end yields remain elevated" tone="negative" />
-            <RiskLine text="AI earnings revisions stay positive" tone="positive" />
-            <RiskLine text="Manufacturing momentum is soft" tone="negative" />
-          </ul>
-          <Button asChild variant="outline" size="sm"><Link href="/macro">Review asset impacts <ArrowRight className="size-4" /></Link></Button>
-        </CardContent>
-      </Card>
+      <FutuAccountRiskCard view={futuAccount} />
 
-      <Card className="xl:col-span-4">
+      <Card className="xl:col-span-5">
         <CardHeader className="border-b">
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -266,15 +262,83 @@ function OverviewMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RiskLine({ text, tone }: { text: string; tone: "positive" | "negative" }) {
+function FutuAccountRiskCard({ view }: { view: FutuAccountView }) {
+  const snapshot = view.snapshot;
+  const ram = snapshot?.positions.find((position) => position.code === "US.RAM" || position.code.endsWith(".RAM"));
+  const largest = snapshot?.positions.reduce<FutuAccountSnapshot["positions"][number] | null>((current, position) => {
+    if (!current) return position;
+    return (position.portfolioWeight ?? -1) > (current.portfolioWeight ?? -1) ? position : current;
+  }, null);
+  const critical = view.alerts.some((alert) => alert.severity === "CRITICAL" && alert.status === "ACTIVE");
+  const stateLabel = view.status === "connected" ? (critical ? "Critical" : "Connected") : "Disconnected / Stale";
+
   return (
-    <li className="flex items-start gap-2">
-      {tone === "positive" ? (
-        <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+    <Card className={cn("xl:col-span-7", critical && "border-red-300")}>
+      <CardHeader className="border-b">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            {view.status === "connected" ? <Shield className="size-4 text-primary" /> : <WifiOff className="size-4 text-muted-foreground" />}
+            Futu Account Risk
+          </CardTitle>
+          <Badge variant={critical ? "destructive" : "outline"}>{stateLabel}</Badge>
+        </div>
+      </CardHeader>
+      {!snapshot ? (
+        <CardContent className="space-y-3 pt-5">
+          <div className="text-lg font-semibold">No live account snapshot</div>
+          <p className="text-sm leading-6 text-muted-foreground">{view.error ?? "Start the localhost Bridge and Futu OpenD to load account data."}</p>
+          <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+            WorldMonitor will not substitute cached or mock values while the Bridge is disconnected.
+          </div>
+        </CardContent>
       ) : (
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+        <CardContent className="space-y-5 pt-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <OverviewMetric label="Total assets" value={formatMoney(snapshot.account.totalAssets, snapshot.account.currency)} />
+            <OverviewMetric label="Cash" value={formatMoney(snapshot.account.cash, snapshot.account.currency)} />
+            <OverviewMetric label="Securities value" value={formatMoney(snapshot.account.securitiesMarketValue, snapshot.account.currency)} />
+            <OverviewMetric label="Largest position" value={largest ? `${largest.code} ${formatPercent(largest.portfolioWeight)}` : "unavailable"} />
+          </div>
+          <div className="grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
+            <OverviewMetric label="RAM quantity" value={formatNumber(ram?.quantity)} />
+            <OverviewMetric label="RAM average cost" value={formatMoney(ram?.averageCost, ram?.currency ?? snapshot.account.currency)} />
+            <OverviewMetric label="RAM diluted cost" value={formatMoney(ram?.dilutedCost, ram?.currency ?? snapshot.account.currency)} />
+            <OverviewMetric label="RAM current price" value={formatMoney(ram?.currentPrice, ram?.currency ?? snapshot.account.currency)} />
+            <OverviewMetric label="RAM unrealized P&L" value={formatMoney(ram?.unrealizedPnl, ram?.currency ?? snapshot.account.currency)} />
+            <OverviewMetric label="RAM account weight" value={formatPercent(ram?.portfolioWeight)} />
+            <OverviewMetric label="Quote status" value={ram?.quoteStatus ?? "unavailable"} />
+            <OverviewMetric label="OpenD / updated" value={`${snapshot.freshness.openDConnected ? "Connected" : "Disconnected"} · ${formatTimestamp(snapshot.freshness.quotesFetchedAt)}`} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Account {snapshot.account.maskedAccountId} · Real account, read through the localhost server only. Average cost and diluted cost are shown separately.
+          </p>
+        </CardContent>
       )}
-      <span>{text}</span>
-    </li>
+    </Card>
   );
+}
+
+function formatMoney(value: number | null | undefined, currency: string) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "unavailable";
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(value);
+  } catch {
+    return `${currency} ${value.toFixed(2)}`;
+  }
+}
+
+function formatNumber(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "unavailable";
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(value);
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "unavailable";
+  return `${value.toFixed(2)}%`;
+}
+
+function formatTimestamp(value: string | null | undefined) {
+  if (!value) return "unavailable";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "unavailable" : date.toLocaleString();
 }

@@ -11,5 +11,12 @@ yarn-error.log*
 pnpm-debug.log*
 .DS_Store
 .vercel
+*.tsbuildinfo
 .env*
 !.env.local.example
+services/futu-bridge/.venv/
+services/futu-bridge/.pytest_cache/
+services/futu-bridge/**/__pycache__/
+services/futu-bridge/**/*.egg-info/
+services/futu-bridge/var/
+services/futu-bridge/.env

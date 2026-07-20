@@ -4,10 +4,13 @@ import { OverviewDashboard } from "@/components/overview-dashboard";
 import { PageHeader } from "@/components/page-header";
 import { DatabaseStatus } from "@/components/database-status";
 import { newsItems } from "@/lib/data";
+import { getFutuAccountView } from "@/lib/futu-account-provider";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const futuAccount = await getFutuAccountView();
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -19,7 +22,7 @@ export default function DashboardPage() {
         <DatabaseStatus />
       </div>
 
-      <OverviewDashboard />
+      <OverviewDashboard futuAccount={futuAccount} />
 
       <div className="hidden md:block">
         <MarketKline />

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "worldmonitor-futu-bridge"
+version = "0.1.0"
+description = "Local-only Futu OpenD account and restricted trading bridge for WorldMonitor"
+requires-python = ">=3.9"
+dependencies = [
+  "fastapi==0.128.8",
+  "futu-api==10.9.6908",
+  "pydantic-settings==2.11.0",
+  "uvicorn==0.39.0",
+]
+
+[project.optional-dependencies]
+test = [
+  "httpx==0.28.1",
+  "pytest==8.4.2",
+  "pytest-asyncio==1.2.0",
+]
+
+[project.scripts]
+futu-bridge = "futu_bridge.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
